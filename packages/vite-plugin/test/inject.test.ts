@@ -64,7 +64,8 @@ describe('transformIndexHtml', () => {
     expect(source).toContain('"accent":"#2C8A85"');
     expect(source).toContain('"scheme":"dark"');
     expect(source).toContain('"basePath":"/__annot"');
-    // TODO(ws-04): once @llm-ui-annotation/svelte/auto exists the module imports it instead of warning.
+    // The fixture root has no overlay installed, so the module warns; the import branch is
+    // covered by options.test.ts, which calls autoModuleSource directly.
     expect(source).toMatch(/@llm-ui-annotation\/svelte\/auto/);
   });
 });

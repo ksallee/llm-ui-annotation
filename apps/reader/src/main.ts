@@ -8,7 +8,6 @@ import { applyReaderTheme, loadPrefs, READER_ACCENT } from './theme.js';
 const meta = docMeta(document);
 applyReaderTheme(document, loadPrefs(window));
 
-// Synchronous so the overlay package's own deferred auto-mount finds this call first.
 const mounting = autoMount({
   accent: READER_ACCENT,
   scheme: 'auto',

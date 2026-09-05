@@ -50,13 +50,9 @@ selection, edit the document on disk and watch the anchor go `moved` then `exact
 
 ## Known gaps
 
-- **`@llm-ui-annotation/svelte`'s barrel is not side-effect free.** `index.ts` re-exports
-  `autoMount` from `auto.ts`, whose module body queues an auto-mount. A host that imports `mount`
-  and calls it after an `await` finds an overlay already mounted with empty options. The reader
-  works around it by calling `autoMount` synchronously in `main.ts`; the fix belongs in the package.
-- **`modern-screenshot` breaks Vite's import analysis when absent.** The optional peer is a dynamic
-  import in the overlay bundle, and dev-server import analysis fails on it with a 500 before the app
-  boots. `vite.config.ts` stubs it locally; the overlay or the Vite plugin should do this for every
-  host.
+See `docs/known-gaps.md` for the consolidated list. The reader's own:
+
 - The rail is English only; the prototype's French copy did not move over.
 - Multi-document sessions are out of scope: one `DOC` per dev server.
+- Draw mode saves strokes without a screenshot: the reader does not install the optional
+  `modern-screenshot` peer.

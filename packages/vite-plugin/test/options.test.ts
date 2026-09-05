@@ -99,4 +99,10 @@ describe('the injected module', () => {
     expect(source).toContain('console.warn');
     expect(source).not.toContain('import(');
   });
+
+  it('imports the overlay when it resolves', () => {
+    const source = autoModuleSource(resolveOptions({}, ROOT), true);
+    expect(source).toContain('import("@llm-ui-annotation/svelte/auto")');
+    expect(source).not.toContain('console.warn');
+  });
 });
