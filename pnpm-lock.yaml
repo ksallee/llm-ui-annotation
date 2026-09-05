@@ -39,6 +39,19 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@22.20.1)(happy-dom@18.0.1)
 
+  packages/cli:
+    dependencies:
+      '@llm-ui-annotation/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@llm-ui-annotation/vite-plugin':
+        specifier: workspace:*
+        version: link:../vite-plugin
+      vite:
+        specifier: ^7.3.6
+        version: 7.3.6(@types/node@22.20.1)
+
   packages/core: {}
 
   packages/svelte:

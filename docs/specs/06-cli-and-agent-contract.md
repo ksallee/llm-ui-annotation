@@ -8,14 +8,16 @@ Claude Code can run a shell command in the background and is re-invoked when it 
 
 ## Discovery
 
-`annot` finds `.annotations/` by walking up from `cwd` (or `--dir`). If `server.json` exists, its `pid` is alive, and `GET /__annot/health` answers within 500 ms, the CLI uses HTTP. Otherwise it reads and writes the files directly through core helpers (`readRoute`, `writeRoute`, `appendEvent`) and prints a one-line notice `(dev server not running, writing files directly)` to stderr.
+`annot` finds `.annotations/` by walking up from `cwd` (or `--dir`, or `ANNOT_DIR`). If `server.json` exists, its `pid` is alive, and `GET /__annot/health` answers within 500 ms with a matching `protocolVersion`, the CLI uses HTTP. Otherwise it reads and writes the files directly through core helpers (`readRoute`, `writeRoute`, `appendEvent`) and prints a one-line notice `(dev server not running, writing files directly)` to stderr. `--no-http` forces the file path.
+
+`reply` is the exception: no wire verb appends a message without a transition, so it always writes files. The plugin notices the external write and pushes `annot:route` to the overlay.
 
 ## Commands
 
 ```
 annot watch [--since <seq>|--from-now] [--timeout <sec>] [--route <path>] [--level compact|standard|detailed]
 ```
-Blocks until at least one `batch.sent`, `status.changed` to `acknowledged` by user (an answer), or `thread.message` by user (reopen/comment) arrives after the cursor. Waits 1.5 s after the first event to collect the rest of the batch, then prints the markdown from `renderBatchMarkdown` for each batch (answers and reopens are rendered as their own short sections) followed by a line `cursor: <seq>` and exits 0. On timeout exits 124 with no stdout. Cursor file `<dir>/.cursor-<agentName>` (default `agent`) is updated on exit so a plain `annot watch` in a loop never re-delivers; `--since` overrides, `--from-now` skips backlog. Default timeout 540 s (Claude Code's Bash tool caps at 600 s); the doc recommends `run_in_background`.
+Blocks until at least one `batch.sent`, `status.changed` to `acknowledged` by user (an answer), `status.changed` to `sent` by user from `review`/`approved` (a reopen), or `thread.message` by user arrives after the cursor. Events by the agent never wake it. Waits 1.5 s after the first event to collect the rest of the batch, then prints the markdown from `renderBatchMarkdown` for each batch (answers and reopens are rendered as their own short sections) followed by a line `cursor: <seq>` and exits 0. On timeout exits 124 with no stdout. Cursor file `<dir>/.cursor-<agentName>` (`--agent`, `ANNOT_AGENT`, default `agent`) is written when something was delivered, so a plain `annot watch` in a loop never re-delivers; `--since` overrides, `--from-now` skips backlog, `--no-cursor` leaves it alone. The 1.5 s collection window is `ANNOT_COLLECT_MS` for tests. Default timeout 540 s (Claude Code's Bash tool caps at 600 s); the doc recommends `run_in_background`.
 
 ```
 annot pending [--route <path>] [--level …]      everything in sent|acknowledged|question (grouped by route). Idempotent. Exit 0 even if empty.
@@ -31,7 +33,7 @@ annot init [--claude-md] [--gitignore]          adds .annotations/ to .gitignore
 annot doctor                                    checks dir, server, cursor, protocol version
 ```
 
-`<id>` accepts full ids, unique prefixes, or `#<number>` (with `--route` when ambiguous). All mutating commands print the resulting status line, e.g. `#4 → review (changed)`. Exit 2 on illegal transition with the allowed moves listed.
+`<id>` accepts full ids, unique prefixes, or `#<number>` (with `--route` when ambiguous). All mutating commands print the resulting status line, e.g. `#4 → review (changed)`; `reply` prints `#4 → acknowledged (comment)`. Exit 2 on illegal transition with the allowed moves listed, 124 on `watch` timeout, 1 on anything else.
 
 ## Markdown the agent reads
 
@@ -69,6 +71,6 @@ This project uses llm-ui-annotation. The user annotates the running UI in the br
 
 ## Acceptance criteria
 
-- Vitest: run the CLI as a child process against (a) a temp dir with fixture files and no server, (b) a live plugin server from spec 05. Cover every command, id resolution by prefix and `#number`, cursor persistence, `watch` waking on `batch.sent` within 2 s and on an answer, `watch` timeout exit code, `--json` shape, `init` idempotence (run twice → identical files).
+- Vitest: run the CLI against (a) a temp dir with fixture files and no server, (b) a stub of the spec 01 wire API, (c) a live plugin server from spec 05. Most cases call `run(argv, io)` in process for speed; a smaller suite spawns `dist/bin.js` to pin the exit codes. Cover every command, id resolution by prefix and `#number`, cursor persistence, `watch` waking on `batch.sent` within 2 s and on an answer, `watch` timeout exit code, `--json` shape, `init` idempotence (run twice → identical files).
 - `annot --help` fits on one screen and lists the verbs in lifecycle order.
 - README with the loop diagram and the CLAUDE.md section.
