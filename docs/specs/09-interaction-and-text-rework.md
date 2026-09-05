@@ -48,7 +48,10 @@ Tools carry number shortcuts `1`–`6` while Draw is active, shown in their tool
 
 ## 5. Multi-block highlight
 
-Today a selection crossing a paragraph boundary is refused. That is backwards: prose runs across blocks and a reader selects a thought, not a `<p>`. The agent only needs the text and roughly where it is.
+Today a selection crossing a paragraph boundary is refused with the chip reading "select within one
+paragraph". **That message and the restriction behind it are removed.** Prose runs across blocks and
+a reader selects a thought, not a `<p>`; the agent only needs the text and roughly where it is. There
+is no case where a user should be told to redo a selection they made correctly.
 
 Change `describeRange` so that when a range spans several blocks it returns a `TextTarget` whose `container` is the **nearest common block ancestor** (still never `body` or `html`), with `quote`, `prefix`, `suffix`, `start` and `end` computed against that container's normalized text exactly as now. The existing re-anchor ladder then works unchanged — it never assumed the container held only one block.
 
@@ -76,7 +79,34 @@ Eight handles plus drag-to-move, minimum 40×40, live-updating the intersecting 
 
 The dot beside Settings has a tooltip and nothing else, so it reads as decoration. Show it only when the state is not `connected`, and give it a visible label in the panel header instead: `dev server not reachable` / `polling`. When connected, no dot.
 
-## 8. Keycaps
+## 8. Panel rows: acting on a note without expanding it
+
+A collapsed row shows the note but hides every action, so doing anything means expanding first. The
+common actions belong on the row.
+
+- Each row carries its primary action inline, chosen by status: `review` → **Approve**, `question` →
+  **Answer**, `draft` → **Send**, `approved` → **Reopen**. One button, always visible, never behind a
+  disclosure. A `⋯` menu holds the rest (Edit, Delete, Reopen, Locate).
+- Expanding still reveals the full thread and the secondary actions; it is no longer the only way to
+  act.
+- Hovering a row highlights its target on the page, so the row can be acted on without expanding it
+  and losing the connection to what it points at.
+
+## 9. Multi-select and bulk actions
+
+Approving twelve notes one at a time is the normal case after an agent run, and "Approve all in
+review" is too blunt for it.
+
+- A checkbox per row, appearing on hover and staying once anything is selected. `⇧`-click extends a
+  range, `⌘`/`Ctrl`-click toggles one, `⌘A` selects everything the current filter shows.
+- With a selection, the panel footer becomes a bulk bar: **Approve (n)** · **Reopen (n)** · **Send
+  (n)** · **Delete (n)**, each enabled only when every selected note allows that transition, with the
+  count of those that do. Illegal combinations disable rather than partially apply.
+- One undo toast for the whole batch, 6 s, same as Approve all today.
+- Selection is per route, clears on filter change, and is announced in the live region
+  (`3 annotations selected`).
+
+## 10. Keycaps
 
 Shortcut keycaps in tooltips render at 10 px mono at 0.6 opacity — too small and too faint to read,
 which defeats the point of moving discoverability into tooltips and the palette. They are
@@ -84,7 +114,7 @@ which defeats the point of moving discoverability into tooltips and the palette.
 everywhere a key is shown: tooltips, the shortcuts sheet, the popup's primary button, and the
 palette's right-hand column.
 
-## 9. Icons
+## 11. Icons
 
 `gear` was a circle with eight straight radiating spokes, which reads as a sun; fixed already. Audit the rest at 20 px against their labels — `locate` has the same circle-plus-spokes shape, and the Caption tool currently uses a speech bubble, which is a comment, not a text label.
 
@@ -95,6 +125,11 @@ palette's right-hand column.
 - Rebinding the palette key in Settings survives a reload.
 - The drawing bar is present only in Draw mode; the pill never shows drawing tools.
 - A selection spanning two paragraphs produces one annotation whose `blocks` has two entries and whose highlight covers both; it re-anchors `exact` after a reload and `moved` after a paragraph is inserted above.
+- A selection spanning a paragraph, a blockquote and a third paragraph works the same way.
+- The string "select within one paragraph" does not appear anywhere in the tree.
 - A selection spanning the whole `body` is refused with a message.
+- Every row in the panel shows its primary action while collapsed, and it performs the transition without expanding the row.
+- Selecting three `review` rows and pressing Approve moves all three and offers one undo toast; a mixed selection disables the actions that would be illegal.
+- Keycaps render at 12 px and are legible in both schemes.
 - Dragging a region handle changes `PageTarget.region` and the captured element list; **Fit to drawing** restores it.
 - Every icon is recognisable at 20 px next to its label; no glyph is reused for two meanings.
