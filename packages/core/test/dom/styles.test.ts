@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 import { describe, expect, it } from 'vitest';
 import { computedStyles, formatStyleValue } from '../../src/dom/styles.js';
-import { toOklch } from '../../src/dom/oklch.js';
+import { toOklch } from '../../src/theme/color.js';
 import { loadFixture } from './helpers.js';
 
 describe('toOklch', () => {
