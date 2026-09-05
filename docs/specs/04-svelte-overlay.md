@@ -1,10 +1,10 @@
 # 04 · Svelte overlay
 
-Owner: `packages/svelte`. Svelte 5, runes, compiled as a custom element `<annot-overlay>` with an open shadow root so host CSS cannot leak in and our CSS cannot leak out. Also export a plain component `Annotator.svelte` and a `mount(options)` function for hosts that prefer that. Peer deps: `svelte ^5`. Optional peer: `modern-screenshot` (page-mode screenshots).
+Owner: `packages/svelte`. Svelte 5, runes. `<annot-overlay>` is a hand-written custom element that mounts `Annotator.svelte` into an open shadow root, rather than a component compiled with `customElement: true`: the overlay needs to own the shadow root, the host element's inline style and the props, and that stays true in any bundler. Also export the plain component `Annotator.svelte` and a `mount(options)` function. Peer deps: `svelte ^5`. Optional peer: `modern-screenshot` (page-mode screenshots).
 
 ## Mounting
 
-- Auto: the Vite plugin injects `import '@llm-ui-annotation/svelte/auto'` in dev, which appends `<annot-overlay>` to `body` once `DOMContentLoaded`. Attributes: `accent`, `scheme`, `route-key` (optional override of `location.pathname`), `send-mode` default.
+- Auto: the Vite plugin sets `globalThis.__ANNOT_OPTIONS__` (and optionally `globalThis.__ANNOT_HOT__ = import.meta.hot`), then imports `@llm-ui-annotation/svelte/auto`, which appends `<annot-overlay>` to `body` once `DOMContentLoaded`. A host that imports the module itself calls `autoMount(options)` synchronously and wins. Attributes: `accent`, `scheme`, `density`, `route-key` (optional override of `location.pathname`), `send-mode`, `base-path`, `mode`.
 - Manual: `<Annotator accent="#2C8A85" />` anywhere in the host app, dev only (`import.meta.env.DEV`).
 - Transport: `fetch` to `/__annot/*` and `import.meta.hot.on('annot:*')` when available; else poll `/__annot/events?since=` every 2 s. The overlay never writes localStorage for annotations, only for UI prefs (`annot:prefs`): pill position, scheme override, send mode, detail level, last mode, panel open.
 
@@ -43,7 +43,7 @@ Tooltips show label and shortcut. The pill is draggable by the grip at its left 
 ## Modes
 
 ### Element mode
-Hover shows a 2 px outline and a small label chip (`button "Save"`) above the element; the label is `describeElement(el, {styles:false}).name`. Click opens the popup anchored to the element. Drag from empty space draws a marquee; elements whose rect is ≥ 50% inside are selected (outlined) and one popup opens for the group. `⇧` extends the selection. Ignore the overlay host, `html`, `body`.
+Hover shows a 2 px outline and a small label chip (`button "Save"`) above the element; the label is `describeName(el)` from `core/dom`. Click opens the popup anchored to the element. Drag from empty space draws a marquee: the outermost elements at least 50% inside are selected, then the selection steps down one level for as long as a single container is tiled (≥ 70% of its area) by children that are ≥ 90% inside, so a box round a card grid selects the cards and a box round one card selects the card. `⇧` extends the selection and shows an Annotate chip. Ignore the overlay host, `html`, `body`.
 
 ### Text mode
 Native selection stays enabled on the host (capture layer uses `pointer-events: none` in this mode and listens to `selectionchange` on the document). When a non-collapsed selection ends (mouseup / keyup), if it is inside one block container, show an **Annotate** chip at the end of the selection; click or `⌘↵` opens the popup with the quote shown. Multi-block selection shows the chip disabled with "select within one paragraph". Existing text annotations are highlighted; hovering shows the marker and the comment card.
@@ -104,7 +104,7 @@ Send mode: batch / immediate. Scheme: auto / light / dark. Accent: a swatch row 
 
 ## State
 
-A single `AnnotState` class using `$state` for: `annotations` (Map by id, hydrated from the route file then patched by ws events), `mode`, `drafts` derived, `pendingDrawing`, `selection`, `hover`, `popup`, `panel`, `prefs`, `theme`, `connection` (`connected | polling | offline`). Server events win over local optimistic state; keep an `optimistic` set of ids to reconcile. Offline (no `/__annot/health`): the toolbar shows a muted dot and annotations are kept in memory with a banner "dev server not reachable".
+A single `AnnotState` class using `$state` for: `annotations` (a `SvelteMap` by id, hydrated from the route file then patched by ws events), `mode`, `drafts` derived, `drawing`, `selection`, `hover`, `popup`, `panel`, `prefs`, `connection` (`connected | polling | offline`). The theme lives on the shadow root as tokens, not in the state. Server events win over local optimistic state; keep an `optimistic` set of ids to reconcile. Offline (no `/__annot/health`): the toolbar shows a muted dot and annotations are kept in memory with a banner "dev server not reachable".
 
 ## Accessibility
 
@@ -113,6 +113,6 @@ Every control has a label. Focus rings use `--annot-accent-line`. Popup and pane
 ## Acceptance criteria
 
 - Storybook-free: `packages/svelte/dev/` has a Vite page with the demo host markup and a mock `/__annot` middleware (or points at `apps/demo`). Every screen above is reachable there.
-- Unit tests (vitest + happy-dom) for `AnnotState` reconciliation, keyboard dispatch rules, marker placement math, rect merging for text highlights.
+- Unit tests (vitest + happy-dom) for `AnnotState` reconciliation, keyboard dispatch rules, marker placement math, re-anchoring states, and rect merging for text highlights.
 - No `querySelector` into the host that sets attributes or classes; grep-able rule enforced by a lint script `scripts/no-host-mutation.mjs` that fails on `classList.add|setAttribute|surroundContents|innerHTML =` used on anything outside the shadow root.
 - The overlay renders correctly on a host with aggressive global CSS (`* { all: unset }` fixture) and on a `dark` host with a light accent.

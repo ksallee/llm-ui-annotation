@@ -10,8 +10,8 @@ Both reference tools let you pick a "marker color" and then paint one or two thi
 
 ```ts
 export interface ThemeInput {
-  accent: string;                 // any CSS color; default oklch(0.62 0.16 250)
-  scheme: 'light' | 'dark' | 'auto';
+  accent?: string;                // any CSS color; default oklch(0.62 0.16 250)
+  scheme?: 'light' | 'dark' | 'auto';    // default auto
   density?: 'compact' | 'comfortable';   // default comfortable
   radius?: number;                // px, default 10
   font?: string;                  // default system-ui stack
@@ -23,7 +23,7 @@ The host can set the accent three ways, in this precedence: component prop `acce
 
 ## Color math (core, no deps)
 
-Implement `parseColor(css): Oklch | null` (hex 3/4/6/8, `rgb()`, `hsl()`, `oklch()`, `oklab()`, the 148 named colors) and `toOklch(css): string`, `oklch(l, c, h, alpha?)`, `clampToGamut(oklch): Oklch` (reduce chroma until in sRGB), `contrast(a, b): number` (WCAG 2.x on sRGB). Tests against known pairs (`#ff0000` → `oklch(0.628 0.258 29.23)`, etc., tolerance 0.005).
+Implement `parseColor(css): Oklch | null` (hex 3/4/6/8, `rgb()`, `hsl()`, `oklch()`, `oklab()`, the 148 named colors) and `toOklch(css): string`, `oklch(l, c, h, alpha?)`, `clampToGamut(oklch): Oklch` (reduce chroma until in sRGB), `contrast(a, b): number` (WCAG 2.x on sRGB, either argument a CSS string or an `Oklch`). Tests against known pairs (`#ff0000` → `oklch(0.628 0.258 29.23)`, etc., tolerance 0.005).
 
 ## Derived palette
 
@@ -33,8 +33,8 @@ Neutrals are *tinted*: hue `H`, chroma `0.008` (light) or `0.012` (dark), so a w
 
 | Token | Light | Dark |
 |-------|-------|------|
-| `--annot-accent` | accent, clamped | accent, L raised to ≥ 0.72 |
-| `--annot-accent-ink` | white or `oklch(0.2 0 0)` by contrast ≥ 4.5 | same rule |
+| `--annot-accent` | accent, clamped, L capped at 0.72 | accent, clamped, L raised to ≥ 0.72 |
+| `--annot-accent-ink` | white or `oklch(0.08 0.01 H)`, whichever contrasts more | same rule |
 | `--annot-accent-soft` | accent at L 0.94, C×0.35 | L 0.28, C×0.5 |
 | `--annot-accent-line` | accent at L 0.72, C×0.8 | L 0.6 |
 | `--annot-surface` | `oklch(0.99 0.008 H)` | `oklch(0.18 0.012 H)` |
@@ -42,10 +42,18 @@ Neutrals are *tinted*: hue `H`, chroma `0.008` (light) or `0.012` (dark), so a w
 | `--annot-surface-3` | L 0.93 | L 0.27 |
 | `--annot-ink` | `oklch(0.2 0.01 H)` | `oklch(0.95 0.008 H)` |
 | `--annot-ink-2` | L 0.45 | L 0.72 |
-| `--annot-ink-3` | L 0.62 | L 0.55 |
+| `--annot-ink-3` | L 0.51 | L 0.66 |
 | `--annot-line` | L 0.88, C 0.012 | L 0.32 |
 | `--annot-shadow` | `0 8px 24px oklch(0.2 0.02 H / 0.18)` | `0 8px 24px oklch(0 0 0 / 0.5)` |
 | `--annot-scrim` | `oklch(0.2 0.02 H / 0.35)` | `oklch(0 0 0 / 0.55)` |
+| `--annot-color-scheme` | `light` | `dark` |
+
+Three cells are not the arithmetic they look like. `--annot-accent-ink` is near-black rather than
+`oklch(0.2 0 0)`: with a Y of 0.008 the better of black-or-white bottoms out at 4.26 for a mid-lightness
+accent, so no ink choice clears 4.5; at L 0.08 the floor is 4.56. `--annot-ink-3` moves off L 0.62 / 0.55
+for the same reason — on `--annot-surface-3` those give 2.94 and 3.10. And the accent's lightness is
+capped at 0.72 in light, mirroring the dark floor, so a near-white accent does not disappear into the
+surface.
 
 The **toolbar pill** is inverted relative to the scheme (dark pill on a light page, as in agentation; light pill on a dark page). Tokens `--annot-pill`, `--annot-pill-ink`, `--annot-pill-hover`, `--annot-pill-active` use the opposite scheme's surface/ink recipe. Popups and the panel use the same scheme as the page.
 
@@ -63,20 +71,30 @@ Semantic hues are fixed but take L and C from the accent, so they read as one fa
 | `acknowledged` | `H`, solid, slow 2 s pulse on the marker | the agent is on it |
 | `question` | 75 (amber) | needs the user |
 | `review` | 150 (green), thin | calm, waiting for approve |
-| `approved` | none | no highlight, panel row muted |
+| `approved` | neutral, ink-3 | no highlight, panel row muted |
 | `lost` anchor | neutral ink-3, dotted | |
 
-For each: `--annot-<name>` (line/marker color, L 0.55 light / 0.75 dark), `--annot-<name>-fill` (highlight fill, alpha 0.18 light / 0.28 dark), `--annot-<name>-ink` (text on fill). Highlights on text use `fill` only; element outlines use `line` 2 px + `fill` at alpha 0.08.
+For each: `--annot-<name>` (line/marker color, L 0.55 light / 0.75 dark), `--annot-<name>-fill` (highlight
+fill, alpha 0.18 light / 0.28 dark), `--annot-<name>-wash` (the same color at alpha 0.08 light / 0.12 dark),
+`--annot-<name>-ink` (text on the solid color). Highlights on text use `fill` only; element outlines use the
+line 2 px plus `wash`. The drawing palette is `--annot-stroke-1` … `--annot-stroke-5` (`H`, `H+40`, `H-40`,
+`H+180`, neutral ink).
 
-All computed once per theme change and written as CSS custom properties on the overlay's shadow root host. Export `computeTheme(input, prefersDark): Record<TokenName, string>` and `themeToCss(tokens): string`.
+All computed once per theme change and written as CSS custom properties on the overlay's shadow root host.
+Export `computeTheme(input, prefersDark, prefersReducedMotion?): Record<TokenName, string>` and
+`themeToCss(tokens, selector?): string`.
 
 ## Type, spacing, shape
 
 - Font: `--annot-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`; mono `ui-monospace, SFMono-Regular, Menlo, monospace` for selectors and quotes.
-- Sizes: 11 / 12 / 13 / 15 px. Body 13. Selectors in mono 11.5.
-- Spacing scale 4 8 12 16 24. `compact` density multiplies by 0.8.
-- Radius: `--annot-radius` 10, pill 999, small controls 6, markers 999.
-- Motion: 120 ms for hover, 200 ms `cubic-bezier(.2,.8,.2,1)` for panels/popups entering, exits 120 ms. Respect `prefers-reduced-motion`: no pulses, no slides.
+- Sizes: 11 / 12 / 13 / 15 px (`--annot-text-xs` … `-lg`). Body 13. Selectors in mono 11.5 (`--annot-text-mono`).
+- Spacing scale 4 8 12 16 24 (`--annot-space-1` … `-5`). `compact` density multiplies those and the chrome
+  heights (`--annot-pill-h` 44, `--annot-control-h` 36) by 0.8, rounded. `--annot-marker-size` 22,
+  `--annot-panel-w` and `--annot-popup-w` 360 do not scale.
+- Radius: `--annot-radius` 10, `--annot-radius-pill` 999, `--annot-radius-sm` 0.6× the radius, `--annot-radius-marker` 999.
+- Motion: `--annot-motion-fast` 120 ms for hover, `--annot-motion-enter` 200 ms on `--annot-ease`
+  `cubic-bezier(.2,.8,.2,1)` for panels/popups, `--annot-motion-exit` 120 ms. Under `prefers-reduced-motion`
+  every duration is 0 ms: no pulses, no slides.
 
 ## Visual language (borrowed from agentation, adapted)
 
@@ -89,5 +107,5 @@ All computed once per theme change and written as CSS custom properties on the o
 ## Deliverables
 
 - `core/theme`: color math, `computeTheme`, `themeToCss`, token name union, with tests (contrast of every ink on its surface ≥ 4.5 in both schemes for six sample accents: teal, purple, orange, near-gray, very dark, very light).
-- `svelte/src/theme`: `applyTheme(host: HTMLElement, input)` that reads the host document's hints and sets the properties on the shadow host; re-applies on `prefers-color-scheme` change and when the host's `--annot-accent` changes (poll on `animationframe` only while the overlay is active, or observe `style` attribute on `:root`).
-- `docs/design/theme-sheet.html`: a static page that renders every token and every status/mode swatch for the six sample accents in both schemes. This is how we review the palette without running the app.
+- `svelte/src/theme`: `applyTheme(host: HTMLElement, input)` that reads the host document's hints and sets the properties on the shadow host, returning a handle with `tokens`, `update()` and `destroy()`; re-applies on `prefers-color-scheme` and `prefers-reduced-motion` change and when the host's `--annot-accent` changes, by observing the `style` and `class` attributes of `:root` and `body`.
+- `docs/design/theme-sheet.html`: a static page that renders every token and every status/mode swatch for the six sample accents in both schemes. This is how we review the palette without running the app. Generated by `docs/design/theme-sheet.mjs`, never edited by hand.

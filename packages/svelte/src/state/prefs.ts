@@ -1,6 +1,5 @@
 import type { Mode } from '@llm-ui-annotation/core';
-import type { Corner, DetailLevel, MarkerVisibility, SendMode } from '../options.js';
-import type { Density, SchemeOption } from '../theme/index.js';
+import type { Corner, Density, DetailLevel, MarkerVisibility, SchemeOption, SendMode } from '../options.js';
 
 export const PREFS_KEY = 'annot:prefs';
 

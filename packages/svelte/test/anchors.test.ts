@@ -97,13 +97,13 @@ describe('re-anchoring', () => {
     expect(state.anchors.get('T')?.state).toBe('exact');
   });
 
-  it('stays exact when prefix and suffix still bracket the quote after an insertion', () => {
+  it('reports moved after an insertion before the quote', () => {
     document.body.innerHTML =
       '<main><p class="lede">Some new sentence first. Cancel anytime, no questions asked.</p></main>';
     const state = make();
     state.applyLocal(annotation({ id: 'T', mode: 'text', status: 'sent', target: textTarget() }));
     state.reanchor();
-    expect(state.anchors.get('T')?.state).toBe('exact');
+    expect(state.anchors.get('T')?.state).toBe('moved');
   });
 
   it('reports moved when only the head of the quote survives', () => {

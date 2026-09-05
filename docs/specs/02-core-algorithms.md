@@ -10,8 +10,8 @@ Preference ladder, stop at the first that is unique in `el.getRootNode()`:
 
 1. `#id` when the id is not numeric-looking and not generated (`/^(svelte-|radix-|headlessui-|:r|_|__)/`, or containing 6+ consecutive digits/hex).
 2. `[data-testid=…]`, `[data-test=…]`, `[data-cy=…]`, `[data-annot-id=…]`.
-3. `tag[name=…]`, `tag[aria-label=…]`, `a[href=…]` (path only), `img[alt=…]`, `input[type=…][placeholder=…]`.
-4. `tag.class1.class2` using at most two stable classes. A class is unstable if it matches `/^(svelte-[a-z0-9]+|css-[a-z0-9]+|sc-|_[a-z0-9]{5,}|[a-z]+-[0-9a-f]{5,}$|[A-Za-z]+__[a-z0-9]{5,})/` or is longer than 40 chars, or is purely utility (Tailwind heuristics: contains `:` or `[` or `/`, or matches `/^(p|m|px|py|mx|my|w|h|gap|text|bg|flex|grid|items|justify|rounded|border|shadow|font|leading|tracking)-/`).
+3. `tag[name=…]`, `tag[aria-label=…]`, `a[href=…]` (exact for a plain path, `a[href*=…]` on the path when the href is absolute or carries a query), `img[alt=…]`, `input[type=…][placeholder=…]`.
+4. `tag.class1.class2` using at most two stable classes. A class is unstable if it matches `/^(svelte-[a-z0-9]+|css-[a-z0-9]+|sc-|_[a-z0-9]{5,}|[a-z]+-[0-9a-f]{5,}$|[A-Za-z]+__[a-z0-9]{5,})/` or is longer than 40 chars, or is purely utility (Tailwind heuristics: contains `:` or `[` or `/`, matches `/^(p|m|px|py|mx|my|w|h|gap|text|bg|flex|grid|items|justify|rounded|border|shadow|font|leading|tracking)-/`, or is one of the bare utility words `flex grid block inline hidden border rounded shadow container absolute relative fixed static sticky truncate italic underline uppercase lowercase capitalize antialiased`).
 5. Walk up: `parentSelector > tag:nth-of-type(n)`, where `parentSelector` is computed recursively with the same ladder, capped at 5 levels. Prefer `:nth-of-type` over `:nth-child`.
 6. Last resort: full path from `body` with `:nth-of-type`, stored as the last fallback.
 
@@ -33,13 +33,15 @@ Shadow DOM: if `el` is inside an open shadow root, produce `hostSelector >>> inn
 - text-ish (`p h1-6 span a li label td th button input`): `color font-family font-size font-weight line-height letter-spacing text-align text-transform`
 - box (all): `display position width height padding margin border-radius border background-color box-shadow opacity gap`
 - layout containers (`display` flex/grid): add `flex-direction align-items justify-content grid-template-columns`
-Colors are reported as `oklch()` strings via `toOklch()` from `core/theme` so the agent gets perceptual values, with the original value in parentheses when it was a named color or hex. Numbers rounded to 2 decimals. Max 20 entries.
+Colors are reported as `oklch()` strings via `toOklch()` from `core/theme` so the agent gets perceptual values, with the original value in parentheses when it was a named color or hex. Numbers rounded to 2 decimals. Max 20 entries. The UA default is read from a hidden probe element of the same tag appended to `body` and removed again, cached per document and tag; `width` and `height` are always reported.
 
 `context`: `name` of parent element, previous element sibling, next element sibling (nulls allowed). Skip the overlay host element (`annot-overlay`) and `script/style`.
 
 Also export `resolveSelector(root, selector): Element | null` (handles `>>>`) and `findElementsInRect(doc, rect, opts): ElementRef[]` for page mode: elements whose rect intersects `rect` by ≥ 30% of their own area, excluding the overlay host and its descendants, `html`, `body`, elements smaller than 8×8 or larger than 90% of the region unless nothing else matches; sort by intersection area desc; dedupe ancestors that add nothing (if a child covers ≥ 80% of the parent's intersection, drop the parent); cap at 12; compact (no styles).
 
-## 2.2 Text anchoring → `describeRange(range): TextTarget` and `anchorText(doc, target): { range: Range; state: 'exact'|'moved' } | null`
+## 2.2 Text anchoring → `describeRange(range): DescribeRangeResult` and `anchorText(doc, target): { range: Range; state: 'exact'|'moved' } | null`
+
+`describeRange` returns `{ ok: true; target: TextTarget }` or `{ ok: false; reason: 'empty' | 'multi-block' | 'no-container' }`, so the refusal reason travels with the refusal. `prefix` and `suffix` are 32 normalized characters.
 
 Normalization for `quote`, `prefix`, `suffix`, offsets: collapse runs of whitespace to one space, trim; offsets are computed against the normalized `textContent` of the container. Provide `normalize(text): { text, map: (normIndex) => rawIndex }` so a normalized offset maps back to a DOM position.
 
@@ -47,21 +49,23 @@ Container: the nearest ancestor of the range's common ancestor that is a block-l
 
 Re-anchor ladder (matches the reader's, named states):
 1. Resolve container by `selector`, then `fallbacks`. Normalize its text.
-2. `exact`: `text.slice(start, end) === quote`.
-3. `exact`: search `prefix + quote + suffix`, then `quote` with the occurrence whose index is closest to `start`.
-4. `moved`: search the first 30 chars of `quote` (if ≥ 12 chars) near `start`; extend to `quote.length`, clamped.
-5. `moved`: same searches across all elements matching `container.tag` in the document when the container itself was not found.
+2. `text.slice(start, end) === quote`.
+3. Search `prefix + quote + suffix`, then `quote`, with the occurrence whose index is closest to `start`.
+4. Search the first 30 chars of `quote` (if ≥ 12 chars) near `start`; extend to `quote.length`, clamped.
+5. The same searches across every element matching `container.tag` in the document, when the container was not found *or* held no match — a fallback selector can resolve to the wrong element after a re-render.
 6. `null` → the overlay shows the annotation as `lost` in the panel with the quote, no highlight.
+
+The state is `exact` when the quote matched verbatim at the recorded offsets in the resolved container, and `moved` in every other hit, including an exact text match at a shifted offset.
 
 Return DOM `Range` built from the normalized offsets via `map`. Export `rangeRects(range): Rect[]` (document coords, merged per line: adjacent rects on the same line with ≤ 2 px gap are unioned) for drawing overlay highlights.
 
 ## 2.3 Page-mode helpers → `strokeBounds(strokes, padding = 24): Rect`, `renderStrokes(ctx, strokes, origin, scale)`
 
-Canvas 2D drawing of strokes for compositing onto the screenshot. Brush uses quadratic smoothing between points; arrow has a filled triangular head sized `3 × width`; label uses the accent-derived color, `size` px system-ui font, 4 px padded pill background. Colors passed through as given. Deterministic so the e2e test can snapshot.
+Canvas 2D drawing of strokes for compositing onto the screenshot. `origin` is `{ x, y }`, the document coordinate the canvas top-left sits at. Brush uses quadratic smoothing between points; arrow has a filled triangular head sized `3 × width`; a label's `at` is the top-left of a 4 px padded pill filled with the stroke color, text in `size` px system-ui over a readable ink. Text width is approximated as `length × size × 0.6` rather than measured, so `strokeBounds` and `renderStrokes` agree and neither needs a live context. Colors passed through as given. Deterministic so the e2e test can snapshot.
 
 ## 2.4 Screenshot capture → `captureRegion(doc, rect, strokes, opts): Promise<Blob | null>`
 
-Lives in core but takes an injected `domToCanvas` function (from `modern-screenshot`, an optional peer of `packages/svelte`, not of core) so core stays dep-free. Algorithm as in agentation's `screenshot.ts` but our own code: hide the overlay host, pick the smallest element covering ≥ 90% of the region (`elementsFromPoint` at the center), `domToCanvas(target, { scale: min(2, dpr), timeout: 5000 })`, crop to the region + padding, cap the longest side at 1600 px, composite strokes with `renderStrokes`, `toBlob('image/png')`. Return `null` on any failure; the caller falls back to strokes-only via `renderStrokes` on a light background. Restore overlay visibility in `finally`.
+Lives in core but takes an injected `domToCanvas` function (from `modern-screenshot`, an optional peer of `packages/svelte`, not of core) so core stays dep-free. Algorithm as in agentation's `screenshot.ts` but our own code: hide the overlay host, pick the smallest element covering ≥ 90% of the region (`elementsFromPoint` at the center, or a scan of `body`'s descendants where that API is missing), `domToCanvas(target, { scale: min(2, dpr), timeout: 5000 })`, crop to the region + padding, cap the longest side at 1600 px, composite strokes with `renderStrokes`, `toBlob('image/png')`. Return `null` on any failure; the caller falls back to strokes-only via `renderStrokes` on a light background. Restore overlay visibility in `finally`.
 
 ## 2.5 Freeze → `freezeAnimations(doc): () => void`
 
@@ -75,3 +79,7 @@ Inject a `<style data-annot-freeze>` pausing `animation-play-state` and disablin
 - Text anchoring tests: exact, prefix/suffix disambiguation of a repeated quote, moved after an insertion before the quote, moved after an edit inside the quote, lost after deletion, container re-found via fallbacks after its class changed, multi-block refusal.
 - `findElementsInRect` on a fixture with a card grid returns the cards and the heading, not `body` or the tiny icons.
 - Stroke rendering snapshot test with a fixed set of strokes rendered to a `canvas` (node-canvas or a stub that records calls; recording calls is acceptable).
+
+## Notes
+
+happy-dom has no layout: `getBoundingClientRect` and `Range.getClientRects` return zeros, so the fixtures carry `data-rect` attributes the test helper installs as stub rects, and rect merging is tested on its own. `src/dom/oklch.ts` is the single import site for `toOklch` from `core/theme`.

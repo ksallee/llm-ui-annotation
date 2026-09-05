@@ -71,27 +71,23 @@
     const node = root?.getRootNode();
     return node instanceof ShadowRoot ? (node.host as HTMLElement) : root;
   });
-  const ctx = $derived({ host });
   const painted = $derived(supportsHighlights(annot.doc));
   const hovered = $derived(annot.hoverCard ? annot.annotations.get(annot.hoverCard) : null);
 
   $effect(() => {
     if (!root) return;
-    const theme = applyTheme(
-      root,
-      {
-        accent: annot.prefs.accent ?? merged.accent ?? '',
-        scheme: annot.prefs.scheme ?? merged.scheme ?? 'auto',
-        density: annot.prefs.density,
-      },
-      annot.doc,
-    );
+    const accent = annot.prefs.accent ?? merged.accent;
+    const theme = applyTheme(root, {
+      ...(accent ? { accent } : {}),
+      scheme: annot.prefs.scheme ?? merged.scheme ?? 'auto',
+      density: annot.prefs.density,
+    });
     annot.palette = drawingPalette(theme.tokens);
     annot.accentSuggestions = accentSuggestions(theme.tokens);
     if (!annot.drawColor) annot.drawColor = annot.palette[0] ?? '';
     const dropStyle = ensureHighlightStyle(annot.doc, theme.tokens);
     return () => {
-      theme.dispose();
+      theme.destroy();
       dropStyle();
       clearHighlights(annot.doc);
     };
@@ -104,7 +100,7 @@
 
   $effect(() => watchViewport(annot));
 
-  $effect(() => bindKeys(annot, host, { commit: () => primaryAction(annot, ctx) }));
+  $effect(() => bindKeys(annot, host, { commit: () => primaryAction(annot) }));
 
   $effect(() => freezeWhile(annot, annot.frozen));
 
@@ -240,7 +236,7 @@
     {/if}
 
     {#if annot.popup}
-      <Popup {annot} oncommit={() => void commitPopup(annot, ctx)} />
+      <Popup {annot} oncommit={() => void commitPopup(annot)} />
     {/if}
 
     {#if annot.sendOpen}

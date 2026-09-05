@@ -7,7 +7,10 @@ function truncate(text: string, max: number): string {
 
 /** `button "Save"`, or the selector when the element has no name. */
 export function elementLabel(el: ElementRef): string {
-  return el.name ? `${el.tag} "${truncate(el.name, 40)}"` : el.selector;
+  if (!el.name) return el.selector;
+  // `describeElement` already returns `tag "label"`; a bare label still needs composing.
+  const composed = el.name === el.tag || (el.name.startsWith(el.tag) && /^[\s["(]/.test(el.name.slice(el.tag.length)));
+  return composed ? truncate(el.name, 48) : `${el.tag} "${truncate(el.name, 40)}"`;
 }
 
 /** One line naming what an annotation points at. */

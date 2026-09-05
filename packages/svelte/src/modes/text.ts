@@ -1,4 +1,4 @@
-import { describeRange, isOverlay } from '../dom/core-dom.js';
+import { describeRange, isOverlayNode } from '../dom/core-dom.js';
 import type { AnnotState } from '../state/annot-state.svelte.js';
 
 /** Native selection stays on the host; we only watch it. */
@@ -14,7 +14,7 @@ export function textMode(state: AnnotState): () => void {
       return;
     }
     const range = selection.getRangeAt(0);
-    if (isOverlay(range.commonAncestorContainer)) {
+    if (isOverlayNode(range.commonAncestorContainer)) {
       state.textChip = null;
       return;
     }
@@ -31,7 +31,7 @@ export function textMode(state: AnnotState): () => void {
       height: 0,
     };
     const described = describeRange(range, { styles: false });
-    if ('reason' in described) {
+    if (!described.ok) {
       state.textChip =
         described.reason === 'empty'
           ? null

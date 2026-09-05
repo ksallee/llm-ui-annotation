@@ -55,9 +55,9 @@ describe('rect maths', () => {
     expect(rectFromPoints({ x: 30, y: 40 }, { x: 10, y: 10 })).toEqual({ x: 10, y: 10, width: 20, height: 30 });
   });
 
-  it('pads stroke bounds', () => {
+  it('pads stroke bounds, half the stroke width included', () => {
     expect(strokeBounds([{ tool: 'rect', rect: { x: 100, y: 100, width: 50, height: 20 }, color: 'x', width: 2 }], 10))
-      .toEqual({ x: 90, y: 90, width: 70, height: 40 });
+      .toEqual({ x: 89, y: 89, width: 72, height: 42 });
   });
 });
 

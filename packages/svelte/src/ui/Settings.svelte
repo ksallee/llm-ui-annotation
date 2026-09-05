@@ -2,8 +2,7 @@
   import { cornerStyle } from '../dom/geometry.js';
   import type { AnnotState } from '../annot/annot-annot.svelte.js';
   import { trapFocus } from './focus.js';
-  import type { DetailLevel, MarkerVisibility, SendMode } from '../options.js';
-  import type { Density, SchemeOption } from '../theme/index.js';
+  import type { Density, DetailLevel, MarkerVisibility, SchemeOption, SendMode } from '../options.js';
 
   let { annot, version }: { annot: AnnotState; version: string } = $props();
 

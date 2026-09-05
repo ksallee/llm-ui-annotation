@@ -1,0 +1,37 @@
+{
+  "name": "@llm-ui-annotation/vite-plugin",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Dev-server side of llm-ui-annotation: storage in .annotations/, HTTP API, SSE, websocket push, overlay injection.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "pnpm run build && tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@llm-ui-annotation/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "vite": "^6 || ^7 || ^8"
+  }
+}

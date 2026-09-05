@@ -1,5 +1,5 @@
 import type { Status } from '@llm-ui-annotation/core';
-import type { Tokens } from '../theme/index.js';
+import type { ThemeTokens } from '../theme/index.js';
 
 const STYLE_ID = 'data-annot-highlights';
 const PAINTED: Status[] = ['draft', 'sent', 'acknowledged', 'question', 'review'];
@@ -31,7 +31,7 @@ export function supportsHighlights(doc: Document): boolean {
  * document; spec 08 whitelists it. Token values are inlined because custom properties defined on
  * the shadow host do not reach the host document.
  */
-export function ensureHighlightStyle(doc: Document, tokens: Tokens): () => void {
+export function ensureHighlightStyle(doc: Document, tokens: ThemeTokens): () => void {
   const head = doc.head;
   if (!head) return () => {};
   let style = head.querySelector<HTMLStyleElement>(`style[${STYLE_ID}]`);

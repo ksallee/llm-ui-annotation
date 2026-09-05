@@ -1,6 +1,9 @@
 import type { Mode } from '@llm-ui-annotation/core';
 import type { AnnotState } from './state/annot-state.svelte.js';
-import type { Density, SchemeOption } from './theme/index.js';
+import type { Density, Scheme } from '@llm-ui-annotation/core/theme';
+
+export type SchemeOption = Scheme;
+export type { Density };
 
 export type SendMode = 'batch' | 'immediate';
 export type DetailLevel = 'compact' | 'standard' | 'detailed';

@@ -1,10 +1,10 @@
-import type { Status, Target } from '@llm-ui-annotation/core';
-import { captureRegion, freezeAnimations, isOverlay } from './dom/core-dom.js';
+import type { Rect, Status, Stroke, Target } from '@llm-ui-annotation/core';
+import { captureRegion, freezeAnimations, isOverlayNode } from './dom/core-dom.js';
 import { paintHighlights, supportsHighlights } from './dom/highlights.js';
 import { isTyping, keyAction } from './keyboard.js';
 import { openElementPopup, openPagePopup, openTextPopup } from './modes/index.js';
 import type { AnnotState } from './state/annot-state.svelte.js';
-import { oklch, parseColor, type Tokens } from './theme/index.js';
+import { formatOklch, parseColor, type ThemeTokens } from '@llm-ui-annotation/core/theme';
 
 /** Scroll position, re-anchoring and the mutation watchdog. */
 export function watchViewport(state: AnnotState): () => void {
@@ -35,7 +35,7 @@ export function watchViewport(state: AnnotState): () => void {
   if (doc.body) resizeObserver.observe(doc.body);
 
   const mutationObserver = new view.MutationObserver((records) => {
-    if (records.every((record) => isOverlay(record.target))) return;
+    if (records.every((record) => isOverlayNode(record.target))) return;
     lazy();
   });
   if (doc.body) {
@@ -154,34 +154,30 @@ export function freezeWhile(state: AnnotState, frozen: boolean): () => void {
   return freezeAnimations(state.doc);
 }
 
-/** The five drawing colours: the accent hue, its two siblings, its complement and neutral ink. */
-export function drawingPalette(tokens: Tokens): string[] {
-  const accent = parseColor(tokens['--annot-accent']);
-  if (!accent) return [tokens['--annot-accent'], tokens['--annot-ink']];
-  const { l, c, h } = accent;
+/** The five drawing colours the theme derives from the accent. */
+export function drawingPalette(tokens: ThemeTokens): string[] {
   return [
-    oklch(l, c, h),
-    oklch(l, c, (h + 40) % 360),
-    oklch(l, c, (h + 320) % 360),
-    oklch(l, c, (h + 180) % 360),
-    tokens['--annot-ink'],
+    tokens['--annot-stroke-1'],
+    tokens['--annot-stroke-2'],
+    tokens['--annot-stroke-3'],
+    tokens['--annot-stroke-4'],
+    tokens['--annot-stroke-5'],
   ];
 }
 
-export function accentSuggestions(tokens: Tokens): string[] {
+/** Six accents around the colour wheel, at the current accent's lightness and chroma. */
+export function accentSuggestions(tokens: ThemeTokens): string[] {
   const accent = parseColor(tokens['--annot-accent']);
   const l = accent?.l ?? 0.62;
   const c = Math.max(0.08, accent?.c ?? 0.16);
   const base = accent?.h ?? 250;
-  return [0, 60, 120, 180, 240, 300].map((step) => oklch(l, c, (base + step) % 360));
-}
-
-export interface CommitContext {
-  host: HTMLElement | null;
+  return [0, 60, 120, 180, 240, 300].map((step) =>
+    formatOklch({ l, c, h: (base + step) % 360, alpha: 1 }),
+  );
 }
 
 /** Turn the popup into an annotation, capturing a screenshot for page targets. */
-export async function commitPopup(state: AnnotState, ctx: CommitContext = { host: null }): Promise<void> {
+export async function commitPopup(state: AnnotState): Promise<void> {
   const popup = state.popup;
   if (!popup) return;
   const comment = popup.comment.trim();
@@ -199,7 +195,7 @@ export async function commitPopup(state: AnnotState, ctx: CommitContext = { host
   const created = await state.add(popup.mode, target, comment);
 
   if (target.kind === 'page') {
-    const png = await capturePage(state, target.region, target.strokes, ctx.host);
+    const png = await capturePage(state, target.region, target.strokes);
     if (png) {
       try {
         const { path } = await state.client.screenshot(created.id, png);
@@ -225,28 +221,23 @@ export async function commitPopup(state: AnnotState, ctx: CommitContext = { host
   state.reanchor();
 }
 
-async function capturePage(
-  state: AnnotState,
-  region: Parameters<typeof captureRegion>[1],
-  strokes: Parameters<typeof captureRegion>[2],
-  host: HTMLElement | null,
-): Promise<Blob | null> {
+type DomToCanvas = (node: Element, options: { scale: number; timeout: number }) => Promise<HTMLCanvasElement>;
+
+async function capturePage(state: AnnotState, region: Rect, strokes: Stroke[]): Promise<Blob | null> {
   try {
     const specifier = 'modern-screenshot';
-    const mod = (await import(/* @vite-ignore */ specifier)) as {
-      domToCanvas?: (node: Element, options: Record<string, unknown>) => Promise<HTMLCanvasElement>;
-    };
+    const mod = (await import(/* @vite-ignore */ specifier)) as { domToCanvas?: DomToCanvas };
     if (!mod.domToCanvas) return null;
-    return await captureRegion(state.doc, region, strokes, { domToCanvas: mod.domToCanvas, hide: host });
+    return await captureRegion(state.doc, region, strokes, { domToCanvas: mod.domToCanvas });
   } catch {
     return null;
   }
 }
 
 /** What ⌘↵ means right now. */
-export function primaryAction(state: AnnotState, ctx: CommitContext): void {
+export function primaryAction(state: AnnotState): void {
   if (state.popup) {
-    void commitPopup(state, ctx);
+    void commitPopup(state);
     return;
   }
   if (state.labelDraft) return;

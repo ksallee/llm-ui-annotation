@@ -33,7 +33,9 @@ describe('entry separation', () => {
     for (const file of await filesUnder(SRC)) {
       if (file.includes(`${join('src', 'node')}`)) continue;
       const code = (await readFile(file, 'utf8')).replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
-      if (/(^|[^.\w])(window|document)\s*[.[]|\bHTML[A-Za-z]*Element\b/.test(code)) offenders.push(file);
+      const dom = file.includes(`${join('src', 'dom')}`);
+      if (/(^|[^.\w])(window|document)\s*[.[]/.test(code)) offenders.push(file);
+      else if (!dom && /\bHTML[A-Za-z]*Element\b/.test(code)) offenders.push(file);
     }
     expect(offenders).toEqual([]);
   });
