@@ -45,7 +45,8 @@ interface SchemeSpec {
   neutralChroma: number;
   ink: [number, number, number];
   line: number;
-  accentFloor: number | null;
+  /** The accent's lightness is pulled into this band so it stays visible on the surface. */
+  accentL: [number, number];
   accentSoft: { l: number; c: number };
   accentLine: { l: number; c: number };
   signalL: number;
@@ -59,7 +60,7 @@ const SCHEMES: Record<ResolvedScheme, SchemeSpec> = {
     neutralChroma: 0.008,
     ink: [0.2, 0.45, 0.51],
     line: 0.88,
-    accentFloor: null,
+    accentL: [0, 0.72],
     accentSoft: { l: 0.94, c: 0.35 },
     accentLine: { l: 0.72, c: 0.8 },
     signalL: 0.55,
@@ -71,7 +72,7 @@ const SCHEMES: Record<ResolvedScheme, SchemeSpec> = {
     neutralChroma: 0.012,
     ink: [0.95, 0.72, 0.66],
     line: 0.32,
-    accentFloor: 0.72,
+    accentL: [0.72, 1],
     accentSoft: { l: 0.28, c: 0.5 },
     accentLine: { l: 0.6, c: 0.8 },
     signalL: 0.75,
@@ -138,12 +139,7 @@ export function computeTheme(
     clampToGamut({ l, c: chroma, h, alpha: 1 });
   const inverseNeutral = (l: number): Oklch => clampToGamut({ l, c: inverse.neutralChroma, h, alpha: 1 });
 
-  const accent = clampToGamut({
-    l: spec.accentFloor === null ? base.l : Math.max(base.l, spec.accentFloor),
-    c,
-    h,
-    alpha: 1,
-  });
+  const accent = clampToGamut({ l: clamp(base.l, spec.accentL[0], spec.accentL[1]), c, h, alpha: 1 });
 
   const t = {} as ThemeTokens;
   const set = (name: TokenName, value: string): void => {

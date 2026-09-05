@@ -4,11 +4,12 @@ The vocabulary every other package shares: annotation types, ids, the status sta
 validation, the `.annotations/` file protocol, and the markdown the agent reads. Zero runtime dependencies,
 never touches `window` at import time. Spec: `docs/specs/01-data-model-and-protocol.md`.
 
-## Two entries
+## Three entries
 
 `@llm-ui-annotation/core` is framework-free and safe in a browser bundle.
 `@llm-ui-annotation/core/node` adds the `node:fs` helpers that read and write `.annotations/`.
-Importing the first never pulls in the second.
+`@llm-ui-annotation/core/theme` is the oklch color math and the palette every overlay token comes from.
+Importing one never pulls in the others.
 
 ```ts
 import { applyTransition, newId, renderBatchMarkdown, slug, validateAnnotation } from '@llm-ui-annotation/core';
@@ -18,6 +19,17 @@ const acknowledged = applyTransition(annotation, 'acknowledged', 'agent');
 const file = await readRoute('.annotations', '/pricing');
 await appendEvent('.annotations', { at: acknowledged.updatedAt, type: 'status.changed', by: 'agent', route: '/pricing' });
 ```
+
+```ts
+import { computeTheme, themeToCss, toOklch } from '@llm-ui-annotation/core/theme';
+
+const tokens = computeTheme({ accent: '#0d9488', scheme: 'auto' }, prefersDark);
+const css = themeToCss(tokens);
+```
+
+One accent in, 88 tokens out: surfaces, inks, the inverted toolbar pill, a color per status and mode,
+type, spacing, shape and motion. Every ink clears WCAG 4.5 on its surface in both schemes; the test that
+proves it runs over six sample accents, and `docs/design/theme-sheet.html` shows the result.
 
 ## Conventions this package sets for the workspace
 
