@@ -107,7 +107,7 @@
     <span class="spacer"></span>
     <button class="btn small" onclick={() => annot.closePopup()}>Cancel</button>
     <button class="btn primary small" disabled={!popup.comment.trim()} onclick={commit}>
-      {primary} (⌘↵)
+      {primary}<kbd>⌘↵</kbd>
     </button>
   </div>
 

@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Mode, StrokeTool } from '@llm-ui-annotation/core';
   import { cornerStyle, nearestCorner } from '../dom/geometry.js';
-  import type { AnnotState } from '../state/annot-state.svelte.js';
+  import type { AnnotState, Connection } from '../state/annot-state.svelte.js';
   import Icon from './Icon.svelte';
   import type { IconName } from '../icons.js';
 
@@ -27,6 +27,12 @@
   ];
 
   const WIDTHS = [2, 4, 7];
+
+  const CONNECTION: Record<Connection, string> = {
+    connected: 'dev server connected',
+    polling: 'polling',
+    offline: 'dev server not reachable',
+  };
 
   let dragging = $state<{ x: number; y: number } | null>(null);
 
@@ -205,12 +211,14 @@
       <span class="tooltip">Settings</span>
     </button>
 
-    <span
-      class="dot {annot.connection}"
-      title="Dev server {annot.connection}"
-      aria-label="Dev server {annot.connection}"
-      role="status"
-    ></span>
+    {#if annot.connection !== 'connected'}
+      <span
+        class="dot {annot.connection}"
+        title={CONNECTION[annot.connection]}
+        aria-label={CONNECTION[annot.connection]}
+        role="status"
+      ></span>
+    {/if}
 
     <button class="icon-btn" aria-label="Collapse the toolbar" onclick={onclose}>
       <Icon name="close" />

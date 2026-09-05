@@ -30,6 +30,11 @@
   <header>
     <div class="row">
       <span class="mono">{annot.route}</span>
+      {#if annot.connection !== 'connected'}
+        <span class="status-pill plain" style="background: var(--annot-question-fill)">
+          {annot.connection === 'offline' ? 'dev server not reachable' : 'polling'}
+        </span>
+      {/if}
       <span class="spacer"></span>
       <button
         class="btn quiet small"

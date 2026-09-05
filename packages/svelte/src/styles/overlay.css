@@ -296,15 +296,15 @@
   opacity: 1;
 }
 
-.tooltip kbd,
-kbd.mono {
+kbd {
   font-family: var(--annot-font-mono);
   font-size: var(--annot-text-sm);
   line-height: 1;
-  padding: 2px 5px;
+  padding: 3px 6px;
   border-radius: var(--annot-radius-sm);
   background: color-mix(in oklch, currentColor 14%, transparent);
   opacity: 0.9;
+  white-space: nowrap;
 }
 
 .swatches {
@@ -557,6 +557,10 @@ kbd.mono {
   text-transform: capitalize;
   background: var(--annot-sent-fill);
   color: var(--annot-ink);
+}
+
+.status-pill.plain {
+  text-transform: none;
 }
 
 /* ------------------------------------------------------------------ panel */
