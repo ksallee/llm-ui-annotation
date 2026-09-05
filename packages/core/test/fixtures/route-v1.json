@@ -1,0 +1,97 @@
+{
+  "route": "/pricing",
+  "updatedAt": "2026-09-05T18:25:00.000Z",
+  "nextNumber": 3,
+  "annotations": [
+    {
+      "id": "01JBZZZZZZ0000000000000010",
+      "protocolVersion": 1,
+      "route": "/pricing",
+      "url": "http://localhost:5173/pricing",
+      "mode": "text",
+      "target": {
+        "kind": "text",
+        "container": {
+          "selector": "p.lede",
+          "fallbacks": ["main > p:nth-of-type(1)"],
+          "tag": "p",
+          "role": null,
+          "name": "",
+          "text": "Billed per seat. Cancel anytime, no questions asked Upgrade or downgrade at any time.",
+          "rect": { "x": 120, "y": 320, "width": 380, "height": 22 },
+          "fixed": false,
+          "attrs": { "class": "lede" }
+        },
+        "quote": "Cancel anytime, no questions asked",
+        "prefix": "…per seat. ",
+        "suffix": " Upgrade or",
+        "start": 17,
+        "end": 51,
+        "rects": [{ "x": 120, "y": 320, "width": 380, "height": 22 }]
+      },
+      "comment": "Typo: this should end with a period.",
+      "status": "sent",
+      "thread": [
+        {
+          "id": "01JBZZZZZZ0000000000000002",
+          "role": "user",
+          "kind": "comment",
+          "text": "Typo: this should end with a period.",
+          "at": "2026-09-05T18:24:41.048Z"
+        }
+      ],
+      "batch": "01JBZZZZZZ00000000000000B0",
+      "number": 1,
+      "viewport": { "width": 1440, "height": 900, "dpr": 2, "scrollX": 0, "scrollY": 0 },
+      "createdAt": "2026-09-05T18:24:41.048Z",
+      "updatedAt": "2026-09-05T18:24:41.048Z",
+      "sentAt": "2026-09-05T18:25:00.000Z",
+      "resolvedAt": null,
+      "approvedAt": null,
+      "resolution": null
+    },
+    {
+      "id": "01JBZZZZZZ0000000000000011",
+      "protocolVersion": 1,
+      "route": "/pricing",
+      "url": "http://localhost:5173/pricing",
+      "mode": "element",
+      "target": {
+        "kind": "element",
+        "elements": [
+          {
+            "selector": "main > section.pricing > article:nth-of-type(2) button",
+            "fallbacks": ["[data-testid=choose-pro]"],
+            "tag": "button",
+            "role": "button",
+            "name": "Choose Pro",
+            "text": "Choose Pro",
+            "rect": { "x": 612, "y": 940, "width": 220, "height": 44 },
+            "fixed": false,
+            "attrs": { "class": "cta" }
+          }
+        ]
+      },
+      "comment": "Same height as the Free button, please.",
+      "status": "approved",
+      "thread": [
+        {
+          "id": "01JBZZZZZZ0000000000000003",
+          "role": "user",
+          "kind": "comment",
+          "text": "Same height as the Free button, please.",
+          "at": "2026-09-05T18:24:41.048Z"
+        }
+      ],
+      "batch": "01JBZZZZZZ00000000000000B0",
+      "number": 2,
+      "viewport": { "width": 1440, "height": 900, "dpr": 2, "scrollX": 0, "scrollY": 0 },
+      "createdAt": "2026-09-05T18:24:41.048Z",
+      "updatedAt": "2026-09-05T18:26:00.000Z",
+      "sentAt": "2026-09-05T18:25:00.000Z",
+      "resolvedAt": "2026-09-05T18:25:40.000Z",
+      "approvedAt": "2026-09-05T18:26:00.000Z",
+      "resolution": { "kind": "changed", "summary": "Matched the Free button height." }
+    }
+  ]
+}

@@ -3,8 +3,8 @@ import {
   ACTORS,
   MESSAGE_KINDS,
   MODES,
-  PROTOCOL_VERSION,
   STATUSES,
+  SUPPORTED_PROTOCOL_VERSIONS,
   type Annotation,
   type Batch,
 } from './types.js';
@@ -199,6 +199,10 @@ function checkTarget(p: Problems, v: unknown, mode: unknown, path: string): void
       if (p.arr(v['rects'], `${path}.rects`)) {
         v['rects'].forEach((r, i) => p.rect(r, `${path}.rects[${i}]`));
       }
+      if (v['blocks'] !== undefined && p.arr(v['blocks'], `${path}.blocks`)) {
+        if (v['blocks'].length < 2) p.add(`${path}.blocks: expected at least two blocks`);
+        v['blocks'].forEach((b, i) => checkElementRef(p, b, `${path}.blocks[${i}]`));
+      }
       return;
     }
     case 'page': {
@@ -232,8 +236,10 @@ export function validateAnnotation(x: unknown): string[] {
   if (!p.rec(x, 'annotation')) return p.list;
 
   p.id(x['id'], 'id');
-  if (x['protocolVersion'] !== PROTOCOL_VERSION) {
-    p.add(`protocolVersion: expected ${PROTOCOL_VERSION}, got ${JSON.stringify(x['protocolVersion'])}`);
+  if (!(SUPPORTED_PROTOCOL_VERSIONS as readonly unknown[]).includes(x['protocolVersion'])) {
+    p.add(
+      `protocolVersion: expected ${SUPPORTED_PROTOCOL_VERSIONS.join(' or ')}, got ${JSON.stringify(x['protocolVersion'])}`,
+    );
   }
   if (p.str(x['route'], 'route') && !(x['route'] as string).startsWith('/')) {
     p.add('route: must start with /');

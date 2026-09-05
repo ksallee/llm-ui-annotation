@@ -1,5 +1,7 @@
-export const PROTOCOL_VERSION = 1;
-export type ProtocolVersion = typeof PROTOCOL_VERSION;
+export const PROTOCOL_VERSION = 2;
+/** Versions a reader accepts; v1 files have no `TextTarget.blocks`. */
+export const SUPPORTED_PROTOCOL_VERSIONS = [1, 2] as const;
+export type ProtocolVersion = (typeof SUPPORTED_PROTOCOL_VERSIONS)[number];
 
 export type Mode = 'element' | 'text' | 'page';
 
@@ -74,6 +76,8 @@ export interface TextTarget {
   start: number;
   end: number;
   rects: Rect[];
+  /** Blocks the range spans, document order, compact; absent when it spans one. */
+  blocks?: ElementRef[];
 }
 
 /** Coordinates in document CSS px; color as drawn. */

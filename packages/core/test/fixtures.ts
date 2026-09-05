@@ -1,3 +1,4 @@
+import { PROTOCOL_VERSION } from '../src/index.js';
 import type {
   Annotation,
   Batch,
@@ -50,6 +51,36 @@ export const TEXT_TARGET: TextTarget = {
   rects: [{ x: 120, y: 320, width: 380, height: 22 }],
 };
 
+function blockRef(selector: string, tag: string, text: string): ElementRef {
+  const ref = elementRef({ selector, tag, role: null, name: '', text, attrs: {} });
+  delete ref.styles;
+  delete ref.context;
+  return ref;
+}
+
+export const TEXT_TARGET_MULTI: TextTarget = {
+  ...TEXT_TARGET,
+  container: elementRef({
+    selector: 'section.terms',
+    fallbacks: ['main > section:nth-of-type(2)'],
+    tag: 'section',
+    role: null,
+    name: '',
+    text: 'Billed per seat. Cancel anytime, no questions asked. Nobody will call you. Billing stops at the end of the period.',
+    attrs: { class: 'terms' },
+  }),
+  quote: 'Cancel anytime, no questions asked. Nobody will call you. Billing stops at the end of the period.',
+  prefix: 'Billed per seat. ',
+  suffix: '',
+  start: 17,
+  end: 113,
+  blocks: [
+    blockRef('p.lede', 'p', 'Billed per seat. Cancel anytime, no questions asked.'),
+    blockRef('blockquote.pull', 'blockquote', 'Nobody will call you.'),
+    blockRef('section.terms > p:nth-of-type(2)', 'p', 'Billing stops at the end of the period.'),
+  ],
+};
+
 export const PAGE_TARGET: PageTarget = {
   kind: 'page',
   region: { x: 100, y: 200, width: 1180, height: 640 },
@@ -88,7 +119,7 @@ export function annotation(over: Partial<Annotation> = {}): Annotation {
   const comment = over.comment ?? 'Make this the same height as the Free button.';
   return {
     id: '01JBZZZZZZ0000000000000010',
-    protocolVersion: 1,
+    protocolVersion: PROTOCOL_VERSION,
     route: '/pricing',
     url: 'http://localhost:5173/pricing',
     mode: 'element',
@@ -142,6 +173,20 @@ export const PAGE_ANNOTATION = annotation({
       kind: 'question',
       text: 'Should the Free button also grow, or only Pro?',
       at: '2026-09-05T18:31:00.000Z',
+    }),
+  ],
+});
+
+export const TEXT_MULTI_ANNOTATION = annotation({
+  id: '01JBZZZZZZ0000000000000013',
+  mode: 'text',
+  target: TEXT_TARGET_MULTI,
+  number: 7,
+  comment: 'This whole passage should be one bullet list.',
+  thread: [
+    message({
+      id: '01JBZZZZZZ0000000000000005',
+      text: 'This whole passage should be one bullet list.',
     }),
   ],
 });

@@ -10,7 +10,7 @@ Give every other workstream a single vocabulary: what an annotation is, how it i
 
 - `id`: 26-char Crockford base32 ULID-like string generated client-side (10-char time prefix + 16 random). Provide `newId(now = Date.now())`. Sortable, no dependency; ids made in the same millisecond increment the random part so the order is strict. Also `isId`, `idTime`, `compareIds`, `nowIso`.
 - All timestamps ISO 8601 UTC strings (`2026-09-05T18:24:41.048Z`).
-- `protocolVersion: 1`.
+- `protocolVersion: 2` (`PROTOCOL_VERSION`). Readers accept every version in `SUPPORTED_PROTOCOL_VERSIONS` — `[1, 2]` — so files written before multi-block highlights keep loading; a v1 text target simply has no `blocks`. `validateAnnotation` is the one place that decides.
 
 ## Types (TypeScript, exported from `@llm-ui-annotation/core`)
 
@@ -46,7 +46,7 @@ export interface ElementTarget { kind: 'element'; elements: ElementRef[] }  // l
 
 export interface TextTarget {
   kind: 'text';
-  container: ElementRef;       // nearest block ancestor of the selection
+  container: ElementRef;       // nearest common block ancestor of the selection, never body
   quote: string;               // exact selected text, whitespace normalized
   prefix: string;              // up to 32 chars before, same normalization
   suffix: string;              // up to 32 chars after
@@ -84,7 +84,7 @@ export interface Message {
 
 export interface Annotation {
   id: string;
-  protocolVersion: 1;
+  protocolVersion: 1 | 2;
   route: string;               // pathname (+ search if the host opts in), used as file key
   url: string;                 // full URL at creation
   mode: Mode;
@@ -113,7 +113,7 @@ export interface Batch {
 }
 ```
 
-Provide `isAnnotation(x): x is Annotation` and `validateAnnotation(x): string[]` (list of problems, each prefixed with its path) hand-written, no zod in core. Same for `isBatch` / `validateBatch`. Also `summarizeTarget(target): string` returning one line like `button "Save" (form > .actions > button)` or `text "…quote…" in p.lede` or `drawing over 3 elements: h2 "Pricing", …`.
+Provide `isAnnotation(x): x is Annotation` and `validateAnnotation(x): string[]` (list of problems, each prefixed with its path) hand-written, no zod in core. Same for `isBatch` / `validateBatch`. Also `summarizeTarget(target): string` returning one line like `button "Save" (form > .actions > button)` or `text "…quote…" in p.lede` — `text "…quote…" across p.lede, blockquote, p` when the run spans blocks — or `drawing over 3 elements: h2 "Pricing", …`.
 
 ## State machine
 

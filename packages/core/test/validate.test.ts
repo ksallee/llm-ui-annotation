@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   elementLabel,
@@ -6,6 +9,8 @@ import {
   summarizeTarget,
   validateAnnotation,
   validateBatch,
+  type RouteFile,
+  type TextTarget,
 } from '../src/index.js';
 import {
   BATCH,
@@ -13,14 +18,18 @@ import {
   PAGE_ANNOTATION,
   PAGE_TARGET,
   TEXT_ANNOTATION,
+  TEXT_MULTI_ANNOTATION,
   TEXT_TARGET,
+  TEXT_TARGET_MULTI,
   annotation,
   elementRef,
 } from './fixtures.js';
 
+const V1_ROUTE = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'route-v1.json');
+
 describe('validateAnnotation', () => {
   it('accepts the three fixture modes', () => {
-    for (const a of [ELEMENT_ANNOTATION, TEXT_ANNOTATION, PAGE_ANNOTATION]) {
+    for (const a of [ELEMENT_ANNOTATION, TEXT_ANNOTATION, PAGE_ANNOTATION, TEXT_MULTI_ANNOTATION]) {
       expect(validateAnnotation(a)).toEqual([]);
       expect(isAnnotation(a)).toBe(true);
     }
@@ -29,7 +38,7 @@ describe('validateAnnotation', () => {
   it.each([
     ['not an object', 42, 'annotation: expected object, got number'],
     ['bad id', annotation({ id: 'nope' }), 'id: expected a 26-char id, got "nope"'],
-    ['bad protocol version', { ...annotation(), protocolVersion: 2 }, 'protocolVersion: expected 1, got 2'],
+    ['bad protocol version', { ...annotation(), protocolVersion: 3 }, 'protocolVersion: expected 1 or 2, got 3'],
     ['relative route', annotation({ route: 'pricing' }), 'route: must start with /'],
     ['unknown mode', { ...annotation(), mode: 'sketch' }, 'mode: expected one of element|text|page, got "sketch"'],
     ['unknown status', { ...annotation(), status: 'done' }, 'status: expected one of draft|sent|acknowledged|question|review|approved, got "done"'],
@@ -41,6 +50,27 @@ describe('validateAnnotation', () => {
   ])('rejects %s', (_name, bad, problem) => {
     expect(validateAnnotation(bad)).toContain(problem);
     expect(isAnnotation(bad)).toBe(false);
+  });
+
+  it('reads a v1 route file, whose text targets have no blocks', () => {
+    const file = JSON.parse(readFileSync(V1_ROUTE, 'utf8')) as RouteFile;
+    for (const a of file.annotations) {
+      expect(validateAnnotation(a)).toEqual([]);
+      expect(a.protocolVersion).toBe(1);
+    }
+    const [first] = file.annotations;
+    expect((first?.target as TextTarget).blocks).toBeUndefined();
+    expect(summarizeTarget(first?.target as TextTarget)).toBe(
+      'text "Cancel anytime, no questions asked" in p.lede',
+    );
+  });
+
+  it('rejects a single-block blocks list', () => {
+    const bad = annotation({
+      mode: 'text',
+      target: { ...TEXT_TARGET_MULTI, blocks: [TEXT_TARGET_MULTI.blocks?.[0] as never] },
+    });
+    expect(validateAnnotation(bad)).toContain('target.blocks: expected at least two blocks');
   });
 
   it('rejects a target whose kind does not match the mode', () => {
@@ -130,6 +160,12 @@ describe('summarizeTarget', () => {
   it('quotes the text run and names its container', () => {
     expect(summarizeTarget(TEXT_ANNOTATION.target)).toBe(
       'text "Cancel anytime, no questions asked" in p.lede',
+    );
+  });
+
+  it('names the blocks a text run spans', () => {
+    expect(summarizeTarget(TEXT_TARGET_MULTI)).toBe(
+      'text "Cancel anytime, no questions asked. Nobody will…" across p.lede, blockquote.pull, section.terms > p:nth-of-type(2)',
     );
   });
 

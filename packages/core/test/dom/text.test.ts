@@ -35,6 +35,16 @@ function target(doc: Document, selector: string, needle: string, occurrence = 0)
   return result.target;
 }
 
+/** A range from the start of one element's text to the end of another's. */
+function across(doc: Document, from: string, to: string): Range {
+  const head = textNodes(doc.querySelector(from) as Element)[0] as Text;
+  const tail = textNodes(doc.querySelector(to) as Element).at(-1) as Text;
+  const range = doc.createRange();
+  range.setStart(head, 0);
+  range.setEnd(tail, tail.data.length);
+  return range;
+}
+
 function normOffset(el: Element, range: Range): number {
   const index = indexText(el);
   return index.toNorm(index.offsetOf(range.startContainer, range.startOffset));
@@ -80,12 +90,51 @@ describe('describeRange', () => {
     expect(result.target.end).toBe(28);
   });
 
-  it('refuses a selection spanning two blocks', () => {
+  it('leaves blocks off a selection inside one block', () => {
+    const doc = loadFixture('prose');
+    const result = describeRange(rangeOver(doc, doc.querySelector('#lead') as Element, 'A selector alone'));
+    expect(result.ok && result.target.blocks).toBeUndefined();
+  });
+
+  it('anchors a selection spanning two blocks to their common ancestor', () => {
+    const doc = loadFixture('prose');
+    const result = describeRange(across(doc, '#first', '#second'));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.target.container.selector).toBe('#two-blocks');
+    expect(result.target.quote).toBe(
+      'First paragraph of the section. Second paragraph of the section.',
+    );
+    expect(result.target.start).toBe(0);
+    expect(result.target.blocks?.map((b) => b.selector)).toEqual(['#first', '#second']);
+  });
+
+  it('names every block a paragraph, a quotation and a paragraph span', () => {
+    const doc = loadFixture('prose');
+    const result = describeRange(across(doc, '#three-blocks .lede', '#tail'));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.target.container.selector).toBe('#three-blocks');
+    expect(result.target.blocks?.map((b) => b.tag)).toEqual(['p', 'blockquote', 'p']);
+    expect(result.target.quote).toContain('It carries on through a quotation.');
+  });
+
+  it('keeps the blocks compact', () => {
+    const doc = loadFixture('prose');
+    const result = describeRange(across(doc, '#first', '#second'));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    for (const block of result.target.blocks ?? []) {
+      expect(block.styles).toBeUndefined();
+      expect(block.context).toBeUndefined();
+    }
+  });
+
+  it('refuses a selection spanning the whole body', () => {
     const doc = loadFixture('prose');
     const range = doc.createRange();
-    range.setStart(textNodes(doc.querySelector('#first') as Element)[0] as Text, 0);
-    range.setEnd(textNodes(doc.querySelector('#second') as Element)[0] as Text, 6);
-    expect(describeRange(range)).toEqual({ ok: false, reason: 'multi-block' });
+    range.selectNodeContents(doc.body);
+    expect(describeRange(range)).toEqual({ ok: false, reason: 'no-container' });
   });
 
   it('refuses an empty selection', () => {
@@ -174,6 +223,39 @@ describe('anchorText', () => {
     const anchor = anchorText(doc, stored);
     expect(anchor?.state).toBe('moved');
     expect(anchor?.range.toString()).toBe('Second paragraph');
+  });
+});
+
+describe('anchorText across blocks', () => {
+  it('exact when nothing moved', () => {
+    const doc = loadFixture('prose');
+    const result = describeRange(across(doc, '#first', '#second'));
+    if (!result.ok) throw new Error(result.reason);
+    const anchor = anchorText(doc, result.target);
+    expect(anchor?.state).toBe('exact');
+    expect(anchor?.range.toString()).toContain('Second paragraph of the section.');
+  });
+
+  it('moved after a paragraph is inserted above', () => {
+    const doc = loadFixture('prose');
+    const result = describeRange(across(doc, '#first', '#second'));
+    if (!result.ok) throw new Error(result.reason);
+    const section = doc.querySelector('#two-blocks') as Element;
+    const added = doc.createElement('p');
+    added.textContent = 'A paragraph that was not there before.';
+    section.insertBefore(added, section.firstChild);
+
+    const anchor = anchorText(doc, result.target);
+    expect(anchor?.state).toBe('moved');
+    expect(anchor?.range.toString()).toContain('First paragraph of the section.');
+  });
+
+  it('lost once the quote is gone', () => {
+    const doc = loadFixture('prose');
+    const result = describeRange(across(doc, '#first', '#second'));
+    if (!result.ok) throw new Error(result.reason);
+    (doc.querySelector('#two-blocks') as Element).innerHTML = '<p>Nothing of the sort.</p>';
+    expect(anchorText(doc, result.target)).toBeNull();
   });
 });
 

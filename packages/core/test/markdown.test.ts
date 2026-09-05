@@ -6,7 +6,15 @@ import {
   renderReopenMarkdown,
   type RenderLevel,
 } from '../src/index.js';
-import { ALL_ANNOTATIONS, BATCH, PAGE_ANNOTATION, annotation, elementRef, message } from './fixtures.js';
+import {
+  ALL_ANNOTATIONS,
+  BATCH,
+  PAGE_ANNOTATION,
+  TEXT_MULTI_ANNOTATION,
+  annotation,
+  elementRef,
+  message,
+} from './fixtures.js';
 
 const DIR = '/repo/.annotations';
 const LEVELS: RenderLevel[] = ['compact', 'standard', 'detailed'];
@@ -61,6 +69,26 @@ describe('renderBatchMarkdown', () => {
       dir: DIR,
     });
     expect(md).toContain('screenshot: none (capture failed)');
+  });
+});
+
+describe('a text run across blocks', () => {
+  const md = (level: RenderLevel) => renderAnnotationMarkdown(TEXT_MULTI_ANNOTATION, { level, dir: DIR });
+
+  it('names the spanned blocks in the header at every level', () => {
+    for (const level of LEVELS) {
+      expect(md(level).split('\n')[0]).toBe(
+        '### #7 · text · across p.lede, blockquote.pull, section.terms > p:nth-of-type(2)',
+      );
+    }
+  });
+
+  it('lists them again with the container, but not when compact', () => {
+    expect(md('standard')).toContain(
+      'blocks: p.lede, blockquote.pull, section.terms > p:nth-of-type(2)',
+    );
+    expect(md('standard')).toContain('container: section.terms');
+    expect(md('compact')).not.toContain('blocks:');
   });
 });
 

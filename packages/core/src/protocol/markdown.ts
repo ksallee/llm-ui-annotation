@@ -75,6 +75,9 @@ function textLines(t: TextTarget, level: RenderLevel): string[] {
     lines.push(`${quote}   prefix: ${JSON.stringify(t.prefix)}   suffix: ${JSON.stringify(t.suffix)}`);
     lines.push(`container: ${t.container.selector}   offsets: ${t.start}-${t.end}`);
   }
+  if (level !== 'compact' && t.blocks) {
+    lines.push(`blocks: ${t.blocks.map((b) => b.selector).join(', ')}`);
+  }
   if (level === 'detailed' && t.container.fallbacks.length > 0) {
     lines.push(`fallbacks: ${t.container.fallbacks.join(' | ')}`);
   }
@@ -109,7 +112,9 @@ function headerLabel(a: Annotation): string {
         : `${a.target.elements.length} elements: ${a.target.elements.map(elementLabel).join(', ')}`;
     }
     case 'text':
-      return `in ${a.target.container.selector}`;
+      return a.target.blocks
+        ? `across ${a.target.blocks.map((b) => b.selector).join(', ')}`
+        : `in ${a.target.container.selector}`;
     case 'page':
       return `drawing over ${a.target.elements.map(elementLabel).join(', ') || `${a.target.strokes.length} strokes`}`;
   }
