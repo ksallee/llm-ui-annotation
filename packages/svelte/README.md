@@ -101,21 +101,8 @@ about comments starting with `ask:`, and completes everything else.
 
 ## Known gaps
 
-- **Screenshots** need a capture backend: install the optional peer `modern-screenshot` in the host
-  app and the vite plugin hands `domToCanvas` to the overlay, or call `provideDomToCanvas` yourself.
-  Without one, a page annotation is saved with its strokes and a "Saved without screenshot" toast.
-  The overlay never imports the peer by a bare specifier: that would break the host's module graph
-  when it is absent, and never resolve in the browser when it is present.
-- **Blocking page interactions** while holding `⌘`/`Ctrl` swaps the capture layer for host-document
-  listeners, so hover updates but the cursor does not change.
-- **Pin visibility** has no key any more: `H` is Highlight mode. It lives in the pill and the palette.
-- **Bulk undo** is offered for Approve only; Reopen, Send and Delete get a plain toast, because
-  there is no reverse transition that would not lie about what happened.
-- **Panel row flash**: clicking a row scrolls the target into view and opens its card; it does not
-  pulse the highlight. Hovering outlines the target, which is most of what the flash was for.
-- **`sendMode: 'immediate'`** creates one batch per annotation, as the spec asks, but there is no
-  debounce, so three fast annotations are three batches.
-- **Density** only scales the tokens; a few control heights are still derived with a multiplier
-  rather than their own token.
-- **Nothing type-checks `.svelte`**: `check` runs `tsc`, which skips them, so eleven components once
-  imported `AnnotState` from a path that does not exist and nothing noticed. `svelte-check` would.
+See `docs/known-gaps.md` for the consolidated list across every package. The ones that bite here:
+screenshots need the optional `modern-screenshot` peer, the `⌘`-passthrough cursor does not change,
+a panel row does not flash its highlight, bulk undo covers Approve only, and nothing type-checks
+`.svelte` — `check` runs `tsc`, which skips them, so eleven components once imported `AnnotState`
+from a path that does not exist and nothing noticed.

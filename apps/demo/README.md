@@ -71,3 +71,7 @@ is the cheapest thing to assert on; `snapshot(page)` serialises it.
 - Spec 09 added `palette` and `panel`; the demo runs twelve suites, not ten. Spec 08 lists all twelve.
 - Suite 8 diffs `main` and the `data-annot-*` nodes in `<head>`; freeze mode adds a second such node
   (`data-annot-freeze`) while it is on, so the check runs with animations resumed.
+
+## Known gaps
+
+See `docs/known-gaps.md`.

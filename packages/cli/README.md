@@ -44,3 +44,7 @@ This project uses llm-ui-annotation. The user annotates the running UI in the br
 - `<id>` is a full id, a unique id prefix, or `#<number>` (add `--route` when a number is ambiguous).
 - `--no-http` forces the file path even when the dev server is up; `--no-cursor` leaves the watch cursor alone.
 - `ANNOT_DIR` picks the annotations dir, `ANNOT_AGENT` the cursor name, `ANNOT_COLLECT_MS` the batch collection window.
+
+## Known gaps
+
+See `docs/known-gaps.md`.

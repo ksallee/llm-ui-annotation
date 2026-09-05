@@ -45,3 +45,7 @@ Each package ships `tsconfig.json` (typechecks `src` + `test`, `noEmit`) and `ts
 `dist` with declarations), an `exports` map pointing at `dist`, and the four scripts `build` / `check` / `lint` / `test`.
 `check` builds first so downstream packages typecheck against fresh declarations; relative imports carry a `.js`
 extension so the emitted ESM runs under Node.
+
+## Known gaps
+
+See `docs/known-gaps.md`.

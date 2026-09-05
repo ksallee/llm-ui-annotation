@@ -97,3 +97,7 @@ pnpm --filter @llm-ui-annotation/vite-plugin test
 ```
 
 Every case runs a real Vite dev server on a random port against a temp directory.
+
+## Known gaps
+
+See `docs/known-gaps.md`.
