@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { Status } from '@llm-ui-annotation/core';
-  import type { AnnotState, Filter } from '../state/annot-state.svelte.js';
+  import type { AnnotState, BulkAction, Filter } from '../state/annot-state.svelte.js';
   import { trapFocus } from './focus.js';
   import Icon from './Icon.svelte';
+  import type { IconName } from '../icons.js';
   import PanelRow from './PanelRow.svelte';
 
   let {
@@ -18,15 +19,34 @@
     { id: 'all', label: 'All' },
   ];
 
-  let expanded = $state<string | null>(null);
+  const BULK: { id: BulkAction; label: string; icon: IconName }[] = [
+    { id: 'approve', label: 'Approve', icon: 'check-all' },
+    { id: 'reopen', label: 'Reopen', icon: 'reopen' },
+    { id: 'send', label: 'Send', icon: 'send' },
+    { id: 'delete', label: 'Delete', icon: 'trash' },
+  ];
 
   const shown = $derived(annot.filtered);
   const counts = $derived(annot.counts);
+  const picked = $derived(annot.selected.size);
   const order: Status[] = ['draft', 'sent', 'acknowledged', 'question', 'review', 'approved'];
 </script>
 
-<div class="panel" role="dialog"
-  tabindex="-1" aria-label="Annotations" use:trapFocus>
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<div
+  class="panel"
+  class:selecting={picked > 0}
+  role="dialog"
+  tabindex="-1"
+  aria-label="Annotations"
+  use:trapFocus
+  onkeydown={(e) => {
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'a' || e.key === 'A')) {
+      e.preventDefault();
+      annot.selectAllFiltered();
+    }
+  }}
+>
   <header>
     <div class="row">
       <span class="mono">{annot.route}</span>
@@ -74,10 +94,10 @@
       <PanelRow
         {annot}
         annotation={a}
-        expanded={expanded === a.id}
+        expanded={annot.expandedId === a.id}
         ontoggle={() => {
-          expanded = expanded === a.id ? null : a.id;
-          if (expanded) onlocate(a.id);
+          annot.expandedId = annot.expandedId === a.id ? null : a.id;
+          if (annot.expandedId) onlocate(a.id);
         }}
         onlocate={() => onlocate(a.id)}
       />
@@ -87,17 +107,33 @@
   </div>
 
   <footer>
-    <button
-      class="btn small"
-      disabled={annot.inReview.length === 0}
-      onclick={() => void annot.approveAll()}
-    >
-      <Icon name="check-all" size={14} /> Approve all ({annot.inReview.length})
-    </button>
-    {#if annot.sendMode === 'batch'}
-      <button class="btn primary small" disabled={annot.drafts.length === 0} onclick={onsend}>
-        <Icon name="send" size={14} /> Send drafts ({annot.drafts.length})
+    {#if picked > 0}
+      <span class="muted mono">{picked} selected</span>
+      {#each BULK as action (action.id)}
+        <button
+          class="btn small"
+          class:primary={action.id === 'approve'}
+          disabled={!annot.bulk[action.id].enabled}
+          onclick={() => void annot.runBulk(action.id)}
+        >
+          <Icon name={action.icon} size={14} />
+          {action.label} ({annot.bulk[action.id].count})
+        </button>
+      {/each}
+      <button class="btn quiet small" onclick={() => annot.clearSelection()}>Clear</button>
+    {:else}
+      <button
+        class="btn small"
+        disabled={annot.inReview.length === 0}
+        onclick={() => void annot.approveAll()}
+      >
+        <Icon name="check-all" size={14} /> Approve all ({annot.inReview.length})
       </button>
+      {#if annot.sendMode === 'batch'}
+        <button class="btn primary small" disabled={annot.drafts.length === 0} onclick={onsend}>
+          <Icon name="send" size={14} /> Send drafts ({annot.drafts.length})
+        </button>
+      {/if}
     {/if}
   </footer>
 </div>

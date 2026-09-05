@@ -18,7 +18,7 @@ import {
   type TextTarget,
   type Viewport,
 } from '@llm-ui-annotation/core';
-import { SvelteMap } from 'svelte/reactivity';
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { anchorText, docRect, resolveSelector, strokeBounds } from '../dom/core-dom.js';
 import { routeOf, type DetailLevel, type MarkerVisibility, type SendMode } from '../options.js';
 import { AnnotClient } from '../transport/client.js';
@@ -26,6 +26,15 @@ import { DEFAULT_PREFS, loadPrefs, savePrefs, type Prefs } from './prefs.js';
 
 export type Connection = 'connected' | 'polling' | 'offline';
 export type Filter = 'needs-you' | 'open' | 'done' | 'all';
+export type BulkAction = 'approve' | 'reopen' | 'send' | 'delete';
+
+/** How a click on a row changes the selection. */
+export type SelectHow = 'toggle' | 'range' | 'only';
+
+export interface BulkOffer {
+  count: number;
+  enabled: boolean;
+}
 
 export interface Anchor {
   rects: Rect[];
@@ -127,6 +136,11 @@ export class AnnotState {
   passthrough = $state(false);
   announcement = $state('');
   otherRouteDrafts = $state(0);
+  paletteOpen = $state(false);
+  readonly selected = new SvelteSet<string>();
+  previewId = $state<string | null>(null);
+  expandedId = $state<string | null>(null);
+  #selectionAnchor: string | null = null;
 
   #hoverTimer = 0;
 
@@ -193,6 +207,91 @@ export class AnnotState {
     this.visible.filter((a) => this.anchors.get(a.id)?.state === 'lost'),
   );
 
+  readonly selectedRows = $derived.by(() => this.filtered.filter((a) => this.selected.has(a.id)));
+
+  readonly bulk = $derived.by((): Record<BulkAction, BulkOffer> => {
+    const rows = this.selectedRows;
+    const offer = (allowed: (a: Annotation) => boolean): BulkOffer => {
+      const count = rows.filter(allowed).length;
+      return { count, enabled: count > 0 && count === rows.length };
+    };
+    return {
+      approve: offer((a) => a.status === 'review'),
+      reopen: offer((a) => a.status === 'review' || a.status === 'approved'),
+      send: offer((a) => a.status === 'draft'),
+      delete: offer((a) => a.status === 'draft'),
+    };
+  });
+
+  // ------------------------------------------------------------- selection
+
+  selectRow(id: string, how: SelectHow): void {
+    if (how === 'range' && this.#selectionAnchor) {
+      const ids = this.filtered.map((a) => a.id);
+      const from = ids.indexOf(this.#selectionAnchor);
+      const to = ids.indexOf(id);
+      if (from >= 0 && to >= 0) {
+        for (const between of ids.slice(Math.min(from, to), Math.max(from, to) + 1)) {
+          this.selected.add(between);
+        }
+        this.announceSelection();
+        return;
+      }
+    }
+    if (how === 'only') this.selected.clear();
+    if (this.selected.has(id)) this.selected.delete(id);
+    else this.selected.add(id);
+    this.#selectionAnchor = id;
+    this.announceSelection();
+  }
+
+  selectAllFiltered(): void {
+    for (const a of this.filtered) this.selected.add(a.id);
+    this.announceSelection();
+  }
+
+  clearSelection(): void {
+    if (this.selected.size === 0) return;
+    this.selected.clear();
+    this.#selectionAnchor = null;
+  }
+
+  announceSelection(): void {
+    const n = this.selected.size;
+    this.announce(n === 0 ? 'Selection cleared' : `${n} annotation${n === 1 ? '' : 's'} selected`);
+  }
+
+  /** Run one transition over the selection, with a single toast for the batch. */
+  async runBulk(action: BulkAction): Promise<void> {
+    const rows = [...this.selectedRows];
+    if (rows.length === 0 || !this.bulk[action].enabled) return;
+    this.clearSelection();
+    if (action === 'approve') {
+      for (const a of rows) await this.approve(a.id);
+      this.batchToast(`Approved ${rows.length}`, () => {
+        for (const a of rows) void this.reopen(a.id, 'undo approve');
+      });
+      return;
+    }
+    if (action === 'reopen') {
+      for (const a of rows) await this.reopen(a.id, 'reopened from the panel');
+      this.batchToast(`Reopened ${rows.length}`, null);
+      return;
+    }
+    if (action === 'send') {
+      for (const a of rows) await this.sendOne(a.id);
+      this.batchToast(`Sent ${rows.length}`, null);
+      return;
+    }
+    for (const a of rows) await this.deleteDraft(a.id);
+    this.batchToast(`Deleted ${rows.length}`, null);
+  }
+
+  batchToast(text: string, undo: (() => void) | null): void {
+    this.announce(text);
+    this.toast(text, undo ? { label: 'Undo', run: undo } : null);
+  }
+
   // ------------------------------------------------------------ preferences
 
   setPref<K extends keyof Prefs>(key: K, value: Prefs[K]): void {
@@ -230,6 +329,7 @@ export class AnnotState {
   }
 
   setFilter(filter: Filter): void {
+    if (filter !== this.panelFilter) this.clearSelection();
     this.panelFilter = filter;
     this.panelFilterTouched = true;
   }
@@ -285,6 +385,7 @@ export class AnnotState {
     this.annotations.delete(id);
     this.anchors.delete(id);
     this.optimistic.delete(id);
+    this.selected.delete(id);
   }
 
   receiveEvent(event: Event): void {
@@ -476,6 +577,7 @@ export class AnnotState {
 
   /** Pull in the annotations of every other route, for the panel's all-routes view. */
   async toggleAllRoutes(open: boolean = !this.allRoutes): Promise<void> {
+    this.clearSelection();
     this.allRoutes = open;
     if (!open) return;
     try {

@@ -600,6 +600,8 @@ kbd {
   border-bottom: 0;
   border-top: 1px solid var(--annot-line);
   flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
   gap: var(--annot-space-2);
 }
 
@@ -653,6 +655,13 @@ kbd {
   min-width: 0;
 }
 
+.entry .head-row {
+  display: flex;
+  align-items: center;
+  gap: var(--annot-space-1);
+  min-width: 0;
+}
+
 .entry .head {
   display: flex;
   align-items: center;
@@ -663,7 +672,72 @@ kbd {
   padding: 0;
   text-align: left;
   color: inherit;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+}
+
+/* The checkbox only shows up on hover until something is selected, so a quiet list stays quiet. */
+.entry .pick {
+  flex: none;
+  margin: 0;
+  accent-color: var(--annot-accent);
+  opacity: 0;
+  transition: opacity var(--annot-motion-fast);
+  cursor: pointer;
+}
+
+.entry:hover .pick,
+.entry:focus-within .pick,
+.entry.picked .pick,
+.panel.selecting .pick {
+  opacity: 1;
+}
+
+.entry.picked {
+  background: var(--annot-accent-soft);
+}
+
+.entry .inline-action {
+  flex: none;
+}
+
+.icon-btn.tiny {
+  width: 24px;
+  height: 24px;
+}
+
+.menu-wrap {
+  position: relative;
+  flex: none;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 2;
+  min-width: 140px;
+  padding: var(--annot-space-1);
+  display: flex;
+  flex-direction: column;
+}
+
+.menu button {
+  display: flex;
+  align-items: center;
+  gap: var(--annot-space-2);
+  padding: 5px var(--annot-space-2);
+  border: 0;
+  border-radius: var(--annot-radius-sm);
+  background: transparent;
+  color: inherit;
+  font-size: var(--annot-text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background: var(--annot-surface-2);
 }
 
 .entry .num {

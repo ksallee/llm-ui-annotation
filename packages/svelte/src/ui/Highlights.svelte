@@ -69,6 +69,22 @@
       {/if}
     {/each}
 
+    {#if annot.previewId}
+      {#each annot.anchors.get(annot.previewId)?.rects ?? [] as rect, i (i)}
+        <rect
+          x={rect.x - 2}
+          y={rect.y - 2}
+          width={rect.width + 4}
+          height={rect.height + 4}
+          rx="4"
+          fill="var(--annot-accent-soft)"
+          fill-opacity="0.35"
+          stroke="var(--annot-accent)"
+          stroke-width="2"
+        />
+      {/each}
+    {/if}
+
     {#each annot.selection as el, i (i)}
       {@const rect = el.getBoundingClientRect()}
       <rect

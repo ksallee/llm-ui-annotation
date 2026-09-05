@@ -48,7 +48,7 @@ test('the whole loop: send, ack, ask, decline, answer, approve all', async ({
 
   const row = await expandRow(page, 2);
   await row.locator('textarea.field').fill('The monthly one, $29');
-  await row.getByRole('button', { name: 'Answer' }).click();
+  await row.locator('.actions').getByRole('button', { name: 'Answer' }).click();
 
   await expect
     .poll(async () => (await byNumber(page, 2)).status, { timeout: 45_000 })
@@ -81,7 +81,7 @@ test('reopening a reviewed item sends it back to the agent', async ({ page, site
 
   const row = await expandRow(page, 1);
   await row.locator('textarea.field').fill('Still too long');
-  await row.getByRole('button', { name: 'Reopen' }).click();
+  await row.locator('.actions').getByRole('button', { name: 'Reopen' }).click();
 
   await expect
     .poll(async () => (await byNumber(page, 1)).status, { timeout: 45_000 })
