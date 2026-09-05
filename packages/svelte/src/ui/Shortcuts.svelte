@@ -1,6 +1,6 @@
 <script lang="ts">
   import { SHORTCUTS } from '../keyboard.js';
-  import type { AnnotState } from '../annot/annot-annot.svelte.js';
+  import type { AnnotState } from '../state/annot-state.svelte.js';
   import { trapFocus } from './focus.js';
 
   let { annot }: { annot: AnnotState } = $props();

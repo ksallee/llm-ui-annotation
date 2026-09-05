@@ -11,6 +11,7 @@ Auto (what the Vite plugin does — it sets the globals, then imports this modul
 ```js
 globalThis.__ANNOT_OPTIONS__ = { basePath: '/__annot', accent: '#2C8A85', scheme: 'auto' };
 globalThis.__ANNOT_HOT__ = import.meta.hot;   // optional: push updates instead of polling
+globalThis.__ANNOT_DOM_TO_CANVAS__ = domToCanvas;   // optional: page-mode screenshots
 import('@llm-ui-annotation/svelte/auto');
 ```
 
@@ -42,7 +43,7 @@ Or as a component, in a dev-only branch of a Svelte app:
 `E` element, `T` text, `P` page, `Esc` to leave. `⌘↵` adds or sends, `I` the panel, `H` marker
 visibility, `⇧P` pause animations, `⌘Z`/`⇧⌘Z` strokes, `?` the shortcut sheet. Element mode outlines
 what you point at and marquees a group; text mode watches the host's own selection; page mode draws
-on an SVG layer and captures a screenshot on save when `modern-screenshot` is installed.
+on an SVG layer and captures a screenshot on save when a capture backend is available.
 
 ## Design and isolation
 
@@ -68,8 +69,11 @@ about comments starting with `ask:`, and completes everything else.
 
 ## Known gaps
 
-- **Screenshots** need the optional peer `modern-screenshot`; without it a page annotation is saved
-  with its strokes and a "Saved without screenshot" toast.
+- **Screenshots** need a capture backend: install the optional peer `modern-screenshot` in the host
+  app and the vite plugin hands `domToCanvas` to the overlay, or call `provideDomToCanvas` yourself.
+  Without one, a page annotation is saved with its strokes and a "Saved without screenshot" toast.
+  The overlay never imports the peer by a bare specifier: that would break the host's module graph
+  when it is absent, and never resolve in the browser when it is present.
 - **Blocking page interactions** while holding `⌘`/`Ctrl` swaps the capture layer for host-document
   listeners, so hover updates but the cursor does not change.
 - **Panel row flash**: clicking a row scrolls the target into view and opens its card; it does not

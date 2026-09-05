@@ -80,8 +80,15 @@ Custom events on Vite's HMR socket, for the overlay:
 
 `transformIndexHtml` adds `<script type="module" src="/@id/__x00__virtual:annot-auto">` in serve
 only. The virtual module sets `globalThis.__ANNOT_OPTIONS__ = { basePath, protocolVersion, accent?,
-scheme }` and then imports `@llm-ui-annotation/svelte/auto`; when that package does not resolve it
-warns instead, so an app without the overlay still boots.
+scheme }` and `globalThis.__ANNOT_HOT__ = import.meta.hot` — that second global is what puts the
+overlay on the websocket instead of the 2 s poll — and then imports
+`@llm-ui-annotation/svelte/auto`; when that package does not resolve it warns instead, so an app
+without the overlay still boots.
+
+When `modern-screenshot` resolves from the app, the module imports it too and sets
+`globalThis.__ANNOT_DOM_TO_CANVAS__`, which is how page-mode screenshots get a backend. The overlay
+cannot import the optional peer itself: a bare specifier it does not have breaks the host's module
+graph, and one it does have never resolves in the browser.
 
 ## Test
 

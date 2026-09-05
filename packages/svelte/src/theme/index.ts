@@ -64,8 +64,17 @@ export function applyTokens(host: HTMLElement, tokens: ThemeTokens): void {
   host.style.setProperty('color-scheme', tokens['--annot-color-scheme']);
 }
 
-/** Compute the theme for `host`, write it, and keep it in sync with the host page. */
-export function applyTheme(host: HTMLElement, input: ThemeInput = {}): ThemeHandle {
+/**
+ * Compute the theme for `host`, write it, and keep it in sync with the host page.
+ *
+ * @param onPaint runs on every repaint, including the first, so a consumer can restyle what does
+ * not live on the shadow root.
+ */
+export function applyTheme(
+  host: HTMLElement,
+  input: ThemeInput = {},
+  onPaint?: (tokens: ThemeTokens) => void,
+): ThemeHandle {
   const doc = host.ownerDocument;
   const view = doc.defaultView;
   let current = input;
@@ -79,10 +88,10 @@ export function applyTheme(host: HTMLElement, input: ThemeInput = {}): ThemeHand
       hint === null ? matches(view, DARK_QUERY) : hint === 'dark',
       matches(view, REDUCED_MOTION_QUERY),
     );
-    if (tokens === null || TOKEN_NAMES.some((name) => tokens?.[name] !== next[name])) {
-      applyTokens(host, next);
-    }
+    const changed = tokens === null || TOKEN_NAMES.some((name) => tokens?.[name] !== next[name]);
+    if (changed) applyTokens(host, next);
     tokens = next;
+    if (changed) onPaint?.(next);
     return next;
   };
 

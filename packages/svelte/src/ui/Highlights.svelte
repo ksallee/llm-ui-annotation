@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AnnotState } from '../annot/annot-annot.svelte.js';
+  import type { AnnotState } from '../state/annot-state.svelte.js';
   import Strokes from './Strokes.svelte';
 
   let {

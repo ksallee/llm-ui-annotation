@@ -41,6 +41,9 @@ export function pageMode(state: AnnotState, layer: HTMLElement): () => void {
       return;
     }
     if (state.drawTool === 'label') {
+      // Without this the browser's own focus move on mousedown blurs the editor we are about to
+      // mount, and the blur handler throws the label away before anyone can type in it.
+      event.preventDefault();
       state.labelDraft = { at: [at.x, at.y], text: '' };
       return;
     }

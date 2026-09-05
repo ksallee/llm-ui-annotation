@@ -77,19 +77,25 @@
   $effect(() => {
     if (!root) return;
     const accent = annot.prefs.accent ?? merged.accent;
-    const theme = applyTheme(root, {
-      ...(accent ? { accent } : {}),
-      scheme: annot.prefs.scheme ?? merged.scheme ?? 'auto',
-      density: annot.prefs.density,
-    });
-    annot.palette = drawingPalette(theme.tokens);
-    annot.accentSuggestions = accentSuggestions(theme.tokens);
-    if (!annot.drawColor) annot.drawColor = annot.palette[0] ?? '';
-    const dropStyle = ensureHighlightStyle(annot.doc, theme.tokens);
+    // Repainted on every theme change, not just on mount: the host can move its accent live.
+    const theme = applyTheme(
+      root,
+      {
+        ...(accent ? { accent } : {}),
+        scheme: annot.prefs.scheme ?? merged.scheme ?? 'auto',
+        density: annot.prefs.density,
+      },
+      (tokens) => {
+        annot.palette = drawingPalette(tokens);
+        annot.accentSuggestions = accentSuggestions(tokens);
+        if (!annot.drawColor) annot.drawColor = annot.palette[0] ?? '';
+        ensureHighlightStyle(annot.doc, tokens);
+      },
+    );
     return () => {
       theme.destroy();
-      dropStyle();
       clearHighlights(annot.doc);
+      annot.doc.head?.querySelector('style[data-annot-highlights]')?.remove();
     };
   });
 

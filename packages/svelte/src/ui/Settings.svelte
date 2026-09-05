@@ -1,6 +1,6 @@
 <script lang="ts">
   import { cornerStyle } from '../dom/geometry.js';
-  import type { AnnotState } from '../annot/annot-annot.svelte.js';
+  import type { AnnotState } from '../state/annot-state.svelte.js';
   import { trapFocus } from './focus.js';
   import type { Density, DetailLevel, MarkerVisibility, SchemeOption, SendMode } from '../options.js';
 

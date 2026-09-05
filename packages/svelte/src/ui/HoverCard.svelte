@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Annotation } from '@llm-ui-annotation/core';
   import { place } from '../dom/geometry.js';
-  import type { AnnotState } from '../annot/annot-annot.svelte.js';
+  import type { AnnotState } from '../state/annot-state.svelte.js';
 
   let { annot, annotation }: { annot: AnnotState; annotation: Annotation } = $props();
 

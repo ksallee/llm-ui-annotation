@@ -1,7 +1,7 @@
 <script lang="ts">
   import { summarizeTarget, type Annotation } from '@llm-ui-annotation/core';
   import { relativeTime } from '../dom/geometry.js';
-  import type { AnnotState } from '../annot/annot-annot.svelte.js';
+  import type { AnnotState } from '../state/annot-state.svelte.js';
   import Icon from './Icon.svelte';
   import type { IconName } from '../icons.js';
 

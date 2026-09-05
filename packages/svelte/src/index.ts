@@ -63,3 +63,4 @@ export {
   type Size,
 } from './dom/geometry.js';
 export { ICONS, type IconName } from './icons.js';
+export { domToCanvas, provideDomToCanvas, type DomToCanvas } from './screenshot.js';

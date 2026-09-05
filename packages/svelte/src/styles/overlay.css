@@ -34,8 +34,11 @@
   z-index: 1;
 }
 
+/* Above the capture layer: the Annotate chips, the markers and the hover card stay clickable
+   while a mode is active. The layer itself is pointer-events: none, so the capture layer below
+   still swallows every host click. */
 .layer.markers {
-  z-index: 2;
+  z-index: 4;
 }
 
 .layer.capture {
@@ -58,7 +61,7 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 4;
+  z-index: 5;
 }
 
 .chrome > * {
@@ -518,6 +521,7 @@
   background: var(--annot-element);
   color: var(--annot-element-ink);
   cursor: default;
+  pointer-events: none;
   font-family: var(--annot-font-mono);
 }
 

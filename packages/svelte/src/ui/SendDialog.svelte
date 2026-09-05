@@ -1,6 +1,6 @@
 <script lang="ts">
   import { summarizeTarget } from '@llm-ui-annotation/core';
-  import type { AnnotState } from '../annot/annot-annot.svelte.js';
+  import type { AnnotState } from '../state/annot-state.svelte.js';
   import { trapFocus } from './focus.js';
   import Icon from './Icon.svelte';
   import type { IconName } from '../icons.js';

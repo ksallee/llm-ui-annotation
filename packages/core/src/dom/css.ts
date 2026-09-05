@@ -47,9 +47,14 @@ export function isUtilityClass(name: string): boolean {
   return UTILITY_CLASS.test(name) || UTILITY_WORDS.has(name);
 }
 
+/** Svelte 5's scoped class: `s-` and a mixed-case build hash. */
+function isSvelteScope(name: string): boolean {
+  return /^s-[A-Za-z0-9]{10,}$/.test(name) && /[A-Z]/.test(name) && /[a-z]/.test(name);
+}
+
 export function isStableClass(name: string): boolean {
   if (name === '' || name.length > 40) return false;
-  if (UNSTABLE_CLASS.test(name)) return false;
+  if (UNSTABLE_CLASS.test(name) || isSvelteScope(name)) return false;
   return !isUtilityClass(name);
 }
 

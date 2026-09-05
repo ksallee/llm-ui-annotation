@@ -1,6 +1,7 @@
 /** @vitest-environment happy-dom */
 import { describe, expect, it } from 'vitest';
 import { describeElement } from '../../src/dom/describe.js';
+import { isStableClass, stableClasses } from '../../src/dom/css.js';
 import { describeSelector, resolveSelector } from '../../src/dom/selector.js';
 import { allElements, FIXTURES, loadFixture } from './helpers.js';
 
@@ -40,6 +41,15 @@ describe('describeSelector', () => {
         }
       }
     }
+  });
+
+  it('skips Svelte 5 scoped classes', () => {
+    const doc = loadFixture('ids');
+    const el = doc.querySelector('#page-title') as Element;
+    el.setAttribute('class', 's-WttdRAdHhDza headline');
+    expect(stableClasses(el)).toEqual(['headline']);
+    expect(isStableClass('s-WttdRAdHhDza')).toBe(false);
+    expect(isStableClass('s-large')).toBe(true);
   });
 
   it('prefers a readable id and skips generated ones', () => {

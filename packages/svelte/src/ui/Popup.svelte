@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ElementRef } from '@llm-ui-annotation/core';
   import { place } from '../dom/geometry.js';
-  import type { AnnotState } from '../annot/annot-annot.svelte.js';
+  import type { AnnotState } from '../state/annot-state.svelte.js';
   import { trapFocus } from './focus.js';
 
   let {

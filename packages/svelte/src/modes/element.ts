@@ -5,11 +5,21 @@ import type { AnnotState } from '../state/annot-state.svelte.js';
 
 const IGNORED = new Set(['HTML', 'BODY']);
 
+const MAX_SHADOW_DEPTH = 8;
+
+/** `elementsFromPoint` stops at a shadow host, so walk down into open roots by hand. */
+function pierce(el: Element, x: number, y: number, depth = 0): Element {
+  const root = el.shadowRoot;
+  if (!root || depth >= MAX_SHADOW_DEPTH) return el;
+  const inner = root.elementFromPoint?.(x, y);
+  return inner && inner !== el ? pierce(inner, x, y, depth + 1) : el;
+}
+
 /** Topmost host element under a viewport point, skipping the overlay. */
 export function elementUnder(state: AnnotState, x: number, y: number): Element | null {
   for (const el of state.doc.elementsFromPoint(x, y)) {
     if (isOverlay(el) || IGNORED.has(el.tagName)) continue;
-    return el;
+    return pierce(el, x, y);
   }
   return null;
 }

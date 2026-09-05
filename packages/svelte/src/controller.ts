@@ -3,6 +3,7 @@ import { captureRegion, freezeAnimations, isOverlayNode } from './dom/core-dom.j
 import { paintHighlights, supportsHighlights } from './dom/highlights.js';
 import { isTyping, keyAction } from './keyboard.js';
 import { openElementPopup, openPagePopup, openTextPopup } from './modes/index.js';
+import { domToCanvas } from './screenshot.js';
 import type { AnnotState } from './state/annot-state.svelte.js';
 import { formatOklch, parseColor, type ThemeTokens } from '@llm-ui-annotation/core/theme';
 
@@ -179,7 +180,7 @@ export function accentSuggestions(tokens: ThemeTokens): string[] {
 /** Turn the popup into an annotation, capturing a screenshot for page targets. */
 export async function commitPopup(state: AnnotState): Promise<void> {
   const popup = state.popup;
-  if (!popup) return;
+  if (!popup || popup.busy) return;
   const comment = popup.comment.trim();
   if (!comment) return;
   popup.busy = true;
@@ -221,14 +222,11 @@ export async function commitPopup(state: AnnotState): Promise<void> {
   state.reanchor();
 }
 
-type DomToCanvas = (node: Element, options: { scale: number; timeout: number }) => Promise<HTMLCanvasElement>;
-
 async function capturePage(state: AnnotState, region: Rect, strokes: Stroke[]): Promise<Blob | null> {
+  const backend = await domToCanvas();
+  if (!backend) return null;
   try {
-    const specifier = 'modern-screenshot';
-    const mod = (await import(/* @vite-ignore */ specifier)) as { domToCanvas?: DomToCanvas };
-    if (!mod.domToCanvas) return null;
-    return await captureRegion(state.doc, region, strokes, { domToCanvas: mod.domToCanvas });
+    return await captureRegion(state.doc, region, strokes, { domToCanvas: backend });
   } catch {
     return null;
   }

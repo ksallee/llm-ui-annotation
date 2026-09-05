@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Status } from '@llm-ui-annotation/core';
-  import type { AnnotState, Filter } from '../annot/annot-annot.svelte.js';
+  import type { AnnotState, Filter } from '../state/annot-state.svelte.js';
   import { trapFocus } from './focus.js';
   import Icon from './Icon.svelte';
   import PanelRow from './PanelRow.svelte';
