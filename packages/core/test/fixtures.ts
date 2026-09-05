@@ -95,6 +95,7 @@ export const PAGE_TARGET: PageTarget = {
       width: 4,
     },
     { tool: 'arrow', from: [200, 300], to: [400, 420], color: 'oklch(0.65 0.2 30)', width: 4 },
+    { tool: 'label', at: [220, 320], text: 'gaps uneven here', color: 'oklch(0.65 0.2 30)', size: 14 },
   ],
   screenshot: 'screenshots/01JBZZZZZZZZZZZZZZZZZZZZZZ.png',
   elements: [

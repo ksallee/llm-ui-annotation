@@ -19,6 +19,7 @@ id: 01JBZZZZZZ0000000000000011
 ### #6 · page · drawing over h2 "Pricing", section.pricing, article "Free"
 screenshot: /repo/.annotations/screenshots/01JBZZZZZZZZZZZZZZZZZZZZZZ.png  (1180×640)
 elements: h2 "Pricing" (main > h2), section.pricing (section.pricing), article "Free" (article:nth-of-type(1))
+captions: "gaps uneven here"
 > The three cards should be visually one group, the gaps are uneven.
 id: 01JBZZZZZZ0000000000000012
 
@@ -57,7 +58,8 @@ id: 01JBZZZZZZ0000000000000011
 ### #6 · page · drawing over h2 "Pricing", section.pricing, article "Free"
 screenshot: /repo/.annotations/screenshots/01JBZZZZZZZZZZZZZZZZZZZZZZ.png  (1180×640)
 elements: h2 "Pricing" (main > h2), section.pricing (section.pricing), article "Free" (article:nth-of-type(1))
-strokes: brush, arrow
+captions: "gaps uneven here"
+strokes: brush, arrow, label
 status: sent
 > The three cards should be visually one group, the gaps are uneven.
 thread:
@@ -91,6 +93,7 @@ id: 01JBZZZZZZ0000000000000011
 ### #6 · page · drawing over h2 "Pricing", section.pricing, article "Free"
 screenshot: /repo/.annotations/screenshots/01JBZZZZZZZZZZZZZZZZZZZZZZ.png  (1180×640)
 elements: h2 "Pricing" (main > h2), section.pricing (section.pricing), article "Free" (article:nth-of-type(1))
+captions: "gaps uneven here"
 > The three cards should be visually one group, the gaps are uneven.
 id: 01JBZZZZZZ0000000000000012
 

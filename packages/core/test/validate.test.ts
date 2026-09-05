@@ -176,7 +176,7 @@ describe('summarizeTarget', () => {
   });
 
   it('falls back to stroke count when a drawing covers nothing', () => {
-    expect(summarizeTarget({ ...PAGE_TARGET, elements: [] })).toBe('drawing over 2 strokes');
+    expect(summarizeTarget({ ...PAGE_TARGET, elements: [] })).toBe('drawing over 3 strokes');
   });
 });
 

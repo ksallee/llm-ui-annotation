@@ -91,6 +91,16 @@ describe('annotations', () => {
     expect(routes.summaries?.[0]?.counts.draft).toBe(2);
   });
 
+  it('never hands one route two annotations with the same number', async () => {
+    // Two tabs hydrate the same nextNumber and both claim it; `annot ack #1` must stay unambiguous.
+    const a = await post<Annotation>('/__annot/annotations', makeAnnotation({ number: 1 }));
+    const b = await post<Annotation>('/__annot/annotations', makeAnnotation({ number: 1 }));
+    expect(a.number).toBe(1);
+    expect(b.number).toBe(2);
+    const file = await routeOf('/pricing');
+    expect(new Set(file.annotations.map((x) => x.number)).size).toBe(2);
+  });
+
   it('rejects an invalid annotation with the problem list', async () => {
     const res = await h.raw('/__annot/annotations', {
       ...JSON_POST,

@@ -62,6 +62,13 @@ describe('renderBatchMarkdown', () => {
     );
   });
 
+  it('carries the words the user wrote onto the drawing', () => {
+    for (const level of ['compact', 'standard', 'detailed'] as const) {
+      const md = renderAnnotationMarkdown(PAGE_ANNOTATION, { level, dir: DIR });
+      expect(md, level).toContain('captions: "gaps uneven here"');
+    }
+  });
+
   it('says so when the capture failed', () => {
     const failed = { ...PAGE_ANNOTATION, target: { ...PAGE_ANNOTATION.target, screenshot: null } };
     const md = renderAnnotationMarkdown(failed as typeof PAGE_ANNOTATION, {

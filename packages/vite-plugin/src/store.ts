@@ -176,7 +176,12 @@ export class Store {
         return { annotation: next, created: false };
       }
 
-      const number = Number.isInteger(incoming.number) && incoming.number > 0 ? incoming.number : file.nextNumber;
+      // The client's number is a hint. Two tabs on one route hydrate the same `nextNumber` and
+      // would both claim it, leaving `annot ack #5` permanently ambiguous.
+      const wanted = Number.isInteger(incoming.number) && incoming.number > 0 ? incoming.number : file.nextNumber;
+      const taken = file.annotations.some((a) => a.number === wanted);
+      const free = Math.max(file.nextNumber, ...file.annotations.map((a) => a.number + 1));
+      const number = taken ? free : wanted;
       const next: Annotation = {
         ...incoming,
         number,

@@ -96,6 +96,9 @@ function pageLines(t: PageTarget, level: RenderLevel, dir: string): string[] {
       `elements: ${t.elements.map((e) => `${elementLabel(e)} (${e.selector})`).join(', ')}`,
     );
   }
+  // The words the user wrote onto the drawing are feedback, not decoration.
+  const captions = t.strokes.filter((s) => s.tool === 'label').map((s) => s.text.trim()).filter(Boolean);
+  if (captions.length > 0) lines.push(`captions: ${captions.map((c) => `"${c}"`).join(', ')}`);
   if (level === 'detailed') {
     lines.push(`strokes: ${t.strokes.map((s) => s.tool).join(', ') || 'none'}`);
   }
