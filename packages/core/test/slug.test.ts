@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { batchFile, routeFile, screenshotFile, slug } from '../src/index.js';
+import { batchFile, isSlug, routeFile, screenshotFile, slug } from '../src/index.js';
 
 describe('slug', () => {
   it.each([
@@ -44,5 +44,20 @@ describe('paths', () => {
     expect(routeFile('/')).toBe('routes/index.json');
     expect(batchFile('01JB')).toBe('batches/01JB.json');
     expect(screenshotFile('01JB')).toBe('screenshots/01JB.png');
+  });
+});
+
+describe('isSlug', () => {
+  it('accepts what slug produces', () => {
+    for (const route of ['/', '/pricing', '/a/b/c', '/Ünïcode', `/${'x'.repeat(400)}`]) {
+      expect(isSlug(slug(route))).toBe(true);
+    }
+  });
+
+  it('rejects anything that would escape the routes directory', () => {
+    for (const bad of ['../../etc/passwd', 'a/b', 'a.json', 'UPPER', '', '.', '..', 'x'.repeat(121)]) {
+      expect(isSlug(bad)).toBe(false);
+    }
+    expect(isSlug(42)).toBe(false);
   });
 });

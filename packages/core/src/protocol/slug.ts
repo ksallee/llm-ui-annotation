@@ -29,3 +29,10 @@ export function slug(route: string): string {
   }
   return s;
 }
+
+const SLUG_PATTERN = /^[a-z0-9_-]+$/;
+
+/** True when `x` is a slug `slug()` could have produced. Guards path building against traversal. */
+export function isSlug(x: unknown): x is string {
+  return typeof x === 'string' && x.length <= MAX_SLUG && SLUG_PATTERN.test(x);
+}

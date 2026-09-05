@@ -1,5 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
+  isId,
+  isSlug,
   PROTOCOL_VERSION,
   type CreateBatchRequest,
   type Event,
@@ -47,6 +49,19 @@ function match(route: Route, method: string, segments: string[]): Record<string,
   return params;
 }
 
+/** A path param that is about to become a filename. Anything else is a traversal attempt. */
+function safeId(params: Record<string, string>): string {
+  const id = params['id'] as string;
+  if (!isId(id)) throw badRequest('id: expected an annotation id');
+  return id;
+}
+
+function safeSlug(params: Record<string, string>): string {
+  const value = params['slug'] as string;
+  if (!isSlug(value)) throw badRequest('slug: expected a route slug');
+  return value;
+}
+
 function since(url: URL): number {
   const raw = url.searchParams.get('since');
   const value = raw === null ? 0 : Number.parseInt(raw, 10);
@@ -74,8 +89,7 @@ export function createApi(
   });
 
   on('GET', '/routes/:slug', async (_req, res, params, url) => {
-    const routeSlug = params['slug'] as string;
-    sendJson(res, 200, await store.routeFileBySlug(routeSlug, url.searchParams.get('route') ?? ''));
+    sendJson(res, 200, await store.routeFileBySlug(safeSlug(params), url.searchParams.get('route') ?? ''));
   });
 
   on('POST', '/annotations', async (req, res) => {
@@ -91,17 +105,17 @@ export function createApi(
   on('PATCH', '/annotations/:id', async (req, res, params) => {
     const body = (await readJson(req)) as PatchAnnotationRequest;
     if (typeof body.comment !== 'string') throw badRequest('comment: expected string');
-    sendJson(res, 200, await store.patchAnnotation(params['id'] as string, body.comment));
+    sendJson(res, 200, await store.patchAnnotation(safeId(params), body.comment));
   });
 
   on('DELETE', '/annotations/:id', async (_req, res, params) => {
-    await store.deleteAnnotation(params['id'] as string);
+    await store.deleteAnnotation(safeId(params));
     sendJson(res, 200, { ok: true });
   });
 
   on('POST', '/annotations/:id/transition', async (req, res, params) => {
     const body = (await readJson(req)) as TransitionRequest;
-    sendJson(res, 200, await store.transition(params['id'] as string, body));
+    sendJson(res, 200, await store.transition(safeId(params), body));
   });
 
   on('POST', '/batches', async (req, res) => {
@@ -124,7 +138,7 @@ export function createApi(
   on('POST', '/screenshots/:id', async (req, res, params) => {
     const body = await readBody(req, PNG_LIMIT);
     if (!isPng(body)) throw badRequest('body: expected a PNG image');
-    sendJson(res, 201, { path: await store.saveScreenshot(params['id'] as string, body) });
+    sendJson(res, 201, { path: await store.saveScreenshot(safeId(params), body) });
   });
 
   const prefix = options.basePath;
