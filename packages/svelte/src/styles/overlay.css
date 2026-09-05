@@ -460,7 +460,7 @@ kbd {
 
 .draw-bar .tooltip {
   bottom: auto;
-  top: calc(100% + 8px);
+  bottom: calc(100% + 8px);
 }
 
 /* ----------------------------------------------------------------- palette */
@@ -973,7 +973,7 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: var(--annot-space-1);
-  max-height: 220px;
+  max-height: 340px;
   overflow: auto;
 }
 

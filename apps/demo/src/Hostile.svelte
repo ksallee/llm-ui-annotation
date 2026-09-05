@@ -36,7 +36,7 @@
   </p>
   <button data-testid="hostile-cta" type="button">Do the thing</button>
   <p>
-    A second paragraph, so text mode has something to select on a page where every element has lost
+    A second paragraph, so Highlight mode has something to select on a page where every element has lost
     its defaults.
   </p>
 </main>
