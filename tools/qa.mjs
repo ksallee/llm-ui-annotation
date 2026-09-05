@@ -1,31 +1,18 @@
 #!/usr/bin/env node
-// Drive the overlay in a real headless browser and print only what was asked for.
-//
-// Why a script and not a browser MCP: an MCP returns an accessibility snapshot and a console log on
-// every call, which is most of what a UI session costs. This is a CLI that writes to disk and lets
-// the agent read back only its own answer — the drive script's return value, as JSON, and nothing
-// else. Screenshots go to a file you look at when you need to, not into the transcript.
+// Drive the overlay in headless chromium. Prints the drive script's return value as JSON, nothing else.
 //
 //   tools/qa.mjs --app apps/demo --drive drive.js --shot /tmp/out.png
-//   tools/qa.mjs --url http://127.0.0.1:5173/ --drive - <<'JS'
-//     await click('[data-mode="element"]'); return { modes: shAll('.mode').map(text) };
-//   JS
+//   tools/qa.mjs --url http://127.0.0.1:5173/ --drive -
 //
-// --app starts an isolated dev server: its own free port and its own .annotations/ directory, so
-// two agents driving two worktrees never write over each other's routes. Without --app, --url is
-// used as is and nothing is started or cleaned up.
-//
-// The drive file is the body of an async function. It receives, as locals:
-//   wait(ms)  sleep
-//   $ $$      querySelector / querySelectorAll in the HOST document, returning handles
-//   sh shAll  the same, inside the overlay's shadow root — this is where the UI actually lives
-//   click(s)  shadow-first click: tries the shadow root, then the host document
-//   text(s)   trimmed textContent of the first match, shadow-first, '' when absent
-//   type(s,v) fill an input, shadow-first
-//   overlay   the <annot-overlay> element handle, or null when it never mounted
-// Whatever it returns is JSON.stringify'd to stdout. Uncaught page errors are collected and
-// reported under "errors" because a silent throw in the overlay is the thing you are usually
-// chasing; nothing else is printed.
+// --app starts the app on a free port with its own ANNOT_DIR. --url uses a server you already have.
+// The drive file is the body of an async function, with these locals:
+//   wait(ms)    sleep
+//   $ $$        querySelector / querySelectorAll in the host document
+//   sh shAll    the same, inside the overlay's shadow root
+//   click(s)    click, shadow root first then host document
+//   type(s, v)  set an input's value and fire input
+//   text(s)     trimmed textContent, '' when absent
+//   overlay     the <annot-overlay> element, null when it never mounted
 
 import { spawn } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, renameSync } from 'node:fs';
@@ -73,9 +60,6 @@ async function waitForHttp(url, seconds) {
   return false;
 }
 
-// An isolated dev server: own port, own .annotations/. The isolation is the point — every worktree
-// runs the same app on the same default port and writes the same route files, so without it an
-// agent verifies someone else's state instead of its own.
 async function startApp(appDir, annotationsDir) {
   const port = await freePort(5300);
   const proc = spawn(
@@ -85,9 +69,7 @@ async function startApp(appDir, annotationsDir) {
   return { proc, port, url: `http://127.0.0.1:${port}/` };
 }
 
-// Runs in the page. Waits for the custom element to be defined AND for its shadow root to have
-// painted something: `customElements.whenDefined` resolves before the first render, so a drive
-// script that queries straight away finds an empty shadow root and reports a UI that is not there.
+// Waits for a painted shadow root: whenDefined resolves before the first render.
 async function boot({ drive, tag, waitFor, noOverlay }) {
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   let overlay = null;
@@ -155,8 +137,6 @@ async function main() {
   let browser, ctx;
   try {
     browser = await chromium.launch({ headless: true });
-    // Video is a context setting and the file is only finalised when the context closes, so its
-    // path is read back after close, never before.
     ctx = await browser.newContext({
       viewport: { width: vw, height: vh },
       ...(a.video ? { recordVideo: { dir: dirname(resolve(a.video)), size: { width: vw, height: vh } } } : {}),
@@ -179,7 +159,7 @@ async function main() {
     if (videoSrc) { renameSync(videoSrc, resolve(a.video)); out.video = resolve(a.video); }
     await browser.close();
   } catch (e) {
-    // First line only: the rest is Playwright's own eval frames, which cost tokens and say nothing.
+    // Rest of the stack is Playwright's own eval frames.
     out.error = String(e?.message ?? e).split('\n')[0];
     try { await ctx?.close(); await browser?.close(); } catch { /* already down */ }
   } finally {
