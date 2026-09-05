@@ -293,10 +293,15 @@
   opacity: 1;
 }
 
-.tooltip kbd {
+.tooltip kbd,
+kbd.mono {
   font-family: var(--annot-font-mono);
-  font-size: 10px;
-  opacity: 0.6;
+  font-size: var(--annot-text-sm);
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: var(--annot-radius-sm);
+  background: color-mix(in oklch, currentColor 14%, transparent);
+  opacity: 0.9;
 }
 
 .swatches {

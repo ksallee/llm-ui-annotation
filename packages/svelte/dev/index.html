@@ -59,7 +59,27 @@
           The quick brown fox jumps over the lazy dog. Repeated phrase for anchoring tests.
           Repeated phrase for anchoring tests. Then something else entirely so the offsets differ.
         </p>
+        <p>
+          Anchoring has to survive a re-render, so this paragraph exists to be edited while a
+          highlight sits inside it. Select a few words here, annotate them, then change the text
+          above and watch whether the highlight follows, drifts, or gives up.
+        </p>
+        <p>
+          A second paragraph, immediately after the first, so a selection can be dragged across the
+          boundary between them. Prose in a real document rarely respects block elements: a thought
+          starts in one paragraph and finishes in the next, and the selection a reader makes follows
+          the thought rather than the markup.
+        </p>
+        <p>
+          A third, for selections that span more than two blocks. The quick brown fox jumps over the
+          lazy dog; the same sentence appears twice on this page on purpose, so prefix and suffix
+          have to do the work of telling the two occurrences apart.
+        </p>
         <blockquote>A block quote, in its own container, for multi-block refusal tests.</blockquote>
+        <p>
+          And a closing paragraph after the quote, so a selection can start in a blockquote and end
+          in ordinary prose — the case where the common ancestor is the section, not a paragraph.
+        </p>
       </section>
 
       <section>
