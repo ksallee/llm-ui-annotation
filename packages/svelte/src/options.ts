@@ -1,4 +1,5 @@
 import type { Mode } from '@llm-ui-annotation/core';
+import type { AnnotState } from './state/annot-state.svelte.js';
 import type { Density, SchemeOption } from './theme/index.js';
 
 export type SendMode = 'batch' | 'immediate';
@@ -30,7 +31,7 @@ export interface OverlayOptions {
 
 export interface AnnotatorProps {
   /** Reuse an existing state; when omitted the component owns one and connects it. */
-  state?: import('./state/annot-state.svelte.js').AnnotState;
+  state?: AnnotState;
   options?: OverlayOptions;
   version?: string;
   accent?: string;

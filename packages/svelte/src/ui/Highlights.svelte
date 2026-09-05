@@ -30,7 +30,7 @@
               stroke-dasharray={a.status === 'draft' ? '5 4' : undefined}
               style="pointer-events: all"
               role="presentation"
-              onmouseenter={() => (annot.hoverCard = a.id)}
+              onmouseenter={() => annot.showCard(a.id)}
             />
           {/each}
         {:else if a.mode === 'text'}
@@ -44,7 +44,7 @@
               fill={textPainted ? 'transparent' : `var(--annot-${a.status}-fill)`}
               style="pointer-events: all"
               role="presentation"
-              onmouseenter={() => (annot.hoverCard = a.id)}
+              onmouseenter={() => annot.showCard(a.id)}
             />
           {/each}
         {:else if a.target.kind === 'page'}
@@ -62,7 +62,7 @@
             stroke-dasharray={a.status === 'draft' ? '5 4' : undefined}
             style="pointer-events: all"
             role="presentation"
-            onmouseenter={() => (annot.hoverCard = a.id)}
+            onmouseenter={() => annot.showCard(a.id)}
           />
           <Strokes strokes={a.target.strokes} opacity={a.status === 'draft' ? 0.7 : 0.9} />
         {/if}

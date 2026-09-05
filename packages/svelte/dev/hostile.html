@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en" style="color-scheme: dark">
+  <head>
+    <meta charset="utf-8" />
+    <title>hostile host</title>
+    <style>
+      /* Everything the overlay has to survive: a global reset, a dark scheme, a loud accent. */
+      * { all: unset; display: revert; box-sizing: border-box; }
+      :root { --annot-accent: #f2b705; }
+      body { display: block; background: #101215; color: #e9e9e7; font: 15px/1.6 system-ui, sans-serif; padding: 40px; }
+      h1 { display: block; font-size: 30px; font-weight: 700; margin-bottom: 12px; }
+      p { display: block; max-width: 60ch; margin-bottom: 16px; }
+      button { display: inline-block; border: 1px solid #555; padding: 8px 14px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <h1>Hostile host</h1>
+    <p class="lede">
+      This page resets every element and declares a dark colour scheme with a yellow accent. The
+      overlay must still look like itself.
+    </p>
+    <button data-testid="hostile-cta">Do the thing</button>
+    <script type="module" src="./hostile.ts"></script>
+  </body>
+</html>

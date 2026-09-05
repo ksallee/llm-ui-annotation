@@ -128,6 +128,8 @@ export class AnnotState {
   announcement = $state('');
   otherRouteDrafts = $state(0);
 
+  #hoverTimer = 0;
+
   readonly doc: Document;
   readonly client: AnnotClient;
   #persist: boolean;
@@ -445,6 +447,54 @@ export class AnnotState {
           for (const a of before) void this.reopen(a.id, 'undo approve');
         },
       });
+    }
+  }
+
+  showCard(id: string): void {
+    this.doc?.defaultView?.clearTimeout(this.#hoverTimer);
+    this.hoverCard = id;
+  }
+
+  hideCardSoon(): void {
+    const view = this.doc?.defaultView;
+    if (!view) {
+      this.hoverCard = null;
+      return;
+    }
+    view.clearTimeout(this.#hoverTimer);
+    this.#hoverTimer = view.setTimeout(() => (this.hoverCard = null), 250);
+  }
+
+  /** Pull in the annotations of every other route, for the panel's all-routes view. */
+  async toggleAllRoutes(open: boolean = !this.allRoutes): Promise<void> {
+    this.allRoutes = open;
+    if (!open) return;
+    try {
+      const { routes } = await this.client.routes();
+      for (const route of routes) {
+        if (route === this.route) continue;
+        const file = await this.client.route(route);
+        for (const a of file.annotations) if (!this.annotations.has(a.id)) this.annotations.set(a.id, a);
+      }
+    } catch {
+      this.connection = 'offline';
+    }
+  }
+
+  /** Open the send dialog and count the drafts waiting on other routes. */
+  openSend(): void {
+    this.sendOpen = true;
+    void this.refreshOtherDrafts();
+  }
+
+  async refreshOtherDrafts(): Promise<void> {
+    try {
+      const { summaries } = await this.client.routes();
+      this.otherRouteDrafts = (summaries ?? [])
+        .filter((summary) => summary.route !== this.route)
+        .reduce((total, summary) => total + (summary.counts.draft ?? 0), 0);
+    } catch {
+      this.otherRouteDrafts = 0;
     }
   }
 

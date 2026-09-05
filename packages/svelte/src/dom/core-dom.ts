@@ -165,9 +165,8 @@ function labelText(el: Element): string {
   return '';
 }
 
-/** Human label: `button "Save"`. */
+/** Bare human label, e.g. `Save`. Core composes `button "Save"` from it. */
 export function elementName(el: Element): string {
-  const tag = el.tagName.toLowerCase();
   const attrs = ['aria-label', 'alt', 'title', 'placeholder'];
   let label = el.getAttribute('aria-label') ?? '';
   if (!label) label = labelText(el);
@@ -185,8 +184,16 @@ export function elementName(el: Element): string {
   if (!label && el instanceof HTMLAnchorElement) {
     label = el.getAttribute('href')?.split('/').filter(Boolean).pop() ?? '';
   }
-  if (!label && el.querySelector('svg')) return `${tag} (icon)`;
-  return label ? `${tag} "${label}"` : tag;
+  if (!label && el.querySelector('svg')) return '(icon)';
+  return label;
+}
+
+/** `button "Save"`, matching `elementLabel` in core. */
+export function elementLabelOf(el: Element): string {
+  const tag = el.tagName.toLowerCase();
+  const name = elementName(el);
+  if (!name) return tag;
+  return name === '(icon)' ? `${tag} (icon)` : `${tag} "${name}"`;
 }
 
 function roleOf(el: Element): string | null {
@@ -262,9 +269,9 @@ export function describeElement(el: Element, opts: DescribeOptions = {}): Elemen
   if (opts.styles !== false) ref.styles = stylesOf(el);
   if (opts.context !== false) {
     ref.context = {
-      parent: el.parentElement ? elementName(el.parentElement) : null,
-      prev: el.previousElementSibling ? elementName(el.previousElementSibling) : null,
-      next: el.nextElementSibling ? elementName(el.nextElementSibling) : null,
+      parent: el.parentElement ? elementLabelOf(el.parentElement) : null,
+      prev: el.previousElementSibling ? elementLabelOf(el.previousElementSibling) : null,
+      next: el.nextElementSibling ? elementLabelOf(el.nextElementSibling) : null,
     };
   }
   return ref;

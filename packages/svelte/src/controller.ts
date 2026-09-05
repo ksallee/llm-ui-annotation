@@ -2,7 +2,7 @@ import type { Status, Target } from '@llm-ui-annotation/core';
 import { captureRegion, freezeAnimations, isOverlay } from './dom/core-dom.js';
 import { paintHighlights, supportsHighlights } from './dom/highlights.js';
 import { isTyping, keyAction } from './keyboard.js';
-import { openPagePopup, openTextPopup } from './modes/index.js';
+import { openElementPopup, openPagePopup, openTextPopup } from './modes/index.js';
 import type { AnnotState } from './state/annot-state.svelte.js';
 import { oklch, parseColor, type Tokens } from './theme/index.js';
 
@@ -55,7 +55,6 @@ export function watchViewport(state: AnnotState): () => void {
 
 export interface KeyActions {
   commit(): void;
-  openSend(): void;
 }
 
 export function bindKeys(state: AnnotState, host: Element | null, actions: KeyActions): () => void {
@@ -259,7 +258,11 @@ export function primaryAction(state: AnnotState, ctx: CommitContext): void {
     openPagePopup(state);
     return;
   }
-  if (state.sendMode === 'batch' && state.drafts.length > 0) state.sendOpen = true;
+  if (state.mode === 'element' && state.selection.length > 0) {
+    openElementPopup(state);
+    return;
+  }
+  if (state.sendMode === 'batch' && state.drafts.length > 0) state.openSend();
 }
 
 /** Centre the annotation's target in the viewport and show its card. */

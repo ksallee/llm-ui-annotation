@@ -8,6 +8,7 @@ import {
   type Event,
   type HealthResponse,
   type RouteFile,
+  type RoutesResponse,
   type TransitionRequest,
 } from '@llm-ui-annotation/core';
 
@@ -59,8 +60,8 @@ export class AnnotClient {
     return this.#json<RouteFile>(`/routes/${slug(route)}`);
   }
 
-  routes(): Promise<{ routes: string[] }> {
-    return this.#json<{ routes: string[] }>('/routes');
+  routes(): Promise<RoutesResponse> {
+    return this.#json<RoutesResponse>('/routes');
   }
 
   create(annotation: Annotation): Promise<Annotation> {

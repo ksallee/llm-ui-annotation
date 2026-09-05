@@ -25,7 +25,8 @@
 <div
   class="card hover-card"
   style="left: {at.x}px; top: {at.y}px; position: fixed"
-  onmouseleave={() => (annot.hoverCard = null)}
+  onmouseenter={() => annot.showCard(annotation.id)}
+  onmouseleave={() => annot.hideCardSoon()}
 >
   <div class="row">
     <span class="status-pill" style="background: var(--annot-{annotation.status}-fill)">

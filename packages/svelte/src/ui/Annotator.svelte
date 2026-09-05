@@ -11,8 +11,16 @@
     primaryAction,
     watchViewport,
   } from '../controller.js';
-  import { supportsHighlights } from '../dom/highlights.js';
-  import { commitLabel, elementMode, openPagePopup, openTextPopup, pageMode, textMode } from '../modes/index.js';
+  import { clearHighlights, ensureHighlightStyle, supportsHighlights } from '../dom/highlights.js';
+  import {
+    commitLabel,
+    elementMode,
+    openElementPopup,
+    openPagePopup,
+    openTextPopup,
+    pageMode,
+    textMode,
+  } from '../modes/index.js';
   import { createState } from '../create.js';
   import type { AnnotatorProps, OverlayOptions } from '../options.js';
   import { connectLive } from '../transport/live.js';
@@ -81,7 +89,12 @@
     annot.palette = drawingPalette(theme.tokens);
     annot.accentSuggestions = accentSuggestions(theme.tokens);
     if (!annot.drawColor) annot.drawColor = annot.palette[0] ?? '';
-    return () => theme.dispose();
+    const dropStyle = ensureHighlightStyle(annot.doc, theme.tokens);
+    return () => {
+      theme.dispose();
+      dropStyle();
+      clearHighlights(annot.doc);
+    };
   });
 
   $effect(() => {
@@ -91,10 +104,7 @@
 
   $effect(() => watchViewport(annot));
 
-  $effect(() => bindKeys(annot, host, {
-    commit: () => primaryAction(annot, ctx),
-    openSend: () => (annot.sendOpen = true),
-  }));
+  $effect(() => bindKeys(annot, host, { commit: () => primaryAction(annot, ctx) }));
 
   $effect(() => freezeWhile(annot, annot.frozen));
 
@@ -147,6 +157,17 @@
       >
         {annot.hover.label}
       </span>
+    {/if}
+
+    {#if annot.mode === 'element' && annot.selection.length > 1 && !annot.popup}
+      {@const box = annot.selection[0].getBoundingClientRect()}
+      <button
+        class="chip"
+        style="left: {box.left}px; top: {box.top - 26}px"
+        onclick={() => openElementPopup(annot)}
+      >
+        Annotate {annot.selection.length}
+      </button>
     {/if}
 
     {#if annot.mode === 'text' && annot.textChip}
@@ -207,7 +228,7 @@
 
     <Toolbar
       {annot}
-      onsend={() => (annot.sendOpen = true)}
+      onsend={() => annot.openSend()}
       onclose={() => {
         annot.setMode(null);
         annot.setPref('expanded', false);
@@ -215,7 +236,7 @@
     />
 
     {#if annot.prefs.panelOpen}
-      <Panel {annot} onsend={() => (annot.sendOpen = true)} onlocate={(id) => locate(annot, id)} />
+      <Panel {annot} onsend={() => annot.openSend()} onlocate={(id) => locate(annot, id)} />
     {/if}
 
     {#if annot.popup}

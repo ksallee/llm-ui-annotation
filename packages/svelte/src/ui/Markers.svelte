@@ -20,7 +20,8 @@
         title={anchor.state === 'moved' ? 'text moved, check the highlight' : a.comment}
         aria-label="Annotation {a.number}, {a.status}"
         onclick={() => onopen(a.id)}
-        onmouseenter={() => (annot.hoverCard = a.id)}
+        onmouseenter={() => annot.showCard(a.id)}
+        onmouseleave={() => annot.hideCardSoon()}
         onfocus={() => (annot.focusedId = a.id)}
         oncontextmenu={(e) => {
           if (a.status !== 'draft') return;

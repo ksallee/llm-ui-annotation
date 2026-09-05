@@ -34,7 +34,7 @@
       <button
         class="btn quiet small"
         aria-pressed={annot.allRoutes}
-        onclick={() => (annot.allRoutes = !annot.allRoutes)}>all routes</button
+        onclick={() => void annot.toggleAllRoutes()}>all routes</button
       >
       <button
         class="icon-btn"
@@ -70,7 +70,10 @@
         {annot}
         annotation={a}
         expanded={expanded === a.id}
-        ontoggle={() => (expanded = expanded === a.id ? null : a.id)}
+        ontoggle={() => {
+          expanded = expanded === a.id ? null : a.id;
+          if (expanded) onlocate(a.id);
+        }}
         onlocate={() => onlocate(a.id)}
       />
     {:else}

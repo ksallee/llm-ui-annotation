@@ -2,7 +2,6 @@ import { mount, type MountedOverlay } from './mount.js';
 import type { OverlayOptions } from './options.js';
 
 declare global {
-  // eslint-disable-next-line no-var
   var __ANNOT_OPTIONS__: OverlayOptions | undefined;
 }
 
