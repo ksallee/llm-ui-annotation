@@ -4,17 +4,23 @@ The vocabulary every other package shares: annotation types, ids, the status sta
 validation, the `.annotations/` file protocol, and the markdown the agent reads. Zero runtime dependencies,
 never touches `window` at import time. Spec: `docs/specs/01-data-model-and-protocol.md`.
 
-## Two entries
+## Three entries
 
 `@llm-ui-annotation/core` is framework-free and safe in a browser bundle.
+`@llm-ui-annotation/core/dom` adds the algorithms that read a live page: selector generation, element
+description, text anchoring, stroke rendering, region capture and animation freezing. Every function takes a
+`Document`, `Element` or `Range`, so it runs under happy-dom as readily as in a browser.
 `@llm-ui-annotation/core/node` adds the `node:fs` helpers that read and write `.annotations/`.
-Importing the first never pulls in the second.
+Importing the first never pulls in the other two.
 
 ```ts
 import { applyTransition, newId, renderBatchMarkdown, slug, validateAnnotation } from '@llm-ui-annotation/core';
+import { anchorText, describeElement } from '@llm-ui-annotation/core/dom';
 import { appendEvent, readRoute, writeRoute } from '@llm-ui-annotation/core/node';
 
 const acknowledged = applyTransition(annotation, 'acknowledged', 'agent');
+const ref = describeElement(event.target as Element);
+const anchor = anchorText(document, annotation.target as TextTarget);
 const file = await readRoute('.annotations', '/pricing');
 await appendEvent('.annotations', { at: acknowledged.updatedAt, type: 'status.changed', by: 'agent', route: '/pricing' });
 ```
