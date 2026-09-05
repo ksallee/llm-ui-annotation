@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Stroke } from '@llm-ui-annotation/core';
   import { smoothPath } from '../dom/geometry.js';
+  import { labelBox } from '../dom/core-dom.js';
 
   let { strokes, opacity = 1 }: { strokes: Stroke[]; opacity?: number } = $props();
 </script>
@@ -54,10 +55,19 @@
         fill="none"
       />
     {:else}
-      <text
+      {@const box = labelBox(stroke.text, stroke.size)}
+      <rect
         x={stroke.at[0]}
         y={stroke.at[1]}
+        width={box.width}
+        height={box.height}
+        rx="4"
         fill={stroke.color}
+      />
+      <text
+        x={stroke.at[0] + 4}
+        y={stroke.at[1] + 4}
+        fill="var(--annot-accent-ink)"
         font-size={stroke.size}
         font-family="system-ui, sans-serif"
         dominant-baseline="hanging">{stroke.text}</text

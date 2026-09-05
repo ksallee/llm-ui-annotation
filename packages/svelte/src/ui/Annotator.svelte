@@ -196,10 +196,14 @@
       <input
         class="label-input"
         bind:this={labelInput}
-        bind:value={annot.labelDraft.text}
+        value={annot.labelDraft.text}
         style="left: {annot.labelDraft.at[0] - annot.scroll.x}px; top: {annot.labelDraft.at[1] -
           annot.scroll.y}px"
         aria-label="Label text"
+        placeholder="Label…"
+        oninput={(e) => {
+          if (annot.labelDraft) annot.labelDraft.text = e.currentTarget.value;
+        }}
         onkeydown={(e) => {
           if (e.key === 'Enter') commitLabel(annot);
           if (e.key === 'Escape') annot.labelDraft = null;
