@@ -2,7 +2,7 @@
 
 Annotate a running UI in the browser (click elements, select text, draw on the page), send the batch to a coding agent, watch it get fixed, approve. Svelte 5 first. No MCP: the protocol is files in `.annotations/` plus a small CLI the agent runs.
 
-Read `docs/specs/00-overview.md` before touching anything. The specs are the source of truth; if code and spec disagree, fix one and say which.
+Read `docs/specs/00-overview.md` and `docs/conventions.md` before touching anything. The specs are the source of truth; if code and spec disagree, fix one and say which.
 
 ## Layout
 
