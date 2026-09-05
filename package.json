@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "description": "Annotate a running UI (elements, text, freehand) and hand the feedback to a coding agent. Svelte-first, MCP-free.",
   "license": "MIT",
+  "type": "module",
   "packageManager": "pnpm@10.15.0",
   "engines": {
     "node": ">=22"
@@ -11,14 +12,21 @@
   "scripts": {
     "build": "pnpm -r --filter './packages/*' build",
     "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
+    "lint": "eslint .",
     "check": "pnpm -r check",
     "qa": "node tools/qa.mjs",
     "dev:demo": "pnpm --filter demo dev",
     "dev:reader": "pnpm --filter reader dev"
   },
   "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/node": "^22.18.0",
+    "eslint": "^9.36.0",
+    "globals": "^16.4.0",
+    "happy-dom": "^18.0.1",
     "playwright": "^1.63.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.44.0",
+    "vitest": "^3.2.4"
   }
 }
