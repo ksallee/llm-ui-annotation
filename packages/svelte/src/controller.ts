@@ -2,6 +2,7 @@ import type { Rect, Status, Stroke, Target } from '@llm-ui-annotation/core';
 import { captureRegion, freezeAnimations, isOverlayNode } from './dom/core-dom.js';
 import { paintHighlights, supportsHighlights } from './dom/highlights.js';
 import { isTyping, keyAction } from './keyboard.js';
+import { DRAW_TOOLS } from './draw-tools.js';
 import { openElementPopup, openPagePopup, openTextPopup } from './modes/index.js';
 import { domToCanvas } from './screenshot.js';
 import type { AnnotState } from './state/annot-state.svelte.js';
@@ -62,19 +63,33 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
   const doc = state.doc;
 
   const onKeyDown = (event: KeyboardEvent): void => {
-    if (isTyping(event.target, host)) return;
+    if (isTyping(event.target, host) || state.capturingKey) return;
     const focused = state.focusedId ? state.annotations.get(state.focusedId) : null;
     const action = keyAction(event, {
       mode: state.mode,
       popupOpen: Boolean(state.popup),
       dialogOpen: state.sendOpen || state.settingsOpen || state.shortcutsOpen,
+      paletteOpen: state.paletteOpen,
+      panelOpen: state.prefs.panelOpen,
       focusedDraft: focused?.status === 'draft',
+      paletteKey: state.prefs.paletteKey,
     });
     if (!action) return;
 
+    if (action.startsWith('tool:')) {
+      const tool = DRAW_TOOLS[Number(action.slice(5)) - 1];
+      if (tool) state.drawTool = tool.tool;
+      event.preventDefault();
+      return;
+    }
+
     switch (action) {
+      case 'palette':
+        state.togglePalette();
+        break;
       case 'escape':
-        if (state.labelDraft) state.labelDraft = null;
+        if (state.paletteOpen) state.togglePalette(false);
+        else if (state.labelDraft) state.labelDraft = null;
         else if (state.popup) state.closePopup();
         else if (state.sendOpen || state.settingsOpen || state.shortcutsOpen) {
           state.sendOpen = false;

@@ -137,6 +137,8 @@ export class AnnotState {
   announcement = $state('');
   otherRouteDrafts = $state(0);
   paletteOpen = $state(false);
+  /** Settings is listening for the next chord; the controller must not act on it. */
+  capturingKey = $state(false);
   readonly selected = new SvelteSet<string>();
   previewId = $state<string | null>(null);
   expandedId = $state<string | null>(null);
@@ -315,10 +317,15 @@ export class AnnotState {
   /** Collapse the pill, closing every popover that hangs off it. */
   collapse(): void {
     this.setMode(null);
+    this.paletteOpen = false;
     this.sendOpen = false;
     this.settingsOpen = false;
     this.shortcutsOpen = false;
     this.setPref('expanded', false);
+  }
+
+  togglePalette(open: boolean = !this.paletteOpen): void {
+    this.paletteOpen = open;
   }
 
   togglePanel(open: boolean = !this.prefs.panelOpen): void {

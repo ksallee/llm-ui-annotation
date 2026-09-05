@@ -1,14 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { isTyping, keyAction, type KeyContext } from '../src/keyboard.js';
+import {
+  comboOf,
+  DEFAULT_PALETTE_KEY,
+  formatCombo,
+  isTyping,
+  keyAction,
+  type KeyContext,
+} from '../src/keyboard.js';
 
 const key = (init: Partial<KeyboardEvent> & { key: string }): KeyboardEvent =>
   new KeyboardEvent('keydown', { bubbles: true, ...init });
 
 const ctx = (over: Partial<KeyContext> = {}): KeyContext => ({
-  mode: null,
+  mode: 'element',
   popupOpen: false,
   dialogOpen: false,
+  paletteOpen: false,
+  panelOpen: false,
   focusedDraft: false,
+  paletteKey: DEFAULT_PALETTE_KEY,
   ...over,
 });
 
@@ -34,8 +44,26 @@ describe('isTyping', () => {
   });
 });
 
+describe('comboOf', () => {
+  it('names a chord by its code, so the layout cannot change it', () => {
+    expect(comboOf(key({ key: 'å', code: 'KeyA', altKey: true }))).toBe('Alt+KeyA');
+    expect(comboOf(key({ key: 'Meta', code: 'MetaLeft', metaKey: true }))).toBe('');
+    expect(formatCombo('Alt+KeyA')).toBe('⌥A');
+    expect(formatCombo('Meta+Shift+Digit1')).toBe('⌘⇧1');
+  });
+});
+
 describe('keyAction', () => {
-  it('maps the mode letters', () => {
+  it('binds nothing but the palette while the overlay is idle', () => {
+    const idle = ctx({ mode: null });
+    for (const k of ['e', 'h', 'd', 'i', 'p', '?']) {
+      expect(keyAction(key({ key: k }), idle), k).toBeNull();
+    }
+    expect(keyAction(key({ key: 'Escape' }), idle)).toBeNull();
+    expect(keyAction(key({ key: 'a', code: 'KeyA', altKey: true }), idle)).toBe('palette');
+  });
+
+  it('maps the mode letters while a mode is active', () => {
     expect(keyAction(key({ key: 'e' }), ctx())).toBe('mode:element');
     expect(keyAction(key({ key: 'H' }), ctx())).toBe('mode:text');
     expect(keyAction(key({ key: 'd' }), ctx())).toBe('mode:page');
@@ -46,12 +74,23 @@ describe('keyAction', () => {
     expect(keyAction(key({ key: 'p' }), ctx())).toBeNull();
   });
 
-  it('always answers Escape, even with a dialog open', () => {
-    expect(keyAction(key({ key: 'Escape' }), ctx({ dialogOpen: true }))).toBe('escape');
+  it('answers Escape for any open surface, and nothing when everything is closed', () => {
+    expect(keyAction(key({ key: 'Escape' }), ctx({ mode: null, dialogOpen: true }))).toBe('escape');
+    expect(keyAction(key({ key: 'Escape' }), ctx({ mode: null, panelOpen: true }))).toBe('escape');
+    expect(keyAction(key({ key: 'Escape' }), ctx({ mode: null }))).toBeNull();
   });
 
-  it('commits only when no surface owns the keystroke', () => {
+  it('the palette owns the keyboard while it is open', () => {
+    expect(keyAction(key({ key: 'e' }), ctx({ paletteOpen: true }))).toBeNull();
+    expect(keyAction(key({ key: 'Escape' }), ctx({ paletteOpen: true }))).toBe('escape');
+    expect(keyAction(key({ key: 'a', code: 'KeyA', altKey: true }), ctx({ paletteOpen: true }))).toBe(
+      'palette',
+    );
+  });
+
+  it('commits only when a mode is active and no surface owns the keystroke', () => {
     expect(keyAction(key({ key: 'Enter', metaKey: true }), ctx())).toBe('commit');
+    expect(keyAction(key({ key: 'Enter', metaKey: true }), ctx({ mode: null }))).toBeNull();
     expect(keyAction(key({ key: 'Enter', metaKey: true }), ctx({ popupOpen: true }))).toBeNull();
     expect(keyAction(key({ key: 'Enter', metaKey: true }), ctx({ dialogOpen: true }))).toBeNull();
   });
@@ -61,7 +100,12 @@ describe('keyAction', () => {
     expect(keyAction(key({ key: 'i' }), ctx({ dialogOpen: true }))).toBeNull();
   });
 
-  it('undo and redo only exist in page mode', () => {
+  it('numbers pick a drawing tool, but only in Draw', () => {
+    expect(keyAction(key({ key: '3' }), ctx({ mode: 'page' }))).toBe('tool:3');
+    expect(keyAction(key({ key: '3' }), ctx({ mode: 'element' }))).toBeNull();
+  });
+
+  it('undo and redo only exist in Draw', () => {
     expect(keyAction(key({ key: 'z', metaKey: true }), ctx({ mode: 'element' }))).toBeNull();
     expect(keyAction(key({ key: 'z', metaKey: true }), ctx({ mode: 'page' }))).toBe('undo');
     expect(keyAction(key({ key: 'Z', metaKey: true, shiftKey: true }), ctx({ mode: 'page' }))).toBe('redo');
@@ -74,6 +118,6 @@ describe('keyAction', () => {
 
   it('ignores modified letters', () => {
     expect(keyAction(key({ key: 'e', metaKey: true }), ctx())).toBeNull();
-    expect(keyAction(key({ key: 'd', altKey: true }), ctx())).toBeNull();
+    expect(keyAction(key({ key: 'd', code: 'KeyD', altKey: true }), ctx())).toBeNull();
   });
 });

@@ -1,12 +1,20 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.js';
 import { centre, exitMode, field, overlay, popup, ready, setMode } from './overlay.js';
 
+/** Record what the host page itself receives, so we can prove the overlay let it through. */
+async function watchHostKeys(page: Page): Promise<() => Promise<string[]>> {
+  await page.evaluate(() => {
+    const seen: string[] = [];
+    (window as unknown as { __keys: string[] }).__keys = seen;
+    document.addEventListener('keydown', (e) => seen.push(e.key));
+  });
+  return () => page.evaluate(() => (window as unknown as { __keys: string[] }).__keys);
+}
+
 test('while a mode is active the capture layer swallows host clicks', async ({ page, site }) => {
   await page.goto(`${site}/app/`);
-  await ready(page);
-
-  await page.keyboard.press('e');
-  await expect.poll(() => field<string | null>(page, 'mode')).toBe('element');
+  await setMode(page, 'Element');
 
   const at = await centre(page, '[data-testid="invite"]');
   await page.mouse.click(at.x, at.y);
@@ -23,19 +31,33 @@ test('while a mode is active the capture layer swallows host clicks', async ({ p
   await expect(page.locator('[data-testid="modal"]')).toBeVisible();
 });
 
-test('the mode, panel, pause and help shortcuts do what the sheet says', async ({ page, site }) => {
+test('no overlay key but ⌥A fires while idle; the scoped ones fire in a mode', async ({
+  page,
+  site,
+}) => {
   await page.goto(`${site}/app/`);
   await ready(page);
+  const hostKeys = await watchHostKeys(page);
 
+  for (const key of ['e', 'h', 'd', 'i', 'p']) await page.keyboard.press(key);
+  expect(await hostKeys()).toEqual(['e', 'h', 'd', 'i', 'p']);
+  expect(await field<string | null>(page, 'mode')).toBeNull();
+  expect(await field<boolean>(page, 'prefs.panelOpen')).toBe(false);
+
+  await page.keyboard.press('Alt+a');
+  await expect.poll(() => field<boolean>(page, 'paletteOpen')).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect.poll(() => field<boolean>(page, 'paletteOpen')).toBe(false);
+
+  await setMode(page, 'Element');
   for (const [key, mode] of [
-    ['e', 'element'],
     ['h', 'text'],
     ['d', 'page'],
+    ['e', 'element'],
   ] as const) {
     await page.keyboard.press(key);
     await expect.poll(() => field<string | null>(page, 'mode')).toBe(mode);
   }
-  await exitMode(page);
 
   await page.keyboard.press('i');
   await expect(overlay(page).locator('[aria-label="Annotations"]')).toBeVisible();
@@ -53,19 +75,21 @@ test('the mode, panel, pause and help shortcuts do what the sheet says', async (
 
   await page.keyboard.press('?');
   await expect(overlay(page).getByText('Element mode', { exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await exitMode(page);
 });
 
 test('shortcuts are ignored while the user types in the host page', async ({ page, site }) => {
   await page.goto(`${site}/app/`);
-  await ready(page);
+  await setMode(page, 'Element');
 
   await page.locator('input[name="team"]').fill('');
   await page.locator('input[name="team"]').type('page edit');
   expect(await page.locator('input[name="team"]').inputValue()).toBe('page edit');
-  expect(await field<string | null>(page, 'mode')).toBeNull();
+  expect(await field<string | null>(page, 'mode')).toBe('element');
 });
 
-test('⌘↵ sends the batch from anywhere', async ({ page, site }) => {
+test('⌘↵ sends the batch from anywhere in a mode', async ({ page, site }) => {
   await page.goto(`${site}/app/`);
   await setMode(page, 'Element');
   const at = await centre(page, '[data-testid="save"]');

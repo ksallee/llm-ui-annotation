@@ -13,7 +13,11 @@
     <h2>Keyboard shortcuts</h2>
     <ul>
       {#each SHORTCUTS as shortcut (shortcut.keys)}
-        <li><kbd class="mono">{shortcut.keys}</kbd><span>{shortcut.what}</span></li>
+        <li>
+          <kbd>{shortcut.keys}</kbd>
+          <span class="spacer">{shortcut.what}</span>
+          <span class="muted">{shortcut.scope}</span>
+        </li>
       {/each}
     </ul>
     <div class="row end">

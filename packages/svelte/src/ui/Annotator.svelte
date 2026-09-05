@@ -26,9 +26,11 @@
   import { connectLive } from '../transport/live.js';
   import { VERSION } from '../version.js';
   import { applyTheme } from '../theme/index.js';
+  import DrawBar from './DrawBar.svelte';
   import Highlights from './Highlights.svelte';
   import HoverCard from './HoverCard.svelte';
   import Markers from './Markers.svelte';
+  import Palette from './Palette.svelte';
   import Panel from './Panel.svelte';
   import Popup from './Popup.svelte';
   import SendDialog from './SendDialog.svelte';
@@ -237,6 +239,14 @@
       onsend={() => annot.openSend()}
       onclose={() => annot.collapse()}
     />
+
+    {#if annot.mode === 'page'}
+      <DrawBar {annot} />
+    {/if}
+
+    {#if annot.paletteOpen}
+      <Palette {annot} onlocate={(id) => locate(annot, id)} />
+    {/if}
 
     {#if annot.prefs.panelOpen}
       <Panel {annot} onsend={() => annot.openSend()} onlocate={(id) => locate(annot, id)} />

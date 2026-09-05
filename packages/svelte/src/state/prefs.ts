@@ -1,4 +1,5 @@
 import type { Mode } from '@llm-ui-annotation/core';
+import { DEFAULT_PALETTE_KEY } from '../keyboard.js';
 import type { Corner, Density, DetailLevel, MarkerVisibility, SchemeOption, SendMode } from '../options.js';
 
 export const PREFS_KEY = 'annot:prefs';
@@ -15,6 +16,8 @@ export interface Prefs {
   markers: MarkerVisibility;
   blockInteractions: boolean;
   expanded: boolean;
+  /** The one global binding, as `comboOf` writes it. */
+  paletteKey: string;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -29,6 +32,7 @@ export const DEFAULT_PREFS: Prefs = {
   markers: 'all',
   blockInteractions: true,
   expanded: false,
+  paletteKey: DEFAULT_PALETTE_KEY,
 };
 
 type Storage = Pick<globalThis.Storage, 'getItem' | 'setItem'>;

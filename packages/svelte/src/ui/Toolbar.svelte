@@ -1,7 +1,8 @@
 <script lang="ts">
-  import type { Mode, StrokeTool } from '@llm-ui-annotation/core';
+  import type { Mode } from '@llm-ui-annotation/core';
   import { cornerStyle, nearestCorner } from '../dom/geometry.js';
   import type { AnnotState, Connection } from '../state/annot-state.svelte.js';
+  import { formatCombo } from '../keyboard.js';
   import Icon from './Icon.svelte';
   import type { IconName } from '../icons.js';
 
@@ -16,17 +17,6 @@
     { mode: 'text', icon: 'text', label: 'Highlight', key: 'H' },
     { mode: 'page', icon: 'page', label: 'Draw', key: 'D' },
   ];
-
-  const TOOLS: { tool: StrokeTool | 'eraser'; icon: IconName; label: string }[] = [
-    { tool: 'brush', icon: 'brush', label: 'Brush' },
-    { tool: 'arrow', icon: 'arrow', label: 'Arrow' },
-    { tool: 'rect', icon: 'rect', label: 'Rectangle' },
-    { tool: 'ellipse', icon: 'ellipse', label: 'Ellipse' },
-    { tool: 'label', icon: 'caption', label: 'Caption' },
-    { tool: 'eraser', icon: 'eraser', label: 'Eraser' },
-  ];
-
-  const WIDTHS = [2, 4, 7];
 
   const CONNECTION: Record<Connection, string> = {
     connected: 'dev server connected',
@@ -80,6 +70,16 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <span class="grip" onpointerdown={startDrag} aria-hidden="true"><Icon name="grip" size={16} /></span>
 
+    <button
+      class="icon-btn"
+      aria-pressed={annot.paletteOpen}
+      aria-label="Open the command palette"
+      onclick={() => annot.togglePalette()}
+    >
+      <Icon name="search" />
+      <span class="tooltip">Commands<kbd>{formatCombo(annot.prefs.paletteKey)}</kbd></span>
+    </button>
+
     {#each MODES as item (item.mode)}
       <button
         class="icon-btn"
@@ -92,73 +92,12 @@
       </button>
     {/each}
 
-    {#if annot.mode === 'page'}
-      <span class="divider"></span>
-      {#each TOOLS as item (item.tool)}
-        <button
-          class="icon-btn"
-          aria-pressed={annot.drawTool === item.tool}
-          aria-label={item.label}
-          onclick={() => (annot.drawTool = item.tool as StrokeTool)}
-        >
-          <Icon name={item.icon} />
-          <span class="tooltip">{item.label}</span>
-        </button>
-      {/each}
-      <span class="divider"></span>
-      <span class="swatches">
-        {#each annot.palette as color (color)}
-          <button
-            class="swatch"
-            style="background: {color}"
-            aria-pressed={annot.drawColor === color}
-            aria-label="Colour {color}"
-            onclick={() => (annot.drawColor = color)}
-          ></button>
-        {/each}
-      </span>
-      <span class="widths">
-        {#each WIDTHS as width (width)}
-          <button
-            class="width-btn"
-            aria-pressed={annot.drawWidth === width}
-            aria-label="Stroke width {width}"
-            onclick={() => (annot.drawWidth = width)}
-          >
-            <i style="height: {width}px"></i>
-          </button>
-        {/each}
-      </span>
-      <button
-        class="icon-btn"
-        aria-label="Undo stroke"
-        disabled={annot.drawing.strokes.length === 0}
-        onclick={() => annot.undoStroke()}
-      >
-        <Icon name="undo" />
-        <span class="tooltip">Undo<kbd>⌘Z</kbd></span>
-      </button>
-      <button
-        class="icon-btn"
-        aria-label="Redo stroke"
-        disabled={annot.drawing.undone.length === 0}
-        onclick={() => annot.redoStroke()}
-      >
-        <Icon name="redo" />
-        <span class="tooltip">Redo<kbd>⇧⌘Z</kbd></span>
-      </button>
-      <button
-        class="icon-btn"
-        aria-label="Clear drawing"
-        disabled={annot.drawing.strokes.length === 0}
-        onclick={() => annot.clearDrawing()}
-      >
-        <Icon name="trash" />
-        <span class="tooltip">Clear</span>
-      </button>
-    {/if}
-
     <span class="divider"></span>
+
+    <button class="icon-btn" aria-label="Pin visibility: {annot.prefs.markers}" onclick={() => annot.cycleMarkers()}>
+      <Icon name={annot.prefs.markers === 'none' ? 'eye-off' : 'eye'} />
+      <span class="tooltip">Pins: {annot.prefs.markers}</span>
+    </button>
 
     <button
       class="icon-btn"
@@ -168,11 +107,6 @@
     >
       <Icon name={annot.frozen ? 'play' : 'pause'} />
       <span class="tooltip">{annot.frozen ? 'Resume' : 'Pause'} animations<kbd>⇧P</kbd></span>
-    </button>
-
-    <button class="icon-btn" aria-label="Pin visibility: {annot.prefs.markers}" onclick={() => annot.cycleMarkers()}>
-      <Icon name={annot.prefs.markers === 'none' ? 'eye-off' : 'eye'} />
-      <span class="tooltip">Pins: {annot.prefs.markers}</span>
     </button>
 
     {#if annot.sendMode === 'batch'}

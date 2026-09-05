@@ -1,5 +1,6 @@
 <script lang="ts">
   import { cornerStyle } from '../dom/geometry.js';
+  import { comboOf, formatCombo } from '../keyboard.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import { trapFocus } from './focus.js';
   import type { Density, DetailLevel, MarkerVisibility, SchemeOption, SendMode } from '../options.js';
@@ -13,6 +14,24 @@
   const DENSITY: Density[] = ['comfortable', 'compact'];
 
   const style = $derived(cornerStyle(annot.prefs.corner, 76, annot.prefs.panelOpen ? 376 : 0));
+
+  let capturing = $state(false);
+
+  function capture(event: KeyboardEvent): void {
+    if (!capturing) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.key === 'Escape') {
+      capturing = false;
+      annot.capturingKey = false;
+      return;
+    }
+    const combo = comboOf(event);
+    if (!combo) return;
+    annot.setPref('paletteKey', combo);
+    capturing = false;
+    annot.capturingKey = false;
+  }
 </script>
 
 <div class="card popover" {style} role="dialog" aria-label="Overlay settings" use:trapFocus>
@@ -91,6 +110,25 @@
         </button>
       {/each}
     </div>
+  </div>
+
+  <div class="setting">
+    <span class="title">Command palette</span>
+    <button
+      class="btn small"
+      aria-label="Command palette shortcut"
+      onclick={() => {
+        capturing = true;
+        annot.capturingKey = true;
+      }}
+      onkeydown={capture}
+      onblur={() => {
+        capturing = false;
+        annot.capturingKey = false;
+      }}
+    >
+      {capturing ? 'Press a chord…' : formatCombo(annot.prefs.paletteKey)}
+    </button>
   </div>
 
   <label class="row">
