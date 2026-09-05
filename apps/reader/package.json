@@ -1,0 +1,32 @@
+{
+  "name": "reader",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Markdown reader with text annotations: the sit_hathor use case on the shared packages.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "migrate": "node scripts/migrate-notes.mjs",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@llm-ui-annotation/core": "workspace:*",
+    "@llm-ui-annotation/svelte": "workspace:*",
+    "marked": "^16.4.0"
+  },
+  "devDependencies": {
+    "@llm-ui-annotation/cli": "workspace:*",
+    "@llm-ui-annotation/vite-plugin": "workspace:*",
+    "@sveltejs/vite-plugin-svelte": "^6.2.1",
+    "svelte": "^5.39.0",
+    "vite": "^7.1.5"
+  }
+}

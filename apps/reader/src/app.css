@@ -1,0 +1,292 @@
+:root {
+  --reader-serif: Literata, Fraunces, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --reader-rail: 260px;
+  --reader-measure: 66ch;
+  --reader-size: 17px;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--annot-surface);
+  color: var(--annot-ink);
+  font-family: var(--reader-serif);
+  font-size: var(--reader-size);
+  line-height: 1.66;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--reader-rail) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* ------------------------------------------------------------------ rail */
+
+.rail {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 40px 28px;
+  border-right: 1px solid var(--annot-line);
+  background: var(--annot-surface-2);
+  font-family: var(--annot-font);
+  font-size: var(--annot-text-sm);
+}
+
+.rail h1 {
+  margin: 0 0 4px;
+  font-family: var(--reader-serif);
+  font-size: var(--annot-text-lg);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.rail .file {
+  margin: 0 0 28px;
+  color: var(--annot-ink-3);
+  font-family: var(--annot-font-mono);
+  font-size: var(--annot-text-xs);
+}
+
+.rail nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 28px;
+}
+
+.rail nav a {
+  padding: 5px 8px;
+  border-radius: var(--annot-radius-sm);
+  color: var(--annot-ink-2);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+}
+
+.rail nav a:hover {
+  background: var(--annot-surface-3);
+  color: var(--annot-ink);
+  border-left-color: var(--annot-accent-line);
+}
+
+.rail .group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--annot-line);
+  color: var(--annot-ink-2);
+}
+
+.rail .group .label {
+  flex: 1;
+}
+
+.notes .count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--annot-radius-pill);
+  background: var(--annot-accent);
+  color: var(--annot-accent-ink);
+  font-size: var(--annot-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.rail button {
+  height: 28px;
+  min-width: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--annot-line);
+  border-radius: var(--annot-radius-sm);
+  background: var(--annot-surface);
+  color: var(--annot-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.rail button:hover {
+  border-color: var(--annot-accent-line);
+  color: var(--annot-accent);
+}
+
+.rail button[aria-pressed='true'] {
+  background: var(--annot-accent-soft);
+  border-color: var(--annot-accent-line);
+  color: var(--annot-accent);
+}
+
+.rail .hint {
+  margin: 20px 0 0;
+  color: var(--annot-ink-3);
+  font-size: var(--annot-text-xs);
+  line-height: 1.5;
+}
+
+.rail kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--annot-line);
+  border-radius: 4px;
+  background: var(--annot-surface);
+  font-family: var(--annot-font-mono);
+  font-size: 0.9em;
+}
+
+/* --------------------------------------------------------------- article */
+
+.doc {
+  width: 100%;
+  max-width: var(--reader-measure);
+  margin: 0 auto;
+  padding: 72px 32px 40vh;
+}
+
+.doc h1 {
+  margin: 0 0 24px;
+  font-size: 2.05em;
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.doc .epigraph {
+  margin-bottom: 48px;
+  padding-left: 18px;
+  border-left: 2px solid var(--annot-accent-line);
+  color: var(--annot-ink-2);
+  font-style: italic;
+}
+
+.doc section {
+  margin-bottom: 40px;
+  scroll-margin-top: 32px;
+}
+
+.doc h2 {
+  margin: 48px 0 16px;
+  font-size: 1.32em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.doc h3 {
+  margin: 32px 0 12px;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.doc p {
+  margin: 0 0 1.15em;
+}
+
+.doc blockquote {
+  margin: 1.5em 0;
+  padding-left: 18px;
+  border-left: 2px solid var(--annot-line);
+  color: var(--annot-ink-2);
+}
+
+.doc ul,
+.doc ol {
+  margin: 0 0 1.15em;
+  padding-left: 1.3em;
+}
+
+.doc li {
+  margin-bottom: 0.35em;
+}
+
+.doc a {
+  color: var(--annot-accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.doc code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--annot-surface-3);
+  font-family: var(--annot-font-mono);
+  font-size: 0.88em;
+}
+
+.doc pre {
+  overflow-x: auto;
+  margin: 1.5em 0;
+  padding: 14px 16px;
+  border: 1px solid var(--annot-line);
+  border-radius: var(--annot-radius);
+  background: var(--annot-surface-2);
+}
+
+.doc pre code {
+  padding: 0;
+  background: none;
+}
+
+.doc hr {
+  margin: 48px 0;
+  border: 0;
+  border-top: 1px solid var(--annot-line);
+}
+
+.doc table {
+  width: 100%;
+  margin: 1.5em 0;
+  border-collapse: collapse;
+  font-size: 0.94em;
+}
+
+.doc th,
+.doc td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--annot-line);
+  text-align: left;
+}
+
+.doc .coda {
+  margin-top: 64px;
+  padding-top: 32px;
+  border-top: 1px solid var(--annot-line);
+  color: var(--annot-ink-2);
+}
+
+.doc .missing {
+  color: var(--annot-ink-3);
+  font-style: italic;
+}
+
+@media (max-width: 800px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .rail {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--annot-line);
+  }
+
+  .doc {
+    padding: 40px 24px 30vh;
+  }
+}
