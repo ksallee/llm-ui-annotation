@@ -7,7 +7,7 @@ export const Annotator = AnnotatorComponent as unknown as Component<AnnotatorPro
 
 export { AnnotOverlayElement, defineOverlay, OVERLAY_TAG } from './element.js';
 export { mount, type MountedOverlay } from './mount.js';
-export { autoMount } from './auto.js';
+export { autoMount } from './auto-mount.js';
 export { createState } from './create.js';
 export { VERSION } from './version.js';
 

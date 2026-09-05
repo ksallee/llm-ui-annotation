@@ -81,7 +81,7 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
           state.shortcutsOpen = false;
         } else if (state.prefs.panelOpen) state.togglePanel(false);
         else if (state.mode) state.setMode(null);
-        else state.setPref('expanded', false);
+        else state.collapse();
         break;
       case 'commit':
         actions.commit();

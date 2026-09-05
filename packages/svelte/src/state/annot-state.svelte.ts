@@ -213,6 +213,15 @@ export class AnnotState {
   }
 
   /** Open or close the panel, defaulting the filter to what needs the user. */
+  /** Collapse the pill, closing every popover that hangs off it. */
+  collapse(): void {
+    this.setMode(null);
+    this.sendOpen = false;
+    this.settingsOpen = false;
+    this.shortcutsOpen = false;
+    this.setPref('expanded', false);
+  }
+
   togglePanel(open: boolean = !this.prefs.panelOpen): void {
     this.setPref('panelOpen', open);
     if (open && !this.panelFilterTouched) {

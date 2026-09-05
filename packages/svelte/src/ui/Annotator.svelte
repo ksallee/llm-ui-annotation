@@ -229,10 +229,7 @@
     <Toolbar
       {annot}
       onsend={() => annot.openSend()}
-      onclose={() => {
-        annot.setMode(null);
-        annot.setPref('expanded', false);
-      }}
+      onclose={() => annot.collapse()}
     />
 
     {#if annot.prefs.panelOpen}
