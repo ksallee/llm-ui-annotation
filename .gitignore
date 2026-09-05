@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.svelte-kit/
+*.log
+.DS_Store
+.annotations/
+coverage/
+.playwright-mcp/
+test-results/

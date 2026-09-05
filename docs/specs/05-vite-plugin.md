@@ -1,0 +1,44 @@
+# 05 · Vite plugin
+
+Owner: `packages/vite-plugin`. Node 22, ESM, deps allowed: `vite` (peer ^6 || ^7 || ^8). No database, files only.
+
+```ts
+import { annotations } from '@llm-ui-annotation/vite-plugin';
+export default defineConfig({ plugins: [svelte(), annotations({ dir: '.annotations', inject: true, accent: '#2C8A85' })] });
+```
+
+Options: `dir` (default `.annotations` at `config.root`), `inject` (default true: add the overlay to every HTML page in dev), `accent`, `scheme`, `routeKey: (url) => string` (default pathname), `basePath` (default `/__annot`), `include: string[]` of page URL globs to inject on.
+
+## Responsibilities
+
+1. **Storage** — sole writer of `<dir>` while the dev server runs. Implements the file layout from spec 01: `routes/`, `batches/`, `events.jsonl`, `screenshots/`, `server.json`. Atomic writes. In-memory cache of route files with `mtime` check so external edits (the CLI in fallback mode, or a human) are noticed.
+2. **HTTP API** — every endpoint in spec 01 on `server.middlewares`. Body limit 20 MB for screenshots, 1 MB otherwise. Validate with `validateAnnotation` from core; reject with 400 and the problem list. Assign `number` from `nextNumber` per route. Emit events with `seq`.
+3. **SSE** — `GET /__annot/events/stream?since=` keeps the connection open, replays events after `since`, then streams new ones; heartbeat comment every 15 s. Used by `annot watch`.
+4. **Push to the overlay** — on any change (own writes or detected external writes), `server.ws.send({ type: 'custom', event: 'annot:annotation', data: Annotation })`, `annot:deleted`, or `annot:route` when a whole file changed. Use `fs.watch` on `<dir>/routes` and `<dir>/events.jsonl` with 100 ms debounce (fall back to polling every 500 ms on platforms where `fs.watch` is unreliable, detect via option `watch: 'native' | 'poll'`).
+5. **Inject** — `transformIndexHtml` adds `<script type="module" src="/@id/__x00__virtual:annot-auto"></script>`; the virtual module imports `@llm-ui-annotation/svelte/auto` and passes options as `import.meta.env`-free JSON. Only when `command === 'serve'`. Never in build output.
+6. **`server.json`** — written on `configureServer` with `{ port, pid, startedAt, protocolVersion, basePath }` after the server is listening (hook `httpServer.once('listening')`), deleted on `close`/SIGINT. The CLI reads it to find the server.
+7. **Init side effects** — on first start, if `.gitignore` in `config.root` exists and lacks the dir, log a one-line hint (do not edit the file; `annot init` does that).
+
+## Event ordering
+
+Single process, single writer: hold an in-process mutex per route file (promise chain) so a POST and a transition for the same route serialize. `seq` is `lastSeq + 1`, read from the tail of `events.jsonl` at startup. Never rewrite `events.jsonl`; append only.
+
+External writes from the CLI (fallback mode when the server is down) will have their own `seq` continuation because the CLI uses the same helper from core (`appendEvent(dir, event)` that reads the tail). When the server starts it re-reads the tail. If both ever write concurrently (shouldn't: the CLI prefers HTTP when `server.json` is fresh and the port answers), duplicate `seq` is tolerated by consumers (dedupe on `seq + annotationId + type`).
+
+## Route files and multi-page hosts
+
+The overlay sends `route` with every create; the plugin derives the slug and file. `GET /__annot/routes/:slug` returns `{ route, updatedAt, nextNumber, annotations }`. `GET /__annot/routes` lists routes with counts by status for the panel's "all routes" view.
+
+## Screenshots
+
+`POST /__annot/screenshots/:id` with `image/png` body → `<dir>/screenshots/<id>.png`, returns `{ path: 'screenshots/<id>.png' }`. Reject non-PNG. When an annotation is deleted (drafts only), delete its screenshot.
+
+## Logging
+
+Prefix `[annot]`. One line on start with the dir, port, and route count. One line per batch sent (`[annot] batch 01J8… sent, 3 items on /pricing`). Errors with the request path. Nothing per event.
+
+## Acceptance criteria
+
+- Vitest with a real Vite dev server on a random port against a temp dir: create draft, list route, send batch (assert `events.jsonl` has `batch.sent` with the full batch, statuses flipped), transition via HTTP by `agent`, SSE stream delivers the events in order with `since`, external edit of a route file triggers `annot:route` on a fake ws client, `server.json` appears and disappears, screenshot round-trip.
+- `transformIndexHtml` injects in serve and not in build (test both).
+- Typecheck of options; README with the config snippet and the file layout.
