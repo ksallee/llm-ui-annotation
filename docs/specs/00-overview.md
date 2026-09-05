@@ -29,15 +29,37 @@ Primary host: a Svelte 5 app running under Vite. Secondary host: a markdown docu
 ## Lifecycle (the one thing everyone must agree on)
 
 ```
-draft ──send──▶ sent ──agent ack──▶ acknowledged ──agent done/decline──▶ review ──user approve──▶ approved
-                 ▲                      │                                   │
-                 │                      └──agent ask──▶ question ──user answer──┘ (back to acknowledged)
-                 └──────────────────────────────────── user reopen ◀────────┘
+  user                            agent                             user
+  ────                            ─────                             ────
+  draft ──send──▶ sent ──┬──ack──────▶ acknowledged ──┬──done/decline──▶ review ──approve──▶ approved
+                         ├──ask──────▶ question ──────┘  (answer)                │              │
+                         └──done/decline────────────────────────────────────────▶│              │
+                                                                                 │              │
+                            sent ◀──────────────── reopen, in a new batch ───────┴──────────────┘
 ```
 
-Highlights are visible for every status except `approved`. `review` items get the calm treatment (thin outline, agent summary on hover, inline Approve). See spec 01 for the exact state machine and spec 04 for how each status looks.
+Read it as the table in spec 01, which is the same thing without the ASCII:
+
+| from | the agent may move it to | the user may move it to |
+|------|--------------------------|--------------------------|
+| `draft` | — | `sent` (or delete it) |
+| `sent` | `acknowledged`, `question`, `review` | `sent` — edit the comment, appends a `comment` message |
+| `acknowledged` | `question`, `review` | — |
+| `question` | — | `acknowledged` — answer |
+| `review` | — | `approved`, or `sent` — reopen |
+| `approved` | — | `sent` — reopen from history |
+
+The agent may skip `acknowledged` and take a `sent` item straight to `question` or `review`. A reopen
+clears the resolution and gets a new batch. Highlights are visible for every status except
+`approved`. `review` items get the calm treatment (thin outline, agent summary on hover, inline
+Approve). `TRANSITIONS` in `packages/core/src/model/transitions.ts` is the executable copy; spec 04
+says how each status looks.
 
 ## Workstreams
+
+Ten workstreams, all landed. WS 09 and WS 10 share spec 09: it was written after the first hands-on
+session with the overlay and split into two agents, so it supersedes the conflicting parts of specs
+03 and 04.
 
 | WS | Spec | Package | Depends on | Size |
 |----|------|---------|------------|------|
@@ -49,10 +71,14 @@ Highlights are visible for every status except `approved`. `review` items get th
 | 06 | CLI and agent contract | `packages/cli` | 01, 05 (HTTP API shape) | M |
 | 07 | Reader app | `apps/reader` | 04, 05 | S |
 | 08 | Demo app and e2e | `apps/demo` | 04, 05, 06 | M |
+| 09 | Multi-block text, protocol 2 (spec 09 §5) | `packages/core` model + `src/dom/text.ts` | 02, 04 | S, bumps `protocolVersion` to 2 |
+| 10 | Interaction rework (spec 09 §1–4, §6–11) | `packages/svelte` | 04, 08 | M |
 
 Phase 1: WS 01 alone, one agent, merge to `main`. Everything downstream imports its types.
 Phase 2: WS 02, 03, 04, 05, 06 in parallel worktrees. 04 starts against 01 and stubs 02/03 locally where needed.
 Phase 3: WS 07 and 08 once 04 and 05 are on `main`. 08 runs the full loop end to end with a scripted fake agent.
+Phase 4: WS 09 and 10, after the first hands-on session found what only using the thing could find.
+Phase 5: one integration agent reconciles the specs with the code, consolidates `docs/known-gaps.md` and cuts `0.1.0`.
 
 Ownership is by directory. A workstream may add to `packages/core` only in the subdirectory the spec names.
 

@@ -68,6 +68,6 @@ is the cheapest thing to assert on; `snapshot(page)` serialises it.
   plugin hands it to the overlay. Without it the annotation is still saved, minus the screenshot.
 - Suite 5's "no highlights remain" is asserted as no pins and no outlines: approved items keep no
   visible anchor.
-- Spec 09 added `palette` and `panel`; the demo now runs thirteen suites, not ten.
+- Spec 09 added `palette` and `panel`; the demo runs twelve suites, not ten. Spec 08 lists all twelve.
 - Suite 8 diffs `main` and the `data-annot-*` nodes in `<head>`; freeze mode adds a second such node
   (`data-annot-freeze`) while it is on, so the check runs with animations resumed.

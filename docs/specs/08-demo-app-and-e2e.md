@@ -27,8 +27,10 @@ The demo mounts the overlay through the Vite plugin (auto-inject), with an accen
 6. **immediate mode**: switch setting, add → status `sent` immediately, badge does not count drafts.
 7. **theming**: change the accent on `/hostile`; computed color of the pill, a marker, and a text highlight all change; contrast check of ink on surface ≥ 4.5 for three accents.
 8. **isolation**: on `/hostile/`, the overlay's buttons have their styles and the host's `all: unset` did not leak; no attribute or class added to any host element after a full session (diff `outerHTML` of `main` before/after). The only `data-annot-*` node in the head is `<style data-annot-highlights>`; freeze mode adds `<style data-annot-freeze>` while it is on, so the check runs with animations resumed.
-9. **shortcuts and blocking**: `E`, click a host button → the host click did not fire; `⌘`+click → it did.
-10. **a11y**: axe-core scan of the overlay with the popup and panel open: no serious violations.
+9. **shortcuts and blocking**: `E`, click a host button → the host click did not fire; `⌘`+click → it did. Plus spec 09 §2: nothing but `⌥A` fires while idle, the scoped keys fire in a mode, `⌘↵` sends.
+10. **palette** (spec 09 §3): `⌥A` opens it, it filters by comment text and jumps to `#N`, it never offers a loop transition, the key rebinds and survives a reload, and the drawing bar exists only in Draw.
+11. **panel** (spec 09 §8, §9): a collapsed row sends its draft without expanding; three `review` rows approve together with one undo toast; a mixed selection disables the illegal transitions.
+12. **a11y**: axe-core scan of the overlay with the popup and panel open: no serious violations.
 
 ## Harness
 
@@ -36,6 +38,8 @@ No Playwright `webServer`. A test-scoped fixture starts a Vite dev server in-pro
 temporary `ANNOT_DIR`, so no two tests share storage. Each worker gets its own Vite `cacheDir`,
 because concurrent dev servers sharing one dependency cache serve `504 Outdated Optimize Dep` at
 each other; a global setup warms the first cache and copies it to the rest.
+
+Twelve suites, one file each in `apps/demo/e2e/`.
 
 ## Acceptance criteria
 

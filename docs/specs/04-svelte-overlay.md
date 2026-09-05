@@ -13,7 +13,7 @@ Owner: `packages/svelte`. Svelte 5, runes. `<annot-overlay>` is a hand-written c
 ```
 <div class="annot-root" data-scheme>           tokens live here
   <svg class="layer highlights">                element outlines, text highlight rects, page strokes, region boxes
-  <div class="layer markers">                   numbered markers, hover cards
+  <div class="layer markers">                   numbered pins, hover cards (the class name keeps the old word)
   <div class="layer capture">                   full-viewport pointer catcher while a mode is active (transparent)
   <Popup/> <Panel/> <Toolbar/> <Toasts/>
 </div>
@@ -27,16 +27,20 @@ Never mutate the host DOM. Text highlights use the CSS Custom Highlight API when
 
 Collapsed: a single 44 px round button with the logo glyph and a badge with the count of drafts (batch mode) or unread agent activity (questions + reviews). Click expands.
 
-Expanded, left to right:
+Expanded, left to right — the eleven controls of spec 09 §4 and nothing else:
 
-1. Command palette (`⌥A`), then the mode segment: **Element** (`E`), **Highlight** (`H`), **Draw** (`D`). One active or none. Clicking the active one exits (`Esc` too).
-2. Drawing tools (only in Draw mode): brush, arrow, rect, ellipse, caption, eraser · color swatches (5, from spec 03) · width (3 steps) · undo (`⌘Z`) · redo (`⇧⌘Z`) · clear drawing. They live in their own bar at the top centre, not in the pill — spec 09 §4.
-3. Pause animations (`⇧P`), pin visibility cycle (all → dots → none).
+1. Grip, then the command palette (`⌥A`).
+2. The mode segment: **Element** (`E`), **Highlight** (`H`), **Draw** (`D`). One active or none. Clicking the active one exits (`Esc` too).
+3. Pin visibility cycle (all → dots → none), pause animations (`⇧P`).
 4. **Send** (`⌘↵`) with the draft count, batch mode only. Disabled when no drafts.
-5. Inbox / panel toggle (`I`) with badge for questions + reviews.
-6. Settings (gear) · connection dot, shown only when the state is not `connected` (spec 09 §7) · Close (`Esc` twice or the ×).
+5. Panel toggle (`I`) with badge for questions + reviews.
+6. Settings (gear) · connection dot, shown only when the state is not `connected` (spec 09 §7) · Collapse (`Esc` twice or the ×).
 
-Tooltips show label and shortcut. The pill is draggable by the grip at its left edge; snaps to the nearest corner on release.
+The drawing tools are **not** in the pill. They live in their own bar at the top centre that appears
+with Draw mode and leaves with it — spec 09 §4: brush, arrow, rect, ellipse, caption, eraser ·
+color swatches (5, from spec 03) · width (3 steps) · undo (`⌘Z`) · redo (`⇧⌘Z`) · clear drawing.
+
+Tooltips show label and shortcut, the key rendered as a keycap at `--annot-text-sm` (spec 09 §10). The pill is draggable by the grip at its left edge; snaps to the nearest corner on release.
 
 **Block page interactions** (settings, default on): while a mode is active, the capture layer swallows clicks so buttons in the host do not fire. Holding `⌘`/`Ctrl` lets events through (cursor changes) so you can open a menu and then annotate inside it. Hover and selection still work with blocking on.
 
@@ -46,7 +50,7 @@ Tooltips show label and shortcut. The pill is draggable by the grip at its left 
 Hover shows a 2 px outline and a small label chip (`button "Save"`) above the element; the label is `describeName(el)` from `core/dom`. Click opens the popup anchored to the element. Drag from empty space draws a marquee: the outermost elements at least 50% inside are selected, then the selection steps down one level for as long as a single container is tiled (≥ 70% of its area) by children that are ≥ 90% inside, so a box round a card grid selects the cards and a box round one card selects the card. `⇧` extends the selection and shows an Annotate chip. Ignore the overlay host, `html`, `body`.
 
 ### Highlight mode
-Native selection stays enabled on the host (capture layer uses `pointer-events: none` in this mode and listens to `selectionchange` on the document). When a non-collapsed selection ends (mouseup / keyup), show an **Annotate** chip at the end of the selection; click or `⌘↵` opens the popup with the quote shown. A selection crossing block boundaries is one annotation whose container is the nearest common block (spec 09 §5); only a selection whose common ancestor would be `body` is refused, with the chip reading "that is the whole page". Existing text annotations are highlighted; hovering shows the marker and the comment card.
+Native selection stays enabled on the host (capture layer uses `pointer-events: none` in this mode and listens to `selectionchange` on the document). When a non-collapsed selection ends (mouseup / keyup), show an **Annotate** chip at the end of the selection; click or `⌘↵` opens the popup with the quote shown. A selection crossing block boundaries is one annotation whose container is the nearest common block (spec 09 §5); only a selection whose common ancestor would be `body` is refused, with the chip reading "that is the whole page". Existing text annotations are highlighted; hovering shows the pin and the comment card.
 
 ### Draw mode
 Drawing happens on the SVG layer in document coordinates. Brush points are sampled at ≥ 2 px spacing, smoothed on render. Arrow/rect/ellipse are drag-to-size. Label: click to place, inline `contenteditable` in the shadow DOM, `Enter` commits, `Esc` cancels. Eraser removes a whole stroke on hit. Undo/redo stack per pending drawing. The dashed bounding box is resizable, and what it holds is `PageTarget.region` (spec 09 §6). When the user clicks **Annotate** (chip that appears near it after the first stroke) or presses `⌘↵`, the popup opens; on save, capture the screenshot (spec 02.4) with the strokes composited, POST it, then create the annotation with the `PageTarget`. Show a 1-line toast if the capture failed ("Saved without screenshot; strokes kept").
@@ -66,17 +70,17 @@ Shared for all modes.
 
 `detail` is a small disclosure showing the selector(s), rect, and the styles subset (element mode) so the user can check what the agent will see. Escape cancels. Clicking outside cancels only if the textarea is empty; otherwise it stays.
 
-After Add in batch mode: the marker appears with dashed `draft` styling, badge increments, popup closes, the mode stays active. In immediate mode the annotation is POSTed as `sent` and a batch of one is created.
+After Add in batch mode: the pin appears with dashed `draft` styling, badge increments, popup closes, the mode stays active. In immediate mode the annotation is POSTed as `sent` and a batch of one is created.
 
-## Markers and hover cards
+## Pins and hover cards
 
-Pin (marker) at the top-right corner of the element rect (or end of the text range, or top-left of the page region), numbered, status-colored. Hover a marker or a highlight: a card shows the comment, status pill, and for `review` the agent's summary and an **Approve** button, for `question` the question and an **Answer** field. Click a marker: opens the panel scrolled to that row. Right-click or `⌫` on a focused draft marker: delete (draft only).
+The pin at the top-right corner of the element rect (or end of the text range, or top-left of the page region), numbered, status-colored. Hover a pin or a highlight: a card shows the comment, status pill, and for `review` the agent's summary and an **Approve** button, for `question` the question and an **Answer** field. Click a pin: opens the panel scrolled to that row. Right-click or `⌫` on a focused draft pin: delete (draft only).
 
-Anchor states: `moved` markers get a dotted ring and a tooltip "text moved, check the highlight"; `lost` annotations have no marker and are listed in the panel with a "lost" chip and a "locate" action that scrolls to the container if it still exists.
+Anchor states: `moved` pins get a dotted ring and a tooltip "text moved, check the highlight"; `lost` annotations have no pin and are listed in the panel with a "lost" chip and a "locate" action that scrolls to the container if it still exists.
 
 ## Send dialog (batch mode)
 
-Triggered by Send. Lists the drafts on this route as one-line rows (number, mode glyph, first 60 chars), an optional textarea "Anything the agent should know about this batch?", and **Send N annotations**. Creates the batch via `POST /__annot/batches`. Drafts become `sent` and their markers turn solid. A toast: "Sent. Waiting for the agent." Drafts on other routes are not included; the dialog says how many exist elsewhere.
+Triggered by Send. Lists the drafts on this route as one-line rows (number, mode glyph, first 60 chars), an optional textarea "Anything the agent should know about this batch?", and **Send N annotations**. Creates the batch via `POST /__annot/batches`. Drafts become `sent` and their pins turn solid. A toast: "Sent. Waiting for the agent." Drafts on other routes are not included; the dialog says how many exist elsewhere.
 
 ## Panel (drawer)
 
@@ -113,6 +117,6 @@ Every control has a label. Focus rings use `--annot-accent-line`. Popup and pane
 ## Acceptance criteria
 
 - Storybook-free: `packages/svelte/dev/` has a Vite page with the demo host markup and a mock `/__annot` middleware (or points at `apps/demo`). Every screen above is reachable there.
-- Unit tests (vitest + happy-dom) for `AnnotState` reconciliation, keyboard dispatch rules, marker placement math, re-anchoring states, and rect merging for text highlights.
+- Unit tests (vitest + happy-dom) for `AnnotState` reconciliation, keyboard dispatch rules, pin placement math, re-anchoring states, and rect merging for text highlights.
 - No `querySelector` into the host that sets attributes or classes; grep-able rule enforced by a lint script `scripts/no-host-mutation.mjs` that fails on `classList.add|setAttribute|surroundContents|innerHTML =` used on anything outside the shadow root.
 - The overlay renders correctly on a host with aggressive global CSS (`* { all: unset }` fixture) and on a `dark` host with a light accent.

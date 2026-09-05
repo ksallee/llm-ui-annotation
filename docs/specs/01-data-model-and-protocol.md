@@ -53,6 +53,7 @@ export interface TextTarget {
   start: number;               // char offset in container.textContent (normalized)
   end: number;
   rects: Rect[];               // client rects at creation, document coords, for redraw before re-anchoring
+  blocks?: ElementRef[];       // v2: the blocks the range spans, document order, compact; absent when it spans one
 }
 
 export type Stroke =

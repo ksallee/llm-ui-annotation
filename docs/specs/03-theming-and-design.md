@@ -40,13 +40,16 @@ Neutrals are *tinted*: hue `H`, chroma `0.008` (light) or `0.012` (dark), so a w
 | `--annot-surface` | `oklch(0.99 0.008 H)` | `oklch(0.18 0.012 H)` |
 | `--annot-surface-2` | L 0.96 | L 0.22 |
 | `--annot-surface-3` | L 0.93 | L 0.27 |
-| `--annot-ink` | `oklch(0.2 0.01 H)` | `oklch(0.95 0.008 H)` |
+| `--annot-ink` | `oklch(0.2 0.01 H)` | `oklch(0.95 0.014 H)` |
 | `--annot-ink-2` | L 0.45 | L 0.72 |
 | `--annot-ink-3` | L 0.51 | L 0.66 |
 | `--annot-line` | L 0.88, C 0.012 | L 0.32 |
 | `--annot-shadow` | `0 8px 24px oklch(0.2 0.02 H / 0.18)` | `0 8px 24px oklch(0 0 0 / 0.5)` |
 | `--annot-scrim` | `oklch(0.2 0.02 H / 0.35)` | `oklch(0 0 0 / 0.55)` |
 | `--annot-color-scheme` | `light` | `dark` |
+
+`--annot-ink` carries `neutralChroma + 0.002`, a touch more tint than the other neutrals, which is
+where the light `0.01` and the dark `0.014` come from.
 
 Three cells are not the arithmetic they look like. `--annot-accent-ink` is near-black rather than
 `oklch(0.2 0 0)`: with a Y of 0.008 the better of black-or-white bottoms out at 4.26 for a mid-lightness
@@ -91,7 +94,7 @@ Export `computeTheme(input, prefersDark, prefersReducedMotion?): Record<TokenNam
 - Spacing scale 4 8 12 16 24 (`--annot-space-1` … `-5`). `compact` density multiplies those and the chrome
   heights (`--annot-pill-h` 44, `--annot-control-h` 36) by 0.8, rounded. `--annot-marker-size` 22,
   `--annot-panel-w` and `--annot-popup-w` 360 do not scale.
-- Radius: `--annot-radius` 10, `--annot-radius-pill` 999, `--annot-radius-sm` 0.6× the radius, `--annot-radius-marker` 999.
+- Radius: `--annot-radius` 10, `--annot-radius-pill` 999, `--annot-radius-sm` 0.6× the radius with a 4 px floor, `--annot-radius-marker` 999.
 - Motion: `--annot-motion-fast` 120 ms for hover, `--annot-motion-enter` 200 ms on `--annot-ease`
   `cubic-bezier(.2,.8,.2,1)` for panels/popups, `--annot-motion-exit` 120 ms. Under `prefers-reduced-motion`
   every duration is 0 ms: no pulses, no slides.
@@ -102,7 +105,7 @@ Export `computeTheme(input, prefersDark, prefersReducedMotion?): Record<TokenNam
 - Popups are cards, `--annot-surface`, 1 px `--annot-line`, `--annot-shadow`, 12 px padding, max width 360, anchored to the target with an 8 px offset and flipped when out of viewport. First line is a breadcrumb in mono: `› button "Save"`.
 - Pins (markers) are 22 px circles with the number, `--annot-<status>` background, `--annot-<status>-ink` text, 2 px `--annot-surface` ring; multi-select markers show a small stacked-squares glyph instead of the number when hovered.
 - Panel is a right drawer, 360 px, same surface, header with route and counts, filter chips, list of rows with a 3 px left bar in the status color. Nothing bounces.
-- Icons: a small inline SVG set drawn on a 20 px grid, 1.5 px stroke, round caps. Names: element, text (highlighter), page (scribble), brush, arrow, rect, ellipse, caption, eraser, undo, redo, pause, play, eye, eye-off, send, inbox, check, check-all, reopen, chat, gear, grip, close, chevron, search, more, fit, locate (map pin), edit, trash, warn. No glyph carries two meanings: the pencil is `edit` only, the speech bubble is `chat` only. No icon library dependency.
+- Icons: a small inline SVG set drawn on a 20 px grid, 1.5 px stroke, round caps. Names: logo, element, text (highlighter), page (scribble), brush, arrow, rect, ellipse, caption, eraser, undo, redo, pause, play, eye, eye-off, send, inbox, check, check-all, reopen, chat, gear, grip, close, chevron, search, more, fit, locate (map pin), edit, trash, warn. No glyph carries two meanings: the pencil is `edit` only, the speech bubble is `chat` only. No icon library dependency.
 
 ## Deliverables
 
