@@ -3,7 +3,9 @@ import { join } from 'node:path';
 import type { Annotation, RouteFile } from '@llm-ui-annotation/core';
 import { expect, type Locator, type Page } from '@playwright/test';
 
-export type Mode = 'Element' | 'Text' | 'Page';
+export type Mode = 'Element' | 'Highlight' | 'Draw';
+
+const STATE_MODE: Record<Mode, string> = { Element: 'element', Highlight: 'text', Draw: 'page' };
 
 export interface Snapshot {
   route: string;
@@ -94,9 +96,7 @@ export async function openToolbar(page: Page): Promise<void> {
 export async function setMode(page: Page, mode: Mode): Promise<void> {
   await openToolbar(page);
   await control(page, `${mode} mode`).click();
-  await expect
-    .poll(() => field<string | null>(page, 'mode'))
-    .toBe(mode.toLowerCase());
+  await expect.poll(() => field<string | null>(page, 'mode')).toBe(STATE_MODE[mode]);
 }
 
 export async function exitMode(page: Page): Promise<void> {

@@ -29,9 +29,9 @@ Collapsed: a single 44 px round button with the logo glyph and a badge with the 
 
 Expanded, left to right:
 
-1. Mode segment: **Element** (`E`), **Text** (`T`), **Page** (`P`). One active or none. Clicking the active one exits (`Esc` too).
-2. Page tools (only in Page mode): brush, arrow, rect, ellipse, label, eraser · color swatches (5, from spec 03) · width (3 steps) · undo (`⌘Z`) · redo (`⇧⌘Z`) · clear drawing.
-3. Pause animations (`⇧P`), markers visibility cycle (`H`: all → dots → none).
+1. Mode segment: **Element** (`E`), **Highlight** (`H`), **Draw** (`D`). One active or none. Clicking the active one exits (`Esc` too).
+2. Drawing tools (only in Draw mode): brush, arrow, rect, ellipse, caption, eraser · color swatches (5, from spec 03) · width (3 steps) · undo (`⌘Z`) · redo (`⇧⌘Z`) · clear drawing. They live in their own bar at the top centre, not in the pill — spec 09 §4.
+3. Pause animations (`⇧P`), pin visibility cycle (all → dots → none).
 4. **Send** (`⌘↵`) with the draft count, batch mode only. Disabled when no drafts.
 5. Inbox / panel toggle (`I`) with badge for questions + reviews.
 6. Settings (gear) · Close (`Esc` twice or the ×).
@@ -45,10 +45,10 @@ Tooltips show label and shortcut. The pill is draggable by the grip at its left 
 ### Element mode
 Hover shows a 2 px outline and a small label chip (`button "Save"`) above the element; the label is `describeName(el)` from `core/dom`. Click opens the popup anchored to the element. Drag from empty space draws a marquee: the outermost elements at least 50% inside are selected, then the selection steps down one level for as long as a single container is tiled (≥ 70% of its area) by children that are ≥ 90% inside, so a box round a card grid selects the cards and a box round one card selects the card. `⇧` extends the selection and shows an Annotate chip. Ignore the overlay host, `html`, `body`.
 
-### Text mode
+### Highlight mode
 Native selection stays enabled on the host (capture layer uses `pointer-events: none` in this mode and listens to `selectionchange` on the document). When a non-collapsed selection ends (mouseup / keyup), if it is inside one block container, show an **Annotate** chip at the end of the selection; click or `⌘↵` opens the popup with the quote shown. Multi-block selection shows the chip disabled with "select within one paragraph". Existing text annotations are highlighted; hovering shows the marker and the comment card.
 
-### Page mode
+### Draw mode
 Drawing happens on the SVG layer in document coordinates. Brush points are sampled at ≥ 2 px spacing, smoothed on render. Arrow/rect/ellipse are drag-to-size. Label: click to place, inline `contenteditable` in the shadow DOM, `Enter` commits, `Esc` cancels. Eraser removes a whole stroke on hit. Undo/redo stack per pending drawing. When the user clicks **Annotate** (chip that appears near the drawing's bounding box after the first stroke) or presses `⌘↵`, the popup opens; on save, capture the screenshot (spec 02.4) with the strokes composited, POST it, then create the annotation with the `PageTarget`. Show a 1-line toast if the capture failed ("Saved without screenshot; strokes kept").
 
 ## Popup
@@ -70,7 +70,7 @@ After Add in batch mode: the marker appears with dashed `draft` styling, badge i
 
 ## Markers and hover cards
 
-Marker at the top-right corner of the element rect (or end of the text range, or top-left of the page region), numbered, status-colored. Hover a marker or a highlight: a card shows the comment, status pill, and for `review` the agent's summary and an **Approve** button, for `question` the question and an **Answer** field. Click a marker: opens the panel scrolled to that row. Right-click or `⌫` on a focused draft marker: delete (draft only).
+Pin (marker) at the top-right corner of the element rect (or end of the text range, or top-left of the page region), numbered, status-colored. Hover a marker or a highlight: a card shows the comment, status pill, and for `review` the agent's summary and an **Approve** button, for `question` the question and an **Answer** field. Click a marker: opens the panel scrolled to that row. Right-click or `⌫` on a focused draft marker: delete (draft only).
 
 Anchor states: `moved` markers get a dotted ring and a tooltip "text moved, check the highlight"; `lost` annotations have no marker and are listed in the panel with a "lost" chip and a "locate" action that scrolls to the container if it still exists.
 
@@ -100,7 +100,7 @@ Send mode: batch / immediate. Scheme: auto / light / dark. Accent: a swatch row 
 
 ## Keyboard summary
 
-`E` `T` `P` modes · `Esc` exit mode / close popup / close panel · `⌘↵` add or send · `H` markers · `I` panel · `⇧P` pause · `⌘Z` `⇧⌘Z` in page mode · `⌫` delete focused draft · `?` shows the sheet. Shortcuts are ignored while typing in the host page (focus inside an input/textarea/contenteditable outside the overlay).
+`⌥A` is the only global binding and opens the command palette; everything else is scoped to an active mode or to a focused surface — spec 09 §2. Scoped: `E` `H` `D` modes · `Esc` exit mode / close popup / close panel · `⌘↵` add or send · `I` panel · `⇧P` pause · `⌘Z` `⇧⌘Z` in Draw mode · `1`–`6` drawing tools · `⌫` delete focused draft · `?` shows the sheet. Shortcuts are ignored while typing in the host page (focus inside an input/textarea/contenteditable outside the overlay).
 
 ## State
 

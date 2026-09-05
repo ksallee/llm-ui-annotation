@@ -6,7 +6,6 @@ export type KeyAction =
   | 'mode:page'
   | 'escape'
   | 'commit'
-  | 'markers'
   | 'panel'
   | 'pause'
   | 'undo'
@@ -53,16 +52,15 @@ export function keyAction(event: KeyboardEvent, ctx: KeyContext): KeyAction | nu
     case 'e':
     case 'E':
       return 'mode:element';
-    case 't':
-    case 'T':
-      return 'mode:text';
-    case 'p':
-      return 'mode:page';
-    case 'P':
-      return event.shiftKey ? 'pause' : 'mode:page';
     case 'h':
     case 'H':
-      return 'markers';
+      return 'mode:text';
+    case 'd':
+    case 'D':
+      return 'mode:page';
+    case 'p':
+    case 'P':
+      return event.shiftKey ? 'pause' : null;
     case 'i':
     case 'I':
       return 'panel';
@@ -78,11 +76,10 @@ export function keyAction(event: KeyboardEvent, ctx: KeyContext): KeyAction | nu
 
 export const SHORTCUTS: { keys: string; what: string }[] = [
   { keys: 'E', what: 'Element mode' },
-  { keys: 'T', what: 'Text mode' },
-  { keys: 'P', what: 'Page mode' },
+  { keys: 'H', what: 'Highlight mode' },
+  { keys: 'D', what: 'Draw mode' },
   { keys: 'Esc', what: 'Exit mode, close popup or panel' },
   { keys: '⌘↵', what: 'Add annotation, or send the batch' },
-  { keys: 'H', what: 'Cycle marker visibility' },
   { keys: 'I', what: 'Toggle the panel' },
   { keys: '⇧P', what: 'Pause animations' },
   { keys: '⌘Z / ⇧⌘Z', what: 'Undo / redo a stroke' },

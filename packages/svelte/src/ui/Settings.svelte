@@ -72,7 +72,7 @@
   </div>
 
   <div class="setting">
-    <span class="title">Markers</span>
+    <span class="title">Pins</span>
     <div class="segment">
       {#each MARKERS as markers (markers)}
         <button aria-pressed={annot.prefs.markers === markers} onclick={() => annot.setPref('markers', markers)}>

@@ -33,12 +33,12 @@ test('a full session leaves the hostile host document untouched', async ({ page,
   await setMode(page, 'Element');
   await annotateElement(page, '[data-testid="hostile-cta"]', 'give this a hover state');
 
-  await setMode(page, 'Text');
+  await setMode(page, 'Highlight');
   await selectPhrase(page, 'main p.lede', 'resets every element');
   await overlay(page).locator('button.chip').click();
   await commit(page, 'this sentence is doing too much');
 
-  await setMode(page, 'Page');
+  await setMode(page, 'Draw');
   const box = (await page.locator('main').boundingBox())!;
   await page.mouse.move(box.x + 40, box.y + 40);
   await page.mouse.down();
@@ -50,7 +50,7 @@ test('a full session leaves the hostile host document untouched', async ({ page,
   await exitMode(page);
   await overlay(page).locator('[aria-label="Pause animations"]').click();
   await overlay(page).locator('[aria-label="Pause animations"]').click();
-  await overlay(page).locator('[aria-label^="Marker visibility"]').click();
+  await overlay(page).locator('[aria-label^="Pin visibility"]').click();
   await openPanel(page);
   await openSettings(page);
   await page.keyboard.press('Escape');

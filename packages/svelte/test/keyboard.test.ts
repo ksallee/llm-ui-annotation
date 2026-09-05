@@ -37,13 +37,13 @@ describe('isTyping', () => {
 describe('keyAction', () => {
   it('maps the mode letters', () => {
     expect(keyAction(key({ key: 'e' }), ctx())).toBe('mode:element');
-    expect(keyAction(key({ key: 'T' }), ctx())).toBe('mode:text');
-    expect(keyAction(key({ key: 'p' }), ctx())).toBe('mode:page');
+    expect(keyAction(key({ key: 'H' }), ctx())).toBe('mode:text');
+    expect(keyAction(key({ key: 'd' }), ctx())).toBe('mode:page');
   });
 
-  it('separates page mode from pause', () => {
+  it('pause needs the shift', () => {
     expect(keyAction(key({ key: 'P', shiftKey: true }), ctx())).toBe('pause');
-    expect(keyAction(key({ key: 'P' }), ctx())).toBe('mode:page');
+    expect(keyAction(key({ key: 'p' }), ctx())).toBeNull();
   });
 
   it('always answers Escape, even with a dialog open', () => {
@@ -74,6 +74,6 @@ describe('keyAction', () => {
 
   it('ignores modified letters', () => {
     expect(keyAction(key({ key: 'e', metaKey: true }), ctx())).toBeNull();
-    expect(keyAction(key({ key: 'h', altKey: true }), ctx())).toBeNull();
+    expect(keyAction(key({ key: 'd', altKey: true }), ctx())).toBeNull();
   });
 });

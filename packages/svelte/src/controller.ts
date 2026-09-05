@@ -96,9 +96,6 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
       case 'mode:page':
         state.setMode('page');
         break;
-      case 'markers':
-        state.cycleMarkers();
-        break;
       case 'panel':
         state.togglePanel();
         break;

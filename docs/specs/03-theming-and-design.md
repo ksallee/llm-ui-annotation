@@ -100,9 +100,9 @@ Export `computeTheme(input, prefersDark, prefersReducedMotion?): Record<TokenNam
 
 - One floating pill bottom-right, 44 px tall, icon buttons 36 px, 1 px dividers between groups, tooltip above with label and shortcut in a smaller muted key cap. Draggable by its grip; position remembered per origin in localStorage.
 - Popups are cards, `--annot-surface`, 1 px `--annot-line`, `--annot-shadow`, 12 px padding, max width 360, anchored to the target with an 8 px offset and flipped when out of viewport. First line is a breadcrumb in mono: `› button "Save"`.
-- Markers are 22 px circles with the number, `--annot-<status>` background, `--annot-<status>-ink` text, 2 px `--annot-surface` ring; multi-select markers show a small stacked-squares glyph instead of the number when hovered.
+- Pins (markers) are 22 px circles with the number, `--annot-<status>` background, `--annot-<status>-ink` text, 2 px `--annot-surface` ring; multi-select markers show a small stacked-squares glyph instead of the number when hovered.
 - Panel is a right drawer, 360 px, same surface, header with route and counts, filter chips, list of rows with a 3 px left bar in the status color. Nothing bounces.
-- Icons: a small inline SVG set drawn on a 20 px grid, 1.5 px stroke, round caps. Names: element, text, page (pen), brush, arrow, rect, ellipse, label, eraser, undo, redo, pause, play, eye, eye-off, send, inbox, check, check-all, reopen, chat, gear, grip, close, chevron. No icon library dependency.
+- Icons: a small inline SVG set drawn on a 20 px grid, 1.5 px stroke, round caps. Names: element, text (highlighter), page (scribble), brush, arrow, rect, ellipse, caption, eraser, undo, redo, pause, play, eye, eye-off, send, inbox, check, check-all, reopen, chat, gear, grip, close, chevron, search, more, fit, locate (map pin), edit, trash, warn. No glyph carries two meanings: the pencil is `edit` only, the speech bubble is `chat` only. No icon library dependency.
 
 ## Deliverables
 

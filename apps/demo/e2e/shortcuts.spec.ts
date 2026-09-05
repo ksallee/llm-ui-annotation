@@ -23,14 +23,14 @@ test('while a mode is active the capture layer swallows host clicks', async ({ p
   await expect(page.locator('[data-testid="modal"]')).toBeVisible();
 });
 
-test('the mode, panel, marker and help shortcuts do what the sheet says', async ({ page, site }) => {
+test('the mode, panel, pause and help shortcuts do what the sheet says', async ({ page, site }) => {
   await page.goto(`${site}/app/`);
   await ready(page);
 
   for (const [key, mode] of [
     ['e', 'element'],
-    ['t', 'text'],
-    ['p', 'page'],
+    ['h', 'text'],
+    ['d', 'page'],
   ] as const) {
     await page.keyboard.press(key);
     await expect.poll(() => field<string | null>(page, 'mode')).toBe(mode);
@@ -41,13 +41,6 @@ test('the mode, panel, marker and help shortcuts do what the sheet says', async 
   await expect(overlay(page).locator('[aria-label="Annotations"]')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(overlay(page).locator('[aria-label="Annotations"]')).toBeHidden();
-
-  await page.keyboard.press('h');
-  await expect.poll(() => field<string>(page, 'prefs.markers')).toBe('dots');
-  await page.keyboard.press('h');
-  await expect.poll(() => field<string>(page, 'prefs.markers')).toBe('none');
-  await page.keyboard.press('h');
-  await expect.poll(() => field<string>(page, 'prefs.markers')).toBe('all');
 
   await page.keyboard.press('Shift+P');
   await expect.poll(() => field<boolean>(page, 'frozen')).toBe(true);

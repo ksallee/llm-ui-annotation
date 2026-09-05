@@ -13,8 +13,8 @@
 
   const MODES: { mode: Mode; icon: IconName; label: string; key: string }[] = [
     { mode: 'element', icon: 'element', label: 'Element', key: 'E' },
-    { mode: 'text', icon: 'text', label: 'Text', key: 'T' },
-    { mode: 'page', icon: 'page', label: 'Page', key: 'P' },
+    { mode: 'text', icon: 'text', label: 'Highlight', key: 'H' },
+    { mode: 'page', icon: 'page', label: 'Draw', key: 'D' },
   ];
 
   const TOOLS: { tool: StrokeTool | 'eraser'; icon: IconName; label: string }[] = [
@@ -22,7 +22,7 @@
     { tool: 'arrow', icon: 'arrow', label: 'Arrow' },
     { tool: 'rect', icon: 'rect', label: 'Rectangle' },
     { tool: 'ellipse', icon: 'ellipse', label: 'Ellipse' },
-    { tool: 'label', icon: 'label', label: 'Label' },
+    { tool: 'label', icon: 'caption', label: 'Caption' },
     { tool: 'eraser', icon: 'eraser', label: 'Eraser' },
   ];
 
@@ -164,9 +164,9 @@
       <span class="tooltip">{annot.frozen ? 'Resume' : 'Pause'} animations<kbd>⇧P</kbd></span>
     </button>
 
-    <button class="icon-btn" aria-label="Marker visibility: {annot.prefs.markers}" onclick={() => annot.cycleMarkers()}>
+    <button class="icon-btn" aria-label="Pin visibility: {annot.prefs.markers}" onclick={() => annot.cycleMarkers()}>
       <Icon name={annot.prefs.markers === 'none' ? 'eye-off' : 'eye'} />
-      <span class="tooltip">Markers: {annot.prefs.markers}<kbd>H</kbd></span>
+      <span class="tooltip">Pins: {annot.prefs.markers}</span>
     </button>
 
     {#if annot.sendMode === 'batch'}

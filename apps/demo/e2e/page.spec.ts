@@ -14,7 +14,7 @@ test('page mode draws, captures a screenshot and lists the elements under it', a
   annotDir,
 }) => {
   await page.goto(`${site}/`);
-  await setMode(page, 'Page');
+  await setMode(page, 'Draw');
 
   const box = (await page.locator('.cards').boundingBox())!;
 
@@ -30,7 +30,7 @@ test('page mode draws, captures a screenshot and lists the elements under it', a
   await page.mouse.move(box.x + 140, box.y + 40, { steps: 10 });
   await page.mouse.up();
 
-  await tool(page, 'Label').click();
+  await tool(page, 'Caption').click();
   await page.mouse.click(box.x + 30, box.y - 20);
   const input = overlay(page).locator('input.label-input');
   await expect(input).toBeVisible();
@@ -63,7 +63,7 @@ test('page mode draws, captures a screenshot and lists the elements under it', a
 
 test('undo and redo walk the stroke stack', async ({ page, site }) => {
   await page.goto(`${site}/`);
-  await setMode(page, 'Page');
+  await setMode(page, 'Draw');
 
   const box = (await page.locator('.cards').boundingBox())!;
   for (const dy of [0, 30]) {

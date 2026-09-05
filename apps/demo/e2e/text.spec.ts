@@ -16,7 +16,7 @@ const PHRASE = 'The margin is too tight here';
 
 test('text mode anchors the second of two identical phrases', async ({ page, site, annotDir }) => {
   await page.goto(`${site}/prose/`);
-  await setMode(page, 'Text');
+  await setMode(page, 'Highlight');
 
   const first = await selectPhrase(page, '#twice', PHRASE, 1);
   const second = await selectPhrase(page, '#twice', PHRASE, 2);
@@ -62,7 +62,7 @@ test('text mode anchors the second of two identical phrases', async ({ page, sit
 
 test('a selection that crosses two blocks is refused', async ({ page, site }) => {
   await page.goto(`${site}/prose/`);
-  await setMode(page, 'Text');
+  await setMode(page, 'Highlight');
 
   await page.evaluate(() => {
     const from = document.querySelector('#once')!.firstChild!;
