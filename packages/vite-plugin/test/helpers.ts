@@ -1,4 +1,4 @@
-import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { newId, nowIso, type Annotation, type Event, type Mode } from '@llm-ui-annotation/core';
@@ -9,6 +9,9 @@ export const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
   'base64',
 );
+
+export const tempRoot = async (prefix: string): Promise<string> =>
+  realpath(await mkdtemp(join(tmpdir(), prefix)));
 
 export const HTML = '<!doctype html>\n<html><head><title>host</title></head><body><h1>host</h1></body></html>\n';
 
@@ -23,7 +26,7 @@ export interface Harness {
 }
 
 export async function startHarness(options: AnnotationsOptions = {}): Promise<Harness> {
-  const root = await mkdtemp(join(tmpdir(), 'annot-vite-'));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'annot-vite-')));
   await writeFile(join(root, 'index.html'), HTML);
   const dir = options.dir ?? join(root, '.annotations');
 

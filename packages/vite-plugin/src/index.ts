@@ -73,9 +73,7 @@ export function annotations(options: AnnotationsOptions = {}): Plugin {
         }
       });
 
-      const stopWatching = startWatching(store, resolved.watch, (err) =>
-        logger.error(`[annot] watcher: ${err instanceof Error ? err.message : String(err)}`),
-      );
+      let stopWatching: (() => void) | null = null;
 
       const cleanupSync = (): void => {
         try {
@@ -93,13 +91,20 @@ export function annotations(options: AnnotationsOptions = {}): Plugin {
         if (closed) return;
         closed = true;
         unsubscribe();
-        stopWatching();
+        stopWatching?.();
         process.off('SIGINT', cleanupSync);
         process.off('SIGTERM', cleanupSync);
         process.off('exit', cleanupSync);
         void removeServerInfo(resolved.dir).catch(cleanupSync);
       };
       closeServer = close;
+
+      void ready.then(() => {
+        if (closed) return;
+        stopWatching = startWatching(store, resolved.watch, (err) =>
+          logger.error(`[annot] watcher: ${err instanceof Error ? err.message : String(err)}`),
+        );
+      });
 
       const httpServer = server.httpServer;
       const announce = async (): Promise<void> => {
