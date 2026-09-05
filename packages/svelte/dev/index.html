@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>annot overlay dev</title>
+    <style>
+      :root { --accent: #2c8a85; }
+      body { margin: 0; font: 15px/1.6 system-ui, sans-serif; background: #fbfbfa; color: #1b1c1e; }
+      nav { display: flex; gap: 16px; align-items: center; padding: 14px 32px; border-bottom: 1px solid #e6e5e2; position: sticky; top: 0; background: inherit; z-index: 5; }
+      nav .brand { font-weight: 700; }
+      main { max-width: 900px; margin: 0 auto; padding: 40px 32px 200px; }
+      h1 { font-size: 34px; margin: 0 0 8px; }
+      p.lede { font-size: 18px; color: #555; max-width: 60ch; }
+      .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 32px 0; }
+      article { border: 1px solid #e6e5e2; border-radius: 12px; padding: 20px; background: #fff; }
+      article h3 { margin: 0 0 6px; }
+      button { font: inherit; padding: 8px 16px; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+      button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+      form { display: grid; gap: 12px; max-width: 380px; margin: 24px 0; }
+      label { display: grid; gap: 4px; font-size: 13px; }
+      input[type='text'], input[type='email'] { padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px; }
+      table { border-collapse: collapse; width: 100%; margin: 24px 0; }
+      td, th { border-bottom: 1px solid #eee; padding: 8px 10px; text-align: left; }
+      .spin { width: 28px; height: 28px; border-radius: 50%; border: 3px solid #ddd; border-top-color: var(--accent); animation: spin 1s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <span class="brand">Acme</span>
+      <a href="/pricing">Pricing</a>
+      <a href="/docs">Docs</a>
+      <span style="flex: 1"></span>
+      <input id="accent" type="color" value="#2c8a85" aria-label="Host accent" />
+      <button id="dark">Toggle dark</button>
+      <button class="primary" data-testid="signup">Sign up</button>
+    </nav>
+
+    <main>
+      <h1>Ship the feedback loop</h1>
+      <p class="lede">
+        Cancel anytime, no questions asked. Point at anything on this page and tell the agent what
+        should change. Cancel anytime, no questions asked.
+      </p>
+
+      <section class="pricing">
+        <h2>Pricing</h2>
+        <div class="cards">
+          <article><h3>Free</h3><p>$0 / month</p><button>Choose Free</button></article>
+          <article><h3>Pro</h3><p>$29 / month</p><button class="primary">Choose Pro</button></article>
+          <article><h3>Team</h3><p>$99 / month</p><button>Choose Team</button></article>
+        </div>
+      </section>
+
+      <section>
+        <h2>Prose</h2>
+        <p>
+          The quick brown fox jumps over the lazy dog. Repeated phrase for anchoring tests.
+          Repeated phrase for anchoring tests. Then something else entirely so the offsets differ.
+        </p>
+        <blockquote>A block quote, in its own container, for multi-block refusal tests.</blockquote>
+      </section>
+
+      <section>
+        <h2>Form</h2>
+        <form>
+          <label>Work email <input type="email" placeholder="you@company.com" /></label>
+          <label>Team name <input type="text" name="team" /></label>
+          <button class="primary" type="button">Save Changes</button>
+        </form>
+      </section>
+
+      <section>
+        <h2>Table</h2>
+        <table>
+          <tr><th>Name</th><th>Plan</th><th></th></tr>
+          <tr><td>Ada</td><td>Pro</td><td><button>Edit</button></td></tr>
+          <tr><td>Grace</td><td>Team</td><td><button>Edit</button></td></tr>
+        </table>
+        <div class="spin" aria-label="loading"></div>
+      </section>
+    </main>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
