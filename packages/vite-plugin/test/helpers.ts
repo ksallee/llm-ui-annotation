@@ -20,20 +20,37 @@ export interface Harness {
   dir: string;
   root: string;
   server: ViteDevServer;
+  warnings: string[];
+  infos: string[];
   api<T>(path: string, init?: RequestInit): Promise<T>;
   raw(path: string, init?: RequestInit): Promise<Response>;
   close(): Promise<void>;
 }
 
-export async function startHarness(options: AnnotationsOptions = {}): Promise<Harness> {
+export async function startHarness(
+  options: AnnotationsOptions = {},
+  files: Record<string, string> = {},
+): Promise<Harness> {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'annot-vite-')));
   await writeFile(join(root, 'index.html'), HTML);
+  for (const [name, content] of Object.entries(files)) await writeFile(join(root, name), content);
   const dir = options.dir ?? join(root, '.annotations');
+  const warnings: string[] = [];
+  const infos: string[] = [];
 
   const server = await createServer({
     root,
     configFile: false,
     logLevel: 'silent',
+    customLogger: {
+      info: (msg: string) => infos.push(msg),
+      warn: (msg: string) => warnings.push(msg),
+      warnOnce: (msg: string) => warnings.push(msg),
+      error: () => undefined,
+      clearScreen: () => undefined,
+      hasErrorLogged: () => false,
+      hasWarned: false,
+    },
     server: { port: 0, host: '127.0.0.1', strictPort: false },
     plugins: [annotations({ ...options, dir })],
   });
@@ -55,6 +72,8 @@ export async function startHarness(options: AnnotationsOptions = {}): Promise<Ha
     dir,
     root,
     server,
+    warnings,
+    infos,
     api,
     raw,
     close: async () => {
@@ -120,40 +139,57 @@ export function pageAnnotation(overrides: Partial<Annotation> = {}): Annotation 
   });
 }
 
+export interface SseReader {
+  /** Resolves once the server has written its first bytes, so the subscription is live. */
+  ready: Promise<void>;
+  events: Promise<Event[]>;
+}
+
 /** Read an SSE stream until `count` events arrived or `ms` elapsed. */
-export async function collectSse(url: string, count: number, ms = 5000): Promise<Event[]> {
+export function readSse(url: string, count: number, ms = 5000): SseReader {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
-  const events: Event[] = [];
-  try {
-    const res = await fetch(url, { signal: controller.signal, headers: { accept: 'text/event-stream' } });
-    if (!res.body) throw new Error('no SSE body');
-    const decoder = new TextDecoder();
-    let buffer = '';
-    for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
-      buffer += decoder.decode(chunk, { stream: true });
-      let boundary = buffer.indexOf('\n\n');
-      while (boundary >= 0) {
-        const frame = buffer.slice(0, boundary);
-        buffer = buffer.slice(boundary + 2);
-        const data = frame
-          .split('\n')
-          .filter((line) => line.startsWith('data: '))
-          .map((line) => line.slice(6))
-          .join('\n');
-        if (data !== '') events.push(JSON.parse(data) as Event);
-        if (events.length >= count) return events;
-        boundary = buffer.indexOf('\n\n');
+  let open!: () => void;
+  const ready = new Promise<void>((resolve) => {
+    open = resolve;
+  });
+
+  const events = (async (): Promise<Event[]> => {
+    const collected: Event[] = [];
+    try {
+      const res = await fetch(url, { signal: controller.signal, headers: { accept: 'text/event-stream' } });
+      if (!res.body) throw new Error('no SSE body');
+      const decoder = new TextDecoder();
+      let buffer = '';
+      for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
+        buffer += decoder.decode(chunk, { stream: true });
+        open();
+        let boundary = buffer.indexOf('\n\n');
+        while (boundary >= 0) {
+          const frame = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 2);
+          const data = frame
+            .split('\n')
+            .filter((line) => line.startsWith('data: '))
+            .map((line) => line.slice(6))
+            .join('\n');
+          if (data !== '') collected.push(JSON.parse(data) as Event);
+          if (collected.length >= count) return collected;
+          boundary = buffer.indexOf('\n\n');
+        }
       }
+      return collected;
+    } catch (err) {
+      if (controller.signal.aborted) return collected;
+      throw err;
+    } finally {
+      clearTimeout(timer);
+      open();
+      controller.abort();
     }
-    return events;
-  } catch (err) {
-    if (controller.signal.aborted) return events;
-    throw err;
-  } finally {
-    clearTimeout(timer);
-    controller.abort();
-  }
+  })();
+
+  return { ready, events };
 }
 
 /** Poll until `fn` is true, or throw. */

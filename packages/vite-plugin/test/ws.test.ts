@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { slug, type Annotation, type RouteFile } from '@llm-ui-annotation/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { collectSse, makeAnnotation, startHarness, until, type Harness } from './helpers.js';
+import { makeAnnotation, readSse, startHarness, until, type Harness } from './helpers.js';
 
 interface CustomMessage {
   type: string;
@@ -91,8 +91,8 @@ describe('websocket push', () => {
 
   it('forwards to a live SSE client the events another writer appended', async () => {
     await post<Annotation>('/__annot/annotations', makeAnnotation());
-    const stream = collectSse(`${h.url}/__annot/events/stream?since=1`, 1, 8000);
-    await new Promise((r) => setTimeout(r, 150));
+    const stream = readSse(`${h.url}/__annot/events/stream?since=1`, 1, 8000);
+    await stream.ready;
 
     const log = join(h.dir, 'events.jsonl');
     const external = {
@@ -105,7 +105,7 @@ describe('websocket push', () => {
     };
     await writeFile(log, `${await readFile(log, 'utf8')}${JSON.stringify(external)}\n`);
 
-    const events = await stream;
+    const events = await stream.events;
     expect(events).toEqual([external]);
   });
 });

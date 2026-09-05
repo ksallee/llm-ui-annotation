@@ -14,7 +14,7 @@ import {
 } from '@llm-ui-annotation/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-  collectSse,
+  readSse,
   exists,
   makeAnnotation,
   pageAnnotation,
@@ -285,8 +285,8 @@ describe('events', () => {
 
   it('streams replayed and live events in seq order', async () => {
     const first = await post<Annotation>('/__annot/annotations', makeAnnotation());
-    const stream = collectSse(`${h.url}/__annot/events/stream?since=0`, 3);
-    await new Promise((r) => setTimeout(r, 150));
+    const stream = readSse(`${h.url}/__annot/events/stream?since=0`, 3);
+    await stream.ready;
     const second = await post<Annotation>('/__annot/annotations', makeAnnotation());
     await post<Batch>('/__annot/batches', {
       route: '/pricing',
@@ -294,7 +294,7 @@ describe('events', () => {
       summary: null,
     });
 
-    const events = await stream;
+    const events = await stream.events;
     expect(events.map((e) => e.seq)).toEqual([1, 2, 3]);
     expect(events.map((e) => e.type)).toEqual([
       'annotation.created',
@@ -306,7 +306,7 @@ describe('events', () => {
   it('replays only what follows the since cursor', async () => {
     await post<Annotation>('/__annot/annotations', makeAnnotation());
     await post<Annotation>('/__annot/annotations', makeAnnotation());
-    const events = await collectSse(`${h.url}/__annot/events/stream?since=1`, 1);
+    const events = await readSse(`${h.url}/__annot/events/stream?since=1`, 1).events;
     expect(events.map((e) => e.seq)).toEqual([2]);
   });
 });
