@@ -151,3 +151,4 @@ Kept so nobody re-files them.
 
 - **The overlay cannot tell whether an agent is listening** (bug). Sending shows "Waiting for the agent" even when no `annot watch` is attached, so a correct send looks like a failure. The plugin already knows the answer from its open SSE clients.
 - **Strokes cannot be selected, moved, resized or restyled** (unimplemented). Draw is write-once: undo or erase the whole stroke. The resizable region from spec 09 §6 is the capture box, not the marks.
+- **A drawing cannot be grabbed as one object** (unimplemented). No select-all, and the region box cannot be dragged to move the marks inside it; `Clear drawing` is the only whole-drawing action.

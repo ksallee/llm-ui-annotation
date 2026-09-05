@@ -25,6 +25,11 @@ A stroke today is write-once: undo, or erase the whole thing. Any drawing that i
 - **Resize**: eight handles scale the selection's bounding box; every point in every selected stroke transforms with it. `⇧` preserves the aspect ratio. Brush points scale, arrow endpoints scale, rect and ellipse rects scale, caption `at` moves but its `size` does not scale unless the handle is a corner.
 - **Restyle**: with a selection, the colour swatches and width steps apply to it instead of setting the next stroke's defaults.
 - **Delete**: `⌫` removes the selection. The eraser stays for the single-click case.
+- **The whole drawing as one object**: `⌘A` in Draw selects every stroke, so the drawing can be
+  moved, scaled, restyled or deleted as a unit. Dragging inside the region box with nothing selected
+  does the same thing — the box is the drawing's handle, not just the capture bounds. `Clear drawing`
+  stays as the one-click destructive path, but it is no longer the only way to get rid of a drawing
+  you want to reposition instead.
 - Undo/redo covers move, resize, restyle and delete as single steps, not per-point.
 
 `strokeBounds` already gives the box. The transform is a pure function over `Stroke[]` and belongs in `packages/core/src/dom/strokes.ts` — `transformStrokes(strokes, from: Rect, to: Rect): Stroke[]` — so the canvas renderer and the SVG layer stay in agreement and it is unit-testable without a DOM.
@@ -39,3 +44,7 @@ Interaction with spec 09 §6: the drawing region and a stroke selection are diff
 - Undo after a resize restores the previous geometry in one step.
 - Scaling a selection to a degenerate box is clamped, not allowed to produce NaN.
 - Region handles and stroke handles are never both on screen.
+- `⌘A` in Draw selects every stroke; dragging then moves the whole drawing, and `⌫` removes it in one
+  undoable step.
+- Moving the whole drawing updates `PageTarget.region` and the intersecting element list with it, so
+  the annotation still points at what is under the marks.
