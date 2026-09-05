@@ -63,13 +63,23 @@ describe('computeTheme', () => {
     }
   });
 
-  it('clamps accent chroma to [0.04, 0.2] and lifts dark-scheme lightness', () => {
+  it('clamps accent chroma to [0.04, 0.2]', () => {
     const gray = computeTheme({ accent: '#6b7280', scheme: 'light' });
     expect(at(gray, '--annot-accent').c).toBeCloseTo(0.04, 2);
     const loud = computeTheme({ accent: 'oklch(0.6 0.35 20)', scheme: 'light' });
     expect(at(loud, '--annot-accent').c).toBeLessThanOrEqual(0.2 + 1e-6);
-    const dark = computeTheme({ accent: '#111827', scheme: 'dark' });
-    expect(at(dark, '--annot-accent').l).toBeGreaterThanOrEqual(0.72);
+  });
+
+  it('keeps the accent visible on its own surface', () => {
+    for (const [label, accent] of Object.entries(SAMPLE_ACCENTS)) {
+      for (const scheme of SCHEMES) {
+        const t = computeTheme({ accent, scheme });
+        const l = at(t, '--annot-accent').l;
+        if (scheme === 'light') expect(l, `${label}/light`).toBeLessThanOrEqual(0.72 + 1e-6);
+        else expect(l, `${label}/dark`).toBeGreaterThanOrEqual(0.72 - 1e-6);
+        expect(contrast(t['--annot-accent'], t['--annot-surface']), `${label}/${scheme}`).toBeGreaterThan(2);
+      }
+    }
   });
 
   it('derives the mode hues as siblings of the accent', () => {
