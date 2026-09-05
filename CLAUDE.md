@@ -28,6 +28,13 @@ docs/research         what we learned from agentation, agent-ui-annotation, and 
 - Tests: vitest for core and cli (happy-dom where DOM is needed), Playwright for `apps/demo`. A workstream is not done until its acceptance criteria in the spec pass.
 - UI strings in English. Keep the reader's French copy out of the shared packages.
 
+## Style
+
+Declarative. Very sparse comments: only where something is genuinely obscure, never restating the
+code. A doc comment says what the function does and stops — no context, no rationale, no examples.
+Params are typed, with at most one very short sentence each. No long descriptions anywhere unless
+really, really required.
+
 ## Looking at the UI
 
 Use `tools/qa.mjs`, never a browser MCP. An MCP returns an accessibility snapshot and a console log
