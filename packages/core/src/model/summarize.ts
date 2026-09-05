@@ -23,8 +23,12 @@ export function summarizeTarget(target: Target): string {
       const named = target.elements.slice(0, 3).map(elementLabel).join(', ');
       return `${target.elements.length} elements: ${named}${rest.length > 2 ? ', …' : ''}`;
     }
-    case 'text':
-      return `text "${truncate(target.quote, 48)}" in ${target.container.selector}`;
+    case 'text': {
+      const quote = `text "${truncate(target.quote, 48)}"`;
+      if (!target.blocks) return `${quote} in ${target.container.selector}`;
+      const named = target.blocks.slice(0, 3).map((b) => b.selector).join(', ');
+      return `${quote} across ${named}${target.blocks.length > 3 ? ', …' : ''}`;
+    }
     case 'page': {
       if (target.elements.length === 0) {
         return `drawing over ${target.strokes.length} stroke${target.strokes.length === 1 ? '' : 's'}`;

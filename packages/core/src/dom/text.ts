@@ -1,4 +1,4 @@
-import type { Rect, TextTarget } from '../model/types.js';
+import type { ElementRef, Rect, TextTarget } from '../model/types.js';
 import { describeElement, isOverlay, type DescribeOptions } from './describe.js';
 import { clientRectsOf, mergeLineRects } from './rect.js';
 import { resolveSelector } from './selector.js';
@@ -62,6 +62,8 @@ export interface ContainerText {
   point: (rawIndex: number) => { node: Text; offset: number } | null;
   /** Raw offset of a DOM position inside the container. */
   offsetOf: (node: Node, offset: number) => number;
+  /** Text nodes carrying content between two raw offsets. */
+  nodesIn: (rawStart: number, rawEnd: number) => Text[];
 }
 
 function collect(el: Element, overlayTag: string | undefined, pieces: Piece[], chunks: string[]): void {
@@ -130,7 +132,12 @@ export function indexText(el: Element, overlayTag?: string): ContainerText {
     return 0;
   };
 
-  return { raw, text, toRaw: (n) => indices[n] ?? raw.length, toNorm, point, offsetOf };
+  const nodesIn = (rawStart: number, rawEnd: number): Text[] =>
+    pieces
+      .filter((p) => p.end > rawStart && p.start < rawEnd && p.node.data.trim() !== '')
+      .map((p) => p.node);
+
+  return { raw, text, toRaw: (n) => indices[n] ?? raw.length, toNorm, point, offsetOf, nodesIn };
 }
 
 /** Nearest block-level ancestor that is not `body`. */
@@ -149,7 +156,7 @@ export function blockContainer(node: Node): Element | null {
 
 export type DescribeRangeResult =
   | { ok: true; target: TextTarget }
-  | { ok: false; reason: 'empty' | 'multi-block' | 'no-container' };
+  | { ok: false; reason: 'empty' | 'no-container' };
 
 function buildRange(
   doc: Document,
@@ -174,16 +181,24 @@ export function rangeRects(range: Range): Rect[] {
   return mergeLineRects(clientRectsOf(range, doc));
 }
 
+/** Blocks holding text between two normalized offsets, document order. */
+function spannedBlocks(index: ContainerText, start: number, end: number): Element[] {
+  const out: Element[] = [];
+  for (const node of index.nodesIn(index.toRaw(start), index.toRaw(end - 1) + 1)) {
+    const block = blockContainer(node);
+    if (block && !out.includes(block)) out.push(block);
+  }
+  return out;
+}
+
 /** A `TextTarget` for a selection, or why it cannot be anchored. */
 export function describeRange(range: Range, opts: DescribeOptions = {}): DescribeRangeResult {
   if (range.collapsed || range.toString().trim() === '') return { ok: false, reason: 'empty' };
 
-  const startBlock = blockContainer(range.startContainer);
-  const endBlock = blockContainer(range.endContainer);
-  if (!startBlock || !endBlock) return { ok: false, reason: 'no-container' };
-  if (startBlock !== endBlock) return { ok: false, reason: 'multi-block' };
+  const container = blockContainer(range.commonAncestorContainer);
+  if (!container) return { ok: false, reason: 'no-container' };
 
-  const index = indexText(startBlock, opts.overlayTag);
+  const index = indexText(container, opts.overlayTag);
   let start = index.toNorm(index.offsetOf(range.startContainer, range.startOffset));
   let end = index.toNorm(index.offsetOf(range.endContainer, range.endOffset));
   while (start < end && index.text[start] === ' ') start += 1;
@@ -191,19 +206,23 @@ export function describeRange(range: Range, opts: DescribeOptions = {}): Describ
   const quote = index.text.slice(start, end);
   if (quote === '') return { ok: false, reason: 'empty' };
 
-  return {
-    ok: true,
-    target: {
-      kind: 'text',
-      container: describeElement(startBlock, opts),
-      quote,
-      prefix: index.text.slice(Math.max(0, start - CONTEXT_CHARS), start),
-      suffix: index.text.slice(end, end + CONTEXT_CHARS),
-      start,
-      end,
-      rects: rangeRects(range),
-    },
+  const blocks = spannedBlocks(index, start, end);
+  const target: TextTarget = {
+    kind: 'text',
+    container: describeElement(container, opts),
+    quote,
+    prefix: index.text.slice(Math.max(0, start - CONTEXT_CHARS), start),
+    suffix: index.text.slice(end, end + CONTEXT_CHARS),
+    start,
+    end,
+    rects: rangeRects(range),
   };
+  if (blocks.length > 1) target.blocks = compactRefs(blocks, opts);
+  return { ok: true, target };
+}
+
+function compactRefs(elements: readonly Element[], opts: DescribeOptions): ElementRef[] {
+  return elements.map((el) => describeElement(el, { ...opts, styles: false, context: false }));
 }
 
 function closestIndex(haystack: string, needle: string, near: number): number {

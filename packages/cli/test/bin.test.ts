@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { PROTOCOL_VERSION } from '@llm-ui-annotation/core';
 import { describe, expect, it } from 'vitest';
 import { IDS, makeFixture } from './fixtures.js';
 
@@ -49,6 +50,6 @@ describe('the annot binary', () => {
   it('exits 0 for --help and --version', async () => {
     const { dir } = await makeFixture();
     expect((await annot(dir, '--help')).code).toBe(0);
-    expect((await annot(dir, '--version')).stdout).toContain('protocol 1');
+    expect((await annot(dir, '--version')).stdout).toContain(`protocol ${PROTOCOL_VERSION}`);
   });
 });

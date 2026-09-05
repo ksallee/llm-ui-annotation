@@ -41,11 +41,11 @@ Also export `resolveSelector(root, selector): Element | null` (handles `>>>`) an
 
 ## 2.2 Text anchoring → `describeRange(range): DescribeRangeResult` and `anchorText(doc, target): { range: Range; state: 'exact'|'moved' } | null`
 
-`describeRange` returns `{ ok: true; target: TextTarget }` or `{ ok: false; reason: 'empty' | 'multi-block' | 'no-container' }`, so the refusal reason travels with the refusal. `prefix` and `suffix` are 32 normalized characters.
+`describeRange` returns `{ ok: true; target: TextTarget }` or `{ ok: false; reason: 'empty' | 'no-container' }`, so the refusal reason travels with the refusal. `prefix` and `suffix` are 32 normalized characters.
 
 Normalization for `quote`, `prefix`, `suffix`, offsets: collapse runs of whitespace to one space, trim; offsets are computed against the normalized `textContent` of the container. Provide `normalize(text): { text, map: (normIndex) => rawIndex }` so a normalized offset maps back to a DOM position.
 
-Container: the nearest ancestor of the range's common ancestor that is a block-level element (`p div li td th h1-6 blockquote pre section article dd dt figcaption summary`) or has `display: block|list-item|table-cell` computed. Must not be `body`. If the range spans two block containers, split it: the overlay creates one annotation per block or refuses with a message; core just returns `null` and a reason `'multi-block'`.
+Container: the nearest ancestor-or-self of the range's `commonAncestorContainer` that is a block-level element (`p div li td th h1-6 blockquote pre section article dd dt figcaption summary`) or has `display: block|list-item|table-cell` computed. A range spanning several blocks is anchored the same way, against the block that contains them all; `quote`, `prefix`, `suffix`, `start` and `end` are computed against that container's normalized text, which runs across its blocks. The blocks actually holding selected text are recorded in `TextTarget.blocks` (document order, compact, only when there is more than one) so the agent can name them. `no-container` is the only refusal: the walk reached `body` or `html`, meaning the selection spans the page.
 
 Re-anchor ladder (matches the reader's, named states):
 1. Resolve container by `selector`, then `fallbacks`. Normalize its text.
@@ -76,7 +76,7 @@ Inject a `<style data-annot-freeze>` pausing `animation-play-state` and disablin
 - Fixture HTML pages in `packages/core/test/fixtures/` covering: ids, test ids, Svelte hashed classes, Tailwind utility soup, repeated list items, nested shadow root, fixed header, table cells, icon-only buttons, form inputs with labels.
 - `describeElement` returns a selector that resolves back to the same element for every element in every fixture (property test over `querySelectorAll('*')`).
 - Selectors contain no `svelte-*` or utility classes.
-- Text anchoring tests: exact, prefix/suffix disambiguation of a repeated quote, moved after an insertion before the quote, moved after an edit inside the quote, lost after deletion, container re-found via fallbacks after its class changed, multi-block refusal.
+- Text anchoring tests: exact, prefix/suffix disambiguation of a repeated quote, moved after an insertion before the quote, moved after an edit inside the quote, lost after deletion, container re-found via fallbacks after its class changed, a run across two blocks and across a paragraph/blockquote/paragraph, and refusal at `body`.
 - `findElementsInRect` on a fixture with a card grid returns the cards and the heading, not `body` or the tiny icons.
 - Stroke rendering snapshot test with a fixed set of strokes rendered to a `canvas` (node-canvas or a stub that records calls; recording calls is acceptable).
 

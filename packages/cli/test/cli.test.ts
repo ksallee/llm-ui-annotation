@@ -1,3 +1,4 @@
+import { PROTOCOL_VERSION } from '@llm-ui-annotation/core';
 import { readAllAnnotations, readEvents } from '@llm-ui-annotation/core/node';
 import { describe, expect, it } from 'vitest';
 import { IDS, makeFixture } from './fixtures.js';
@@ -207,7 +208,7 @@ describe('routes, screenshot, doctor', () => {
     const res = await annot(dir, 'doctor');
     expect(res.out).toContain(`dir:      ${dir}`);
     expect(res.out).toContain('not running');
-    expect(res.out).toContain('protocol: 1');
+    expect(res.out).toContain(`protocol: ${PROTOCOL_VERSION}`);
     const parsed = JSON.parse((await annot(dir, 'doctor', '--json')).out) as {
       transport: string;
       lastSeq: number;
