@@ -112,7 +112,7 @@
     {#if annot.sendMode === 'batch'}
       <button
         class="icon-btn send-btn"
-        aria-label="Send {annot.drafts.length} annotations"
+        aria-label="Send {annot.drafts.length} annotation{annot.drafts.length === 1 ? '' : 's'}"
         disabled={annot.drafts.length === 0}
         onclick={onsend}
       >
