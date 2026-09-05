@@ -84,3 +84,5 @@ about comments starting with `ask:`, and completes everything else.
   block.
 - **Density** only scales the tokens; a few control heights are still derived with a multiplier
   rather than their own token.
+- **Nothing type-checks `.svelte`**: `check` runs `tsc`, which skips them, so eleven components once
+  imported `AnnotState` from a path that does not exist and nothing noticed. `svelte-check` would.

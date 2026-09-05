@@ -1,0 +1,83 @@
+{
+  "doc": "essai.md",
+  "updatedAt": "2026-04-18T09:12:44.000Z",
+  "notes": [
+    {
+      "id": "n_01",
+      "section": "ouverture",
+      "pi": 0,
+      "start": 12,
+      "end": 58,
+      "quote": "la lumière tombe d'abord sur le seuil, jamais au centre",
+      "note": "Trop de virgules ici, couper la phrase en deux.",
+      "status": "open",
+      "createdAt": "2026-04-17T08:03:11.000Z"
+    },
+    {
+      "id": "n_02",
+      "section": "ouverture",
+      "pi": 3,
+      "start": 0,
+      "end": 31,
+      "quote": "Le narrateur revient sur ses pas",
+      "note": "Vérifier la concordance des temps avec le paragraphe précédent.",
+      "status": "open",
+      "createdAt": "2026-04-17T08:07:52.000Z"
+    },
+    {
+      "id": "n_03",
+      "section": "le-fleuve",
+      "pi": 1,
+      "start": 44,
+      "end": 96,
+      "quote": "on ne mesure pas un fleuve à la largeur de sa rive",
+      "note": "Reformuler : l'image est juste mais la phrase est trop longue.",
+      "status": "handled",
+      "createdAt": "2026-04-17T10:21:04.000Z",
+      "handledAt": "2026-04-17T14:02:19.000Z",
+      "handledNote": "Phrase coupée en deux, image conservée.",
+      "history": [
+        {
+          "note": "Reformuler.",
+          "at": "2026-04-17T09:55:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "n_04",
+      "section": "le-fleuve",
+      "pi": 4,
+      "start": 8,
+      "end": 40,
+      "quote": "un silence de fin d'après-midi",
+      "note": "Garder, mais déplacer après la description du quai.",
+      "status": "handled",
+      "createdAt": "2026-04-17T11:40:00.000Z",
+      "handledAt": "2026-04-18T08:15:30.000Z"
+    },
+    {
+      "id": "n_05",
+      "section": "coda",
+      "pi": 0,
+      "start": 3,
+      "end": 27,
+      "quote": "Il ne restait que la table",
+      "note": "Très bien. Ne pas y toucher.",
+      "status": "done",
+      "createdAt": "2026-04-16T17:22:10.000Z",
+      "handledAt": "2026-04-17T07:01:00.000Z",
+      "doneAt": "2026-04-18T09:12:44.000Z"
+    },
+    {
+      "id": "n_06",
+      "section": "le-fleuve",
+      "pi": 2,
+      "start": 0,
+      "end": 12,
+      "quote": "Rive gauche",
+      "note": "Note abandonnée.",
+      "status": "dropped",
+      "createdAt": "2026-04-16T12:00:00.000Z"
+    }
+  ]
+}

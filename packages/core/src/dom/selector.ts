@@ -5,7 +5,7 @@ export const SHADOW_SEP = ' >>> ';
 
 const MAX_WALK_UP = 5;
 const MAX_FALLBACKS = 4;
-const TEST_ID_ATTRS = ['data-testid', 'data-test', 'data-cy', 'data-annot-id'];
+const TEST_ID_ATTRS = ['data-testid', 'data-test', 'data-cy', 'data-annot-id', 'data-annot-block'];
 const ROOT_TAGS = new Set(['html', 'head', 'body']);
 
 type Scope = Document | ShadowRoot;

@@ -9,7 +9,7 @@ Goal: a selector the agent can grep for, that survives a re-render, and that a h
 Preference ladder, stop at the first that is unique in `el.getRootNode()`:
 
 1. `#id` when the id is not numeric-looking and not generated (`/^(svelte-|radix-|headlessui-|:r|_|__)/`, or containing 6+ consecutive digits/hex).
-2. `[data-testid=…]`, `[data-test=…]`, `[data-cy=…]`, `[data-annot-id=…]`.
+2. `[data-testid=…]`, `[data-test=…]`, `[data-cy=…]`, `[data-annot-id=…]`, `[data-annot-block=…]`.
 3. `tag[name=…]`, `tag[aria-label=…]`, `a[href=…]` (exact for a plain path, `a[href*=…]` on the path when the href is absolute or carries a query), `img[alt=…]`, `input[type=…][placeholder=…]`.
 4. `tag.class1.class2` using at most two stable classes. A class is unstable if it matches `/^(svelte-[a-z0-9]+|css-[a-z0-9]+|sc-|_[a-z0-9]{5,}|[a-z]+-[0-9a-f]{5,}$|[A-Za-z]+__[a-z0-9]{5,})/` or is longer than 40 chars, or is purely utility (Tailwind heuristics: contains `:` or `[` or `/`, matches `/^(p|m|px|py|mx|my|w|h|gap|text|bg|flex|grid|items|justify|rounded|border|shadow|font|leading|tracking)-/`, or is one of the bare utility words `flex grid block inline hidden border rounded shadow container absolute relative fixed static sticky truncate italic underline uppercase lowercase capitalize antialiased`).
 5. Walk up: `parentSelector > tag:nth-of-type(n)`, where `parentSelector` is computed recursively with the same ladder, capped at 5 levels. Prefer `:nth-of-type` over `:nth-child`.

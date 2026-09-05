@@ -22,7 +22,7 @@ export const ICONS = {
   'check-all': '<path d="M2.5 10.5 6 14l7-8"/><path d="M9 12.5 10.5 14l7-8"/>',
   reopen: '<path d="M4.5 10a5.5 5.5 0 1 0 1.7-4"/><path d="M4 3.5v3h3"/>',
   chat: '<path d="M4 5h12v8H9.5L6 16v-3H4z"/>',
-  gear: '<circle cx="10" cy="10" r="2.4"/><path d="M10 3.2v1.6M10 15.2v1.6M3.2 10h1.6M15.2 10h1.6M5.2 5.2l1.1 1.1M13.7 13.7l1.1 1.1M14.8 5.2l-1.1 1.1M6.3 13.7l-1.1 1.1"/>',
+  gear: '<path d="M17.26 8.59 L17.26 11.41 L15.24 11.31 L14.63 12.78 L16.13 14.14 L14.14 16.13 L12.78 14.63 L11.31 15.24 L11.41 17.26 L8.59 17.26 L8.69 15.24 L7.22 14.63 L5.86 16.13 L3.87 14.14 L5.37 12.78 L4.76 11.31 L2.74 11.41 L2.74 8.59 L4.76 8.69 L5.37 7.22 L3.87 5.86 L5.86 3.87 L7.22 5.37 L8.69 4.76 L8.59 2.74 L11.41 2.74 L11.31 4.76 L12.78 5.37 L14.14 3.87 L16.13 5.86 L14.63 7.22 L15.24 8.69 Z" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.6"/>',
   grip: '<circle cx="8" cy="5.5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="5.5" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="14.5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="14.5" r="1" fill="currentColor" stroke="none"/>',
   close: '<path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/>',
   chevron: '<path d="M7.5 4.5 13 10l-5.5 5.5"/>',

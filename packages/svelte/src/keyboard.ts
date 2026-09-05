@@ -37,7 +37,9 @@ export function keyAction(event: KeyboardEvent, ctx: KeyContext): KeyAction | nu
   const meta = event.metaKey || event.ctrlKey;
 
   if (event.key === 'Escape') return 'escape';
-  if (meta && event.key === 'Enter') return 'commit';
+  // The popup and the send dialog bind their own ⌘↵. The controller listens on the document in the
+  // capture phase, so it would fire first and their stopPropagation would come too late.
+  if (meta && event.key === 'Enter') return ctx.popupOpen || ctx.dialogOpen ? null : 'commit';
 
   if (meta && (event.key === 'z' || event.key === 'Z')) {
     if (ctx.mode !== 'page') return null;

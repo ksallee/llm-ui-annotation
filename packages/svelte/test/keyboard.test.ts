@@ -46,9 +46,14 @@ describe('keyAction', () => {
     expect(keyAction(key({ key: 'P' }), ctx())).toBe('mode:page');
   });
 
-  it('always answers Escape and commit, even with a dialog open', () => {
+  it('always answers Escape, even with a dialog open', () => {
     expect(keyAction(key({ key: 'Escape' }), ctx({ dialogOpen: true }))).toBe('escape');
-    expect(keyAction(key({ key: 'Enter', metaKey: true }), ctx({ popupOpen: true }))).toBe('commit');
+  });
+
+  it('commits only when no surface owns the keystroke', () => {
+    expect(keyAction(key({ key: 'Enter', metaKey: true }), ctx())).toBe('commit');
+    expect(keyAction(key({ key: 'Enter', metaKey: true }), ctx({ popupOpen: true }))).toBeNull();
+    expect(keyAction(key({ key: 'Enter', metaKey: true }), ctx({ dialogOpen: true }))).toBeNull();
   });
 
   it('swallows plain letters while a popup or dialog is open', () => {
