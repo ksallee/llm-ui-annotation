@@ -32,6 +32,9 @@ importers:
       typescript-eslint:
         specifier: ^8.44.0
         version: 8.69.0(eslint@9.39.5)(typescript@5.9.3)
+      vite:
+        specifier: ^7.1.5
+        version: 7.3.6(@types/node@22.20.1)
       vitest:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@22.20.1)(happy-dom@18.0.1)
@@ -52,6 +55,15 @@ importers:
       svelte:
         specifier: ^5
         version: 5.57.0(@typescript-eslint/types@8.69.0)
+
+  packages/vite-plugin:
+    dependencies:
+      '@llm-ui-annotation/core':
+        specifier: workspace:*
+        version: link:../core
+      vite:
+        specifier: ^6 || ^7 || ^8
+        version: 7.3.6(@types/node@22.20.1)
 
 packages:
 
