@@ -1,3 +1,4 @@
+import { PROTOCOL_VERSION } from '@llm-ui-annotation/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { autoModuleSource, overlayOptions, scriptSrc } from '../src/inject.js';
 import { defaultRouteKey, matchGlob, resolveOptions } from '../src/options.js';
@@ -88,7 +89,7 @@ describe('the injected module', () => {
   it('omits the accent when none was configured', () => {
     expect(overlayOptions(resolveOptions({}, ROOT))).toEqual({
       basePath: '/__annot',
-      protocolVersion: 1,
+      protocolVersion: PROTOCOL_VERSION,
       scheme: 'auto',
     });
   });

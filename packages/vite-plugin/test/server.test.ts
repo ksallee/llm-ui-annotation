@@ -2,6 +2,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   parseEvents,
+  PROTOCOL_VERSION,
   slug,
   type Annotation,
   type Batch,
@@ -47,7 +48,7 @@ const routeOf = (route: string): Promise<RouteFile> => h.api<RouteFile>(`/__anno
 describe('discovery', () => {
   it('answers /health with the protocol version and the dir', async () => {
     const health = await h.api<HealthResponse>('/__annot/health');
-    expect(health).toEqual({ ok: true, protocolVersion: 1, dir: h.dir });
+    expect(health).toEqual({ ok: true, protocolVersion: PROTOCOL_VERSION, dir: h.dir });
   });
 
   it('writes server.json once listening and removes it on close', async () => {
@@ -55,7 +56,7 @@ describe('discovery', () => {
     await until(() => exists(file));
     const info = JSON.parse(await readFile(file, 'utf8')) as ServerInfo;
     expect(info.pid).toBe(process.pid);
-    expect(info.protocolVersion).toBe(1);
+    expect(info.protocolVersion).toBe(PROTOCOL_VERSION);
     expect(info.basePath).toBe('/__annot');
     expect(info.port).toBe(Number(new URL(h.url).port));
 
