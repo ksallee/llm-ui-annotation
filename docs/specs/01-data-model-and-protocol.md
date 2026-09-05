@@ -8,7 +8,7 @@ Give every other workstream a single vocabulary: what an annotation is, how it i
 
 ## Identifiers and time
 
-- `id`: 26-char Crockford base32 ULID-like string generated client-side (time prefix + random). Provide `newId(now = Date.now())`. Sortable, no dependency.
+- `id`: 26-char Crockford base32 ULID-like string generated client-side (10-char time prefix + 16 random). Provide `newId(now = Date.now())`. Sortable, no dependency; ids made in the same millisecond increment the random part so the order is strict. Also `isId`, `idTime`, `compareIds`, `nowIso`.
 - All timestamps ISO 8601 UTC strings (`2026-09-05T18:24:41.048Z`).
 - `protocolVersion: 1`.
 
@@ -113,7 +113,7 @@ export interface Batch {
 }
 ```
 
-Provide `isAnnotation(x): x is Annotation` and `validateAnnotation(x): string[]` (list of problems) hand-written, no zod in core. Also `summarizeTarget(target): string` returning one line like `button "Save" (form > .actions > button)` or `text "…quote…" in p.lede` or `drawing over 3 elements: h2 "Pricing", …`.
+Provide `isAnnotation(x): x is Annotation` and `validateAnnotation(x): string[]` (list of problems, each prefixed with its path) hand-written, no zod in core. Same for `isBatch` / `validateBatch`. Also `summarizeTarget(target): string` returning one line like `button "Save" (form > .actions > button)` or `text "…quote…" in p.lede` or `drawing over 3 elements: h2 "Pricing", …`.
 
 ## State machine
 
@@ -131,7 +131,9 @@ export function canTransition(from: Status, to: Status, by: Actor): boolean;
 export function applyTransition(a: Annotation, to: Status, by: Actor, msg?: Omit<Message,'id'|'at'>, now?: string): Annotation; // pure, returns new object, throws on illegal move
 ```
 
-Every transition appends a `Message` when one is given. `done` sets `resolution` and `resolvedAt`; `approve` sets `approvedAt`; `reopen` clears `resolution`, `resolvedAt`, `approvedAt`, assigns a new `batch`.
+Every transition appends a `Message` when one is given. The resolution comes from that message: kind `summary` sets `{ kind: 'changed' }`, kind `decline` sets `{ kind: 'declined' }`, both with the message text as the summary (`resolutionFromMessage` is exported). Moving to `review` sets `resolvedAt`; `approve` sets `approvedAt`; `sent` sets `sentAt` unless the annotation was already `sent`; `reopen` clears `resolution`, `resolvedAt`, `approvedAt` and sets `batch` to null — the writer that creates the new batch attaches it with `assignBatch(a, batchId)`.
+
+Also exported: `allowedTransitions(from, by)`, `IllegalTransitionError` (carries `allowed`), `makeMessage`.
 
 Deletion is allowed for `draft` only. Anything sent is history; the user can approve it to hide it.
 
@@ -141,16 +143,20 @@ Root: `<project>/.annotations/` (configurable via plugin option `dir`). Gitignor
 
 ```
 .annotations/
-  server.json                 { port, pid, startedAt, protocolVersion }  written by the plugin, deleted on close
+  server.json                 { port, pid, startedAt, protocolVersion, basePath }  written by the plugin, deleted on close
   routes/<slug>.json          { route, updatedAt, nextNumber, annotations: Annotation[] }
   batches/<batchId>.json      Batch
   events.jsonl                append-only, one Event per line
   screenshots/<id>.png
 ```
 
-`slug(route)`: lowercase, `/` → `__`, non `[a-z0-9_-]` → `-`, collapse repeats, strip leading/trailing `-`, `/` alone → `index`, max 120 chars plus an 8-char hash suffix when truncated.
+`slug(route)`: `/` and `''` → `index`; otherwise lowercase, `/` → `__`, remaining non `[a-z0-9_-]` → `-`, collapse runs of `-` to one and runs of `_` to `__`, strip leading and trailing `-`, `index` if nothing is left. Never longer than 120 chars: a longer slug is cut to 111 and given `-` plus an 8-char FNV-1a hash of the full route.
 
-Writes are atomic: write `<file>.tmp` then rename. Readers tolerate a missing file as empty.
+Path helpers (`routeFile`, `batchFile`, `screenshotFile`) return paths relative to the annotations dir. `RouteFile` and `ServerInfo` are exported types.
+
+Writes are atomic: write a sibling tmp file (`<file>.<pid>.<n>.tmp`) then rename. Readers tolerate a missing or unparseable file as empty.
+
+Node helpers, exported from `@llm-ui-annotation/core/node`: `readRoute`, `readRouteBySlug`, `writeRoute`, `listRouteSlugs`, `listRoutes`, `readAllAnnotations`, `readBatch`, `writeBatch`, `appendEvent`, `readEvents`, `lastEventSeq`, `readServerInfo`, `writeServerInfo`, `removeServerInfo`, `writeScreenshot`, `removeScreenshot`, `screenshotPath`, `eventsPath`, `routePath`, `initDir`, `findAnnotationsDir`, plus `writeFileAtomic`, `readJsonOrNull`, `readTextOrNull`, `writeJson`, `appendLine`, `ensureDir`, `isEnoent`.
 
 ## Events
 
@@ -175,11 +181,11 @@ export interface Event {
 }
 ```
 
-`seq` starts at 1 and is derived from the last line when the writer starts. Consumers keep a cursor (`--since <seq>`).
+`seq` starts at 1 and is derived from the last line when the writer starts. Consumers keep a cursor (`--since <seq>`). Core exports `serializeEvent`, `parseEvents`, `parseEventLine`, `isEvent`, `lastSeq`, `eventsSince` and `eventKey` (the `seq + type + id` dedupe key); `appendEvent` in the node entry assigns `seq` from the tail of the file and serializes concurrent appends within a process.
 
 ## Wire API (served by the plugin, used by the overlay and by the CLI when the server is up)
 
-Base path `/__annot`. JSON in and out. CORS off (same origin). Errors `{ error: string }`.
+Base path `/__annot`. JSON in and out. CORS off (same origin). Errors `{ error: string, problems?: string[] }`. Request and response shapes are exported as types from core (`HealthResponse`, `RoutesResponse`, `CreateBatchRequest`, `TransitionRequest`, `EventsResponse`, `ScreenshotResponse`, …).
 
 ```
 GET    /__annot/health                          → { ok: true, protocolVersion, dir }
@@ -209,25 +215,29 @@ Summary from the user: all of these are about the pricing table spacing.
 selector: main > section.pricing > article:nth-of-type(2) button
 text: Choose Pro   rect: 612,940 220×44   role: button
 context: parent article "Pro", prev p "$29 / month", next null
-styles: font-size 14px · padding 10px 18px · background oklch(0.55 0.15 250)
+styles: font-size 14px · padding 10px 18px · background-color oklch(0.55 0.15 250)
 > Make this the same height as the Free button.
+id: 01J8…
 
 ### #5 · text · in p.lede
 quote: "Cancel anytime, no questions asked"   prefix: "…per seat. "   suffix: " Upgrade or"
+container: p.lede   offsets: 17-51
 > Typo: should be "no questions asked." with a period, and drop the comma before it.
+id: 01J8…
 
 ### #6 · page · drawing over h2 "Pricing", section.pricing, article "Free"
-screenshot: .annotations/screenshots/01J8….png  (1180×640)
+screenshot: /repo/.annotations/screenshots/01J8….png  (1180×640)
 elements: h2 "Pricing" (main > h2), section.pricing (…), article "Free" (…)
 > The three cards should be visually one group, the gaps are uneven.
+id: 01J8…
 
 Reply with: annot ack <id…> · annot ask <id> "…" · annot done <id> --summary "…" · annot decline <id> --reason "…"
 ```
 
-`compact` drops styles/context/prefix/suffix; `detailed` adds the `fallbacks`, the full `attrs`, and every thread message.
+`compact` drops styles/context/prefix/suffix; `detailed` adds the `fallbacks`, the full `attrs`, the status and every thread message. Every item ends with its full id so `annot done <id>` is copy-pasteable, and `dir` is joined onto the relative screenshot path so page items carry an absolute path. Core also exports `renderAnnotationMarkdown`, `renderAnswerMarkdown` and `renderReopenMarkdown` for the answer and reopen sections in spec 06, plus `AGENT_VERBS_FOOTER`.
 
 ## Acceptance criteria
 
-- `pnpm --filter core test` covers: id sortability, slug edge cases, every legal and illegal transition, `applyTransition` immutability, `validateAnnotation` on hand-written bad fixtures, markdown rendering snapshot for the three levels using a fixture batch containing one of each mode.
-- `packages/core/src/model/index.ts` exports every type above and nothing DOM-dependent.
+- `pnpm --filter @llm-ui-annotation/core test` covers: id sortability, slug edge cases, every legal and illegal transition, `applyTransition` immutability, `validateAnnotation` on hand-written bad fixtures, markdown rendering snapshot for the three levels using a fixture batch containing one of each mode, and the node helpers against a temp dir (atomic write, missing file as empty, `seq` continuation).
+- `packages/core/src/model/index.ts` exports every type above and nothing DOM-dependent; a test asserts no file outside `src/node/` imports a node builtin, so a browser bundle importing `@llm-ui-annotation/core` never pulls in `node:fs`.
 - `docs/specs/01-data-model-and-protocol.md` updated with any field renamed during implementation.
