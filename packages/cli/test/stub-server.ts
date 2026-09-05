@@ -7,7 +7,7 @@ import { FileStore } from '../src/store.js';
 
 /**
  * The subset of the spec 01 wire API `annot` uses, backed by the same files.
- * TODO(ws-05): replace with the real plugin in the live test below.
+ * Keeps the HTTP client honest without a Vite server; live.test.ts runs the real plugin.
  */
 export interface Stub {
   base: string;

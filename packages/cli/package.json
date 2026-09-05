@@ -33,5 +33,9 @@
   },
   "dependencies": {
     "@llm-ui-annotation/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@llm-ui-annotation/vite-plugin": "workspace:*",
+    "vite": "^7.3.6"
   }
 }

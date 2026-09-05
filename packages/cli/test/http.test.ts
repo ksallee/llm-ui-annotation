@@ -87,10 +87,3 @@ describe('the http path', () => {
     expect(res.out).toBe('');
   });
 });
-
-// TODO(ws-05): unskip once packages/vite-plugin lands on dev; same assertions, real server.
-describe.skip('against the real vite plugin', () => {
-  it('runs the whole loop', () => {
-    expect(true).toBe(true);
-  });
-});
