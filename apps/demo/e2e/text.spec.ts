@@ -12,7 +12,7 @@ import {
   storedAnnotations,
 } from './overlay.js';
 
-const PHRASE = 'The margin is too tight here';
+const PHRASE = 'The beagle sleeps under the window';
 
 test('text mode anchors the second of two identical phrases', async ({ page, site, annotDir }) => {
   await page.goto(`${site}/prose/`);

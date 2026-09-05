@@ -146,3 +146,8 @@ Kept so nobody re-files them.
 - Two tabs on one route could both take display `#5`, making `annot ack #5` ambiguous forever.
 - The words a user typed onto a drawing never reached the agent.
 - A multi-line text highlight changed shape between creation and its first re-anchor.
+
+## Found by hand, specced in docs/specs/10
+
+- **The overlay cannot tell whether an agent is listening** (bug). Sending shows "Waiting for the agent" even when no `annot watch` is attached, so a correct send looks like a failure. The plugin already knows the answer from its open SSE clients.
+- **Strokes cannot be selected, moved, resized or restyled** (unimplemented). Draw is write-once: undo or erase the whole stroke. The resizable region from spec 09 §6 is the capture box, not the marks.
