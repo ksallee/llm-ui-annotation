@@ -1,0 +1,51 @@
+{
+  "name": "@llm-ui-annotation/svelte",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The annotation overlay: a Svelte 5 custom element with an open shadow root.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "./dist/auto.js"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./auto": {
+      "types": "./dist/auto.d.ts",
+      "default": "./dist/auto.js"
+    },
+    "./theme": {
+      "types": "./dist/theme/index.d.ts",
+      "default": "./dist/theme/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "pnpm run build && tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@llm-ui-annotation/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "svelte": "^5"
+  },
+  "peerDependenciesMeta": {
+    "modern-screenshot": {
+      "optional": true
+    }
+  }
+}
