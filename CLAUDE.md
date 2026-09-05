@@ -28,9 +28,32 @@ docs/research         what we learned from agentation, agent-ui-annotation, and 
 - Tests: vitest for core and cli (happy-dom where DOM is needed), Playwright for `apps/demo`. A workstream is not done until its acceptance criteria in the spec pass.
 - UI strings in English. Keep the reader's French copy out of the shared packages.
 
+## Looking at the UI
+
+Use `tools/qa.mjs`, never a browser MCP. An MCP returns an accessibility snapshot and a console log
+on every call, which is most of what a UI session costs; this is a CLI that runs headless, writes to
+disk, and returns only your drive script's own value as JSON.
+
+```sh
+node tools/qa.mjs --app apps/demo --drive drive.js --shot /tmp/out.png   # isolated dev server
+node tools/qa.mjs --url http://127.0.0.1:5173/ --drive -                 # server you already have
+```
+
+`--app` starts the app on a free port with its own `ANNOT_DIR`, so two worktrees never share
+`.annotations/`. The drive script is the body of an async function with `sh`/`shAll` (the overlay's
+shadow root), `$`/`$$` (the host document), `click`, `type`, `text`, `wait`. Read the header of
+`tools/qa.mjs` before writing one. Screenshots go to a file you open when you need it — not into the
+transcript.
+
 ## Git
 
-- Work on a branch per workstream, one worktree per agent. Merge to `main` directly for now (the repo is private). When we go public this changes to PR review, do not build habits that depend on direct pushes.
+- Work on a branch per workstream, one worktree per agent. `dev` is the integration branch: land your
+  work there, never on `main`. `main` is checked out in the orchestrator's worktree and is reviewed in
+  one pass at the end. While the repo is private there is no PR review; when we go public this changes,
+  so do not build habits that depend on direct pushes.
+- Publish from your worktree with `git push /Users/salleek/dev/llm-ui-annotation HEAD:dev`. Rejected as
+  non-fast-forward means someone landed first: `git merge dev`, re-run the gates, push again. On a
+  `pnpm-lock.yaml` conflict take `dev`'s side and re-run `pnpm install`.
 - Commits and PRs: short, to the point, grouped. One-line title, two to five bullet body at most. No essays.
 - Do not commit `.annotations/`, screenshots from test runs, or `node_modules`.
 - Never force-push `main`.

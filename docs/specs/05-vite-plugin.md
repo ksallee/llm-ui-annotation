@@ -7,7 +7,7 @@ import { annotations } from '@llm-ui-annotation/vite-plugin';
 export default defineConfig({ plugins: [svelte(), annotations({ dir: '.annotations', inject: true, accent: '#2C8A85' })] });
 ```
 
-Options: `dir` (default `.annotations` at `config.root`), `inject` (default true: add the overlay to every HTML page in dev), `accent`, `scheme`, `routeKey: (url) => string` (default pathname), `basePath` (default `/__annot`), `include: string[]` of page URL globs to inject on.
+Options: `dir` (default: `process.env.ANNOT_DIR` when set, else `.annotations` at `config.root`; the env override is what lets `tools/qa.mjs` give each headless run its own storage so parallel worktrees do not write over each other), `inject` (default true: add the overlay to every HTML page in dev), `accent`, `scheme`, `routeKey: (url) => string` (default pathname), `basePath` (default `/__annot`), `include: string[]` of page URL globs to inject on.
 
 ## Responsibilities
 
