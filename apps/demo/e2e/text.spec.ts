@@ -107,6 +107,11 @@ test('a selection crossing two blocks is one annotation naming both', async ({
   // The highlight starts inside the paragraph and ends inside the block quote.
   expect(top).toBeLessThan(blocks.once.bottom);
   expect(bottom).toBeGreaterThan(blocks.quote.top);
+
+  await page.reload();
+  await ready(page);
+  await expect.poll(() => snapshot(page).then((s) => s.annotations.length)).toBe(1);
+  expect((await anchorOf(page, stored[0]!.id))?.state).toBe('exact');
 });
 
 test('a selection spanning the whole body is refused, and says why', async ({ page, site }) => {
