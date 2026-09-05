@@ -41,7 +41,7 @@ Not in the palette: Approve, Reopen, Send, Approve all. They mutate the loop and
 
 The single pill has grown to about twenty-six controls, which is why it stopped reading as one thing. Split it.
 
-- **Bottom right, always**: the pill. Grip · Element · Highlight · Draw · Pins · Pause · Send (count) · Panel (badge) · Settings · Close. Draggable, snaps to a corner, position remembered.
+- **Bottom right, always**: the pill. Grip · Palette · Element · Highlight · Draw · Pins · Pause · Send (count) · Panel (badge) · Settings · Close. The palette button is what §3's "or from the pill" needs. Draggable, snaps to a corner, position remembered.
 - **Top centre, only in Draw**: the drawing bar. Brush · Arrow · Rect · Ellipse · Caption · Eraser | five colors | three widths | Undo · Redo · Clear. Appears when Draw activates and leaves with it, 200 ms enter / 120 ms exit, `prefers-reduced-motion` respected. Top centre because the drawing happens under the cursor in the middle of the page and a bottom-right bar is where the hand already is.
 
 Tools carry number shortcuts `1`–`6` while Draw is active, shown in their tooltips.

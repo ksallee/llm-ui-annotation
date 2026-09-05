@@ -116,6 +116,8 @@ export class AnnotState {
   selection = $state<Element[]>([]);
   marquee = $state<Rect | null>(null);
   drawing = $state<PendingDrawing>({ strokes: [], undone: [] });
+  regionOverride = $state<Rect | null>(null);
+  regionElements = $state(0);
   drawTool = $state<Stroke['tool'] | 'eraser'>('brush');
   drawColor = $state('');
   drawWidth = $state(3);
@@ -359,6 +361,7 @@ export class AnnotState {
     this.marquee = null;
     this.hover = { el: null, rect: null, label: '' };
     this.drawing = { strokes: [], undone: [] };
+    this.regionOverride = null;
     this.textChip = null;
     this.labelDraft = null;
   }
@@ -742,10 +745,21 @@ export class AnnotState {
 
   clearDrawing(): void {
     this.drawing = { strokes: [], undone: [] };
+    this.regionOverride = null;
   }
 
+  /** The dashed box: the strokes' bounds until the user drags it, then whatever they set. */
   get drawingRegion(): Rect | null {
+    if (this.regionOverride) return this.regionOverride;
     return this.drawing.strokes.length > 0 ? strokeBounds(this.drawing.strokes) : null;
+  }
+
+  setRegion(rect: Rect): void {
+    this.regionOverride = rect;
+  }
+
+  fitRegionToDrawing(): void {
+    this.regionOverride = null;
   }
 
   // ----------------------------------------------------------------- popup

@@ -33,6 +33,7 @@
   import Palette from './Palette.svelte';
   import Panel from './Panel.svelte';
   import Popup from './Popup.svelte';
+  import Region from './Region.svelte';
   import SendDialog from './SendDialog.svelte';
   import Settings from './Settings.svelte';
   import Shortcuts from './Shortcuts.svelte';
@@ -189,6 +190,7 @@
 
     {#if annot.mode === 'page' && annot.drawingRegion && !annot.popup}
       {@const region = annot.drawingRegion}
+      <Region {annot} {region} />
       <button
         class="chip"
         style="left: {region.x + region.width - annot.scroll.x - 70}px; top: {region.y -

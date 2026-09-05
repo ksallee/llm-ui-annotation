@@ -29,12 +29,12 @@ Collapsed: a single 44 px round button with the logo glyph and a badge with the 
 
 Expanded, left to right:
 
-1. Mode segment: **Element** (`E`), **Highlight** (`H`), **Draw** (`D`). One active or none. Clicking the active one exits (`Esc` too).
+1. Command palette (`⌥A`), then the mode segment: **Element** (`E`), **Highlight** (`H`), **Draw** (`D`). One active or none. Clicking the active one exits (`Esc` too).
 2. Drawing tools (only in Draw mode): brush, arrow, rect, ellipse, caption, eraser · color swatches (5, from spec 03) · width (3 steps) · undo (`⌘Z`) · redo (`⇧⌘Z`) · clear drawing. They live in their own bar at the top centre, not in the pill — spec 09 §4.
 3. Pause animations (`⇧P`), pin visibility cycle (all → dots → none).
 4. **Send** (`⌘↵`) with the draft count, batch mode only. Disabled when no drafts.
 5. Inbox / panel toggle (`I`) with badge for questions + reviews.
-6. Settings (gear) · Close (`Esc` twice or the ×).
+6. Settings (gear) · connection dot, shown only when the state is not `connected` (spec 09 §7) · Close (`Esc` twice or the ×).
 
 Tooltips show label and shortcut. The pill is draggable by the grip at its left edge; snaps to the nearest corner on release.
 
@@ -49,7 +49,7 @@ Hover shows a 2 px outline and a small label chip (`button "Save"`) above the el
 Native selection stays enabled on the host (capture layer uses `pointer-events: none` in this mode and listens to `selectionchange` on the document). When a non-collapsed selection ends (mouseup / keyup), show an **Annotate** chip at the end of the selection; click or `⌘↵` opens the popup with the quote shown. A selection crossing block boundaries is one annotation whose container is the nearest common block (spec 09 §5); only a selection whose common ancestor would be `body` is refused, with the chip reading "that is the whole page". Existing text annotations are highlighted; hovering shows the marker and the comment card.
 
 ### Draw mode
-Drawing happens on the SVG layer in document coordinates. Brush points are sampled at ≥ 2 px spacing, smoothed on render. Arrow/rect/ellipse are drag-to-size. Label: click to place, inline `contenteditable` in the shadow DOM, `Enter` commits, `Esc` cancels. Eraser removes a whole stroke on hit. Undo/redo stack per pending drawing. When the user clicks **Annotate** (chip that appears near the drawing's bounding box after the first stroke) or presses `⌘↵`, the popup opens; on save, capture the screenshot (spec 02.4) with the strokes composited, POST it, then create the annotation with the `PageTarget`. Show a 1-line toast if the capture failed ("Saved without screenshot; strokes kept").
+Drawing happens on the SVG layer in document coordinates. Brush points are sampled at ≥ 2 px spacing, smoothed on render. Arrow/rect/ellipse are drag-to-size. Label: click to place, inline `contenteditable` in the shadow DOM, `Enter` commits, `Esc` cancels. Eraser removes a whole stroke on hit. Undo/redo stack per pending drawing. The dashed bounding box is resizable, and what it holds is `PageTarget.region` (spec 09 §6). When the user clicks **Annotate** (chip that appears near it after the first stroke) or presses `⌘↵`, the popup opens; on save, capture the screenshot (spec 02.4) with the strokes composited, POST it, then create the annotation with the `PageTarget`. Show a 1-line toast if the capture failed ("Saved without screenshot; strokes kept").
 
 ## Popup
 
@@ -82,7 +82,7 @@ Triggered by Send. Lists the drafts on this route as one-line rows (number, mode
 
 Header: route (mono), counts by status, "all routes" toggle, close.
 Filter chips: Needs you (question + review, default when non-empty) · Open (draft, sent, acknowledged) · Done (approved) · All.
-Row: number, mode glyph, status bar color, target one-liner (mono, truncated), comment, thread preview (last message, role-colored), timestamp relative. Expand to show the full thread with role labels, an answer/comment field, and actions by status:
+Row: a selection checkbox, number, mode glyph, status bar color, target one-liner (mono, truncated), the primary action for the status (spec 09 §8), a `⋯` menu, comment, thread preview (last message, role-colored), timestamp relative. Expand to show the full thread with role labels, an answer/comment field, and actions by status:
 
 - `draft`: Edit, Delete, Send this one.
 - `sent` / `acknowledged`: Edit comment (appends a comment message), no delete.
@@ -90,13 +90,13 @@ Row: number, mode glyph, status bar color, target one-liner (mono, truncated), c
 - `review`: agent summary or decline reason, **Approve**, **Reopen** with a required comment.
 - `approved`: muted, **Reopen**.
 
-Footer: **Approve all in review** (count) with an undo toast for 6 s, and **Send drafts** (batch mode).
+Footer: **Approve all in review** (count) with an undo toast for 6 s, and **Send drafts** (batch mode). With rows selected it becomes the bulk bar of spec 09 §9.
 
 Clicking a row scrolls the page so the target is centered and flashes the highlight once.
 
 ## Settings (popover from the gear)
 
-Send mode: batch / immediate. Scheme: auto / light / dark. Accent: a swatch row of six derived suggestions plus a native color input, and "follow host". Detail level for the agent: compact / standard / detailed. Block page interactions. Marker visibility default. Density. Reset pill position. Version and a link to the docs.
+Command palette key (click, then press a chord; persisted). Send mode: batch / immediate. Scheme: auto / light / dark. Accent: a swatch row of six derived suggestions plus a native color input, and "follow host". Detail level for the agent: compact / standard / detailed. Block page interactions. Pin visibility default. Density. Reset pill position. Version and a link to the docs.
 
 ## Keyboard summary
 

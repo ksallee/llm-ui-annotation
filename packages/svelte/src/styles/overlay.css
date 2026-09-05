@@ -376,6 +376,61 @@ kbd {
   background: currentColor;
 }
 
+/* ------------------------------------------------------------ draw region */
+
+.region {
+  position: absolute;
+  pointer-events: none;
+}
+
+.region .handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px;
+  border: 1px solid var(--annot-page);
+  border-radius: 2px;
+  background: var(--annot-surface);
+  pointer-events: auto;
+}
+
+.region .handle.nw { left: 0; top: 0; cursor: nwse-resize; }
+.region .handle.n { left: 50%; top: 0; cursor: ns-resize; }
+.region .handle.ne { left: 100%; top: 0; cursor: nesw-resize; }
+.region .handle.e { left: 100%; top: 50%; cursor: ew-resize; }
+.region .handle.se { left: 100%; top: 100%; cursor: nwse-resize; }
+.region .handle.s { left: 50%; top: 100%; cursor: ns-resize; }
+.region .handle.sw { left: 0; top: 100%; cursor: nesw-resize; }
+.region .handle.w { left: 0; top: 50%; cursor: ew-resize; }
+
+.region-bar {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  display: flex;
+  align-items: center;
+  gap: var(--annot-space-1);
+  height: 26px;
+  padding: 0 var(--annot-space-1);
+  border-radius: var(--annot-radius-sm);
+  background: var(--annot-surface);
+  border: 1px solid var(--annot-line);
+  box-shadow: var(--annot-shadow);
+  font-size: var(--annot-text-xs);
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.region-bar .grip {
+  cursor: grab;
+  display: inline-flex;
+  opacity: 0.6;
+}
+
+.region-bar .grip:active {
+  cursor: grabbing;
+}
+
 /* -------------------------------------------------------------- drawing bar */
 
 .draw-bar {

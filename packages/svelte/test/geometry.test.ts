@@ -6,6 +6,7 @@ import {
   place,
   rectFromPoints,
   relativeTime,
+  resizeRect,
   sample,
   smoothPath,
   unionRects,
@@ -91,5 +92,22 @@ describe('relativeTime', () => {
     expect(relativeTime('2026-09-05T10:00:00.000Z', now)).toBe('2h');
     expect(relativeTime('2026-09-03T12:00:00.000Z', now)).toBe('2d');
     expect(relativeTime('nonsense', now)).toBe('');
+  });
+});
+
+describe('resizeRect', () => {
+  const base = { x: 100, y: 100, width: 200, height: 120 };
+
+  it('moves the whole box', () => {
+    expect(resizeRect(base, 'move', 10, -20)).toEqual({ x: 110, y: 80, width: 200, height: 120 });
+  });
+
+  it('drags an edge and never lets a side fall under 40', () => {
+    expect(resizeRect(base, 'se', 40, 30)).toEqual({ x: 100, y: 100, width: 240, height: 150 });
+    expect(resizeRect(base, 'nw', 50, 40)).toEqual({ x: 150, y: 140, width: 150, height: 80 });
+    expect(resizeRect(base, 'e', -500, 0)).toEqual({ x: 100, y: 100, width: 40, height: 120 });
+    const squashed = resizeRect(base, 'nw', 500, 500);
+    expect(squashed.width).toBe(40);
+    expect(squashed.height).toBe(40);
   });
 });

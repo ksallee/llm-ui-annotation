@@ -1,7 +1,7 @@
 # @llm-ui-annotation/svelte
 
 The annotation overlay: a Svelte 5 custom element `<annot-overlay>` with an open shadow root. It
-draws highlights, markers, a popup and a review panel over any page without touching the host DOM,
+draws highlights, pins, a popup and a review panel over any page without touching the host DOM,
 and talks to `@llm-ui-annotation/vite-plugin` over `/__annot`.
 
 ## Mounting
@@ -40,10 +40,42 @@ Or as a component, in a dev-only branch of a Svelte app:
 
 ## Modes
 
-`E` element, `T` text, `P` page, `Esc` to leave. `⌘↵` adds or sends, `I` the panel, `H` marker
-visibility, `⇧P` pause animations, `⌘Z`/`⇧⌘Z` strokes, `?` the shortcut sheet. Element mode outlines
-what you point at and marquees a group; text mode watches the host's own selection; page mode draws
-on an SVG layer and captures a screenshot on save when a capture backend is available.
+**Element** outlines what you point at and marquees a group; **Highlight** watches the host's own
+selection, across block boundaries; **Draw** draws on an SVG layer inside a region you can resize,
+and captures a screenshot on save when a capture backend is available. The `mode` attribute and
+`PageTarget`/`TextTarget` keep their wire names `element`, `text`, `page`.
+
+## Keyboard
+
+The overlay sits on an app it does not own, so exactly one binding is global: **`⌥A`** opens the
+command palette. It is rebindable in Settings and persisted in `annot:prefs`. Everything else needs
+an active mode, or focus on one of our surfaces:
+
+| Key | Does | Scope |
+|-----|------|-------|
+| `⌥A` | Command palette | always |
+| `E` `H` `D` | Element / Highlight / Draw | in a mode |
+| `⌘↵` | Add the annotation, or send the batch | in a mode |
+| `I` | Toggle the panel | in a mode |
+| `⇧P` | Pause animations | in a mode |
+| `1`–`6` | Pick a drawing tool | in Draw |
+| `⌘Z` `⇧⌘Z` | Undo / redo a stroke | in Draw |
+| `⌫` | Delete the focused draft | in a mode |
+| `⌘A` | Select every row the filter shows | in the panel |
+| `Esc` | Exit the mode, close the popup or the panel | on a surface |
+| `?` | Shortcut sheet | in a mode |
+
+The palette lists modes, the drawing tools and colours while in Draw, panel filters, settings and
+the annotations on this route (`#4`, or a word from the comment). It never offers Approve, Reopen,
+Send or Approve all: those mutate the loop and belong where the target is visible.
+
+## Panel
+
+Every row acts while collapsed — `review` Approve, `question` Answer, `draft` Send, `approved`
+Reopen — with a `⋯` menu for Edit, Delete, Reopen and Locate, and hovering a row outlines its target
+on the page. A checkbox per row appears on hover: `⇧`-click extends, `⌘A` takes the whole filter,
+and the footer turns into Approve / Reopen / Send / Delete with the count each transition allows,
+enabled only when every selected row allows it.
 
 ## Design and isolation
 
@@ -76,12 +108,13 @@ about comments starting with `ask:`, and completes everything else.
   when it is absent, and never resolve in the browser when it is present.
 - **Blocking page interactions** while holding `⌘`/`Ctrl` swaps the capture layer for host-document
   listeners, so hover updates but the cursor does not change.
+- **Pin visibility** has no key any more: `H` is Highlight mode. It lives in the pill and the palette.
+- **Bulk undo** is offered for Approve only; Reopen, Send and Delete get a plain toast, because
+  there is no reverse transition that would not lie about what happened.
 - **Panel row flash**: clicking a row scrolls the target into view and opens its card; it does not
-  pulse the highlight.
+  pulse the highlight. Hovering outlines the target, which is most of what the flash was for.
 - **`sendMode: 'immediate'`** creates one batch per annotation, as the spec asks, but there is no
   debounce, so three fast annotations are three batches.
-- **Multi-block text selections** are refused with a chip rather than split into one annotation per
-  block.
 - **Density** only scales the tokens; a few control heights are still derived with a multiplier
   rather than their own token.
 - **Nothing type-checks `.svelte`**: `check` runs `tsc`, which skips them, so eleven components once

@@ -82,3 +82,63 @@ test('undo and redo walk the stroke stack', async ({ page, site }) => {
   await tool(page, 'Clear drawing').click();
   await expect.poll(strokes).toBe(0);
 });
+
+test('the draw region resizes, and Fit to drawing puts it back', async ({ page, site, annotDir }) => {
+  await page.goto(`${site}/`);
+  await setMode(page, 'Draw');
+
+  const box = (await page.locator('article[data-plan="Pro"]').boundingBox())!;
+  await page.mouse.move(box.x + 20, box.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 90, box.y + 70, { steps: 8 });
+  await page.mouse.up();
+
+  const region = () => field<{ width: number; height: number }>(page, 'drawingRegion');
+  const fitted = (await region())!;
+  await expect.poll(() => field<number>(page, 'regionElements')).toBeGreaterThan(0);
+  const before = await field<number>(page, 'regionElements');
+
+  const handle = overlay(page).locator('[aria-label="Resize the drawing region, se"]');
+  const at = (await handle.boundingBox())!;
+  await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(at.x + 240, at.y + 200, { steps: 10 });
+  await page.mouse.up();
+
+  const grown = (await region())!;
+  expect(grown.width).toBeGreaterThan(fitted.width + 100);
+  await expect.poll(() => field<number>(page, 'regionElements')).toBeGreaterThan(before);
+
+  await overlay(page).locator('button.chip', { hasText: 'Annotate' }).click();
+  await commit(page, 'this whole area needs room');
+  await sendBatch(page);
+
+  const target = (await storedAnnotations(annotDir, '/'))[0]!.target as PageTarget;
+  expect(target.region.width).toBeGreaterThan(fitted.width + 100);
+  expect(target.elements.length).toBeGreaterThanOrEqual(before);
+});
+
+test('Fit to drawing restores the strokes bounds', async ({ page, site }) => {
+  await page.goto(`${site}/`);
+  await setMode(page, 'Draw');
+
+  const box = (await page.locator('article[data-plan="Pro"]').boundingBox())!;
+  await page.mouse.move(box.x + 20, box.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 90, box.y + 70, { steps: 8 });
+  await page.mouse.up();
+  const fitted = (await field<{ width: number }>(page, 'drawingRegion'))!;
+
+  const handle = overlay(page).locator('[aria-label="Resize the drawing region, se"]');
+  const at = (await handle.boundingBox())!;
+  await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(at.x + 200, at.y + 160, { steps: 8 });
+  await page.mouse.up();
+  expect((await field<{ width: number }>(page, 'drawingRegion'))!.width).toBeGreaterThan(fitted.width);
+
+  await overlay(page).getByRole('button', { name: 'Fit to drawing' }).click();
+  await expect.poll(() => field<{ width: number } | null>(page, 'drawingRegion').then((r) => r!.width)).toBe(
+    fitted.width,
+  );
+});
