@@ -1,6 +1,6 @@
 {
   "name": "@llm-ui-annotation/core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Types, file protocol, state machine and markdown rendering for llm-ui-annotation. Zero runtime dependencies.",
   "license": "MIT",

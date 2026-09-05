@@ -1,6 +1,6 @@
 {
   "name": "@llm-ui-annotation/vite-plugin",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Dev-server side of llm-ui-annotation: storage in .annotations/, HTTP API, SSE, websocket push, overlay injection.",
   "license": "MIT",

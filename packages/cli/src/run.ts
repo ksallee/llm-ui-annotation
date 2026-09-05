@@ -9,7 +9,7 @@ import { ack, ask, decline, done, reply } from './commands/mutate.js';
 import { doctor, pending, routes, screenshot, show } from './commands/read.js';
 import { watch } from './commands/watch.js';
 
-export const VERSION = '0.0.0';
+export const VERSION = '0.1.0';
 
 type Command = (ctx: Context, args: Args, io: Io) => Promise<number>;
 
