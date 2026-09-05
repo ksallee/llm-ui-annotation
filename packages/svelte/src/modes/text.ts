@@ -35,7 +35,7 @@ export function textMode(state: AnnotState): () => void {
       state.textChip =
         described.reason === 'empty'
           ? null
-          : { rect: at, enabled: false, reason: 'select within one paragraph', target: null };
+          : { rect: at, enabled: false, reason: 'that is the whole page', target: null };
       return;
     }
     state.textChip = { rect: at, enabled: true, reason: '', target: described.target };

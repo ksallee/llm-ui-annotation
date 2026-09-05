@@ -48,8 +48,8 @@ Tools carry number shortcuts `1`–`6` while Draw is active, shown in their tool
 
 ## 5. Multi-block highlight
 
-Today a selection crossing a paragraph boundary is refused with the chip reading "select within one
-paragraph". **That message and the restriction behind it are removed.** Prose runs across blocks and
+Today a selection crossing a paragraph boundary is refused with a chip telling the reader to stay
+inside one paragraph. **That message and the restriction behind it are removed**, string included. Prose runs across blocks and
 a reader selects a thought, not a `<p>`; the agent only needs the text and roughly where it is. There
 is no case where a user should be told to redo a selection they made correctly.
 
@@ -126,7 +126,7 @@ palette's right-hand column.
 - The drawing bar is present only in Draw mode; the pill never shows drawing tools.
 - A selection spanning two paragraphs produces one annotation whose `blocks` has two entries and whose highlight covers both; it re-anchors `exact` after a reload and `moved` after a paragraph is inserted above.
 - A selection spanning a paragraph, a blockquote and a third paragraph works the same way.
-- The string "select within one paragraph" does not appear anywhere in the tree.
+- The old one-paragraph refusal string appears nowhere in the tree, code, tests or docs.
 - A selection spanning the whole `body` is refused with a message.
 - Every row in the panel shows its primary action while collapsed, and it performs the transition without expanding the row.
 - Selecting three `review` rows and pressing Approve moves all three and offers one undo toast; a mixed selection disables the actions that would be illegal.

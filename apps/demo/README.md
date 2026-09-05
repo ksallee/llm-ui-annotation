@@ -39,7 +39,7 @@ also completes an item after you answer its question, and does a second pass on 
 |---|---|
 | `element` | Hover chip, popup breadcrumb, draft, send, marker; the stored selector resolves to the same element; drafts delete; a shadow-root element gets a `>>>` selector. |
 | `multi-select` | A marquee round the grid selects the three cards; round one card, that card. |
-| `text` | The second of two identical phrases is anchored by prefix and suffix, and survives a reload; a two-block selection is refused. |
+| `text` | The second of two identical phrases is anchored by prefix and suffix, and survives a reload; a two-block selection is one annotation whose `blocks` names both. |
 | `page` | Rect + arrow + label, a real PNG under the 1600 px cap, elements under the drawing, undo/redo/clear. |
 | `loop` | Three annotations through `annot`: review, question, declined; answer in the panel; approve all; reopen. |
 | `immediate` | Immediate mode sends on Add, the badge ignores drafts, one batch per annotation. |

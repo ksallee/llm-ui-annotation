@@ -30,7 +30,7 @@
 
   <blockquote id="quote" class="border rounded-lg bg-surface p-4">
     A block quote lives in its own container. Selecting from the paragraph above into this one
-    crosses a block boundary and must be refused.
+    crosses a block boundary and becomes a single annotation naming both blocks.
   </blockquote>
 
   <p id="tail" class="body">

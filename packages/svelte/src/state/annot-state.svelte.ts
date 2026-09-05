@@ -2,6 +2,7 @@ import {
   applyTransition,
   newId,
   nowIso,
+  PROTOCOL_VERSION,
   summarizeTarget,
   type AnchorState,
   type Annotation,
@@ -454,7 +455,7 @@ export class AnnotState {
     const immediate = this.prefs.sendMode === 'immediate';
     return {
       id,
-      protocolVersion: 1,
+      protocolVersion: PROTOCOL_VERSION,
       route: this.route,
       url: this.url,
       mode,
