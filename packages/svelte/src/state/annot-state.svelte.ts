@@ -20,7 +20,7 @@ import {
   type Viewport,
 } from '@llm-ui-annotation/core';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-import { anchorText, docRect, resolveSelector, strokeBounds } from '../dom/core-dom.js';
+import { anchorText, docRect, rangeRects, resolveSelector, strokeBounds } from '../dom/core-dom.js';
 import { routeOf, type DetailLevel, type MarkerVisibility, type SendMode } from '../options.js';
 import { AnnotClient } from '../transport/client.js';
 import { DEFAULT_PREFS, loadPrefs, savePrefs, type Prefs } from './prefs.js';
@@ -679,17 +679,9 @@ export class AnnotState {
     if (target.kind === 'text') {
       const found = anchorText(this.doc, target);
       if (!found) return { rects: target.rects, state: 'lost', range: null };
-      const view = this.doc.defaultView;
-      const sx = view?.scrollX ?? 0;
-      const sy = view?.scrollY ?? 0;
-      const rects = [...found.range.getClientRects()]
-        .filter((r) => r.width > 0 && r.height > 0)
-        .map((r) => ({
-          x: Math.round(r.left + sx),
-          y: Math.round(r.top + sy),
-          width: Math.round(r.width),
-          height: Math.round(r.height),
-        }));
+      // `rangeRects` is what wrote `target.rects`; computing them any other way here made the
+      // highlight change shape between creation and the first re-anchor.
+      const rects = rangeRects(found.range);
       return { rects: rects.length > 0 ? rects : target.rects, state: found.state, range: found.range };
     }
     return { rects: [target.region], state: 'exact', range: null };
