@@ -32,8 +32,19 @@ export type BulkAction = 'approve' | 'reopen' | 'send' | 'delete';
 /** How a click on a row changes the selection. */
 export type SelectHow = 'toggle' | 'range' | 'only';
 
+/** Which statuses each bulk action may act on. */
+export const BULK_ALLOWS: Record<BulkAction, (a: Annotation) => boolean> = {
+  approve: (a) => a.status === 'review',
+  reopen: (a) => a.status === 'review' || a.status === 'approved',
+  send: (a) => a.status === 'draft',
+  delete: (a) => a.status === 'draft',
+};
+
 export interface BulkOffer {
+  /** Rows in the selection this action can act on. */
   count: number;
+  /** Rows selected. */
+  total: number;
   enabled: boolean;
 }
 
@@ -216,15 +227,17 @@ export class AnnotState {
 
   readonly bulk = $derived.by((): Record<BulkAction, BulkOffer> => {
     const rows = this.selectedRows;
+    // An action runs on the rows that allow it and says so, rather than going dead on a mixed
+    // selection: "Approve (0), everything disabled" reads as broken, not as a rule.
     const offer = (allowed: (a: Annotation) => boolean): BulkOffer => {
       const count = rows.filter(allowed).length;
-      return { count, enabled: count > 0 && count === rows.length };
+      return { count, total: rows.length, enabled: count > 0 };
     };
     return {
-      approve: offer((a) => a.status === 'review'),
-      reopen: offer((a) => a.status === 'review' || a.status === 'approved'),
-      send: offer((a) => a.status === 'draft'),
-      delete: offer((a) => a.status === 'draft'),
+      approve: offer(BULK_ALLOWS.approve),
+      reopen: offer(BULK_ALLOWS.reopen),
+      send: offer(BULK_ALLOWS.send),
+      delete: offer(BULK_ALLOWS.delete),
     };
   });
 
@@ -268,8 +281,10 @@ export class AnnotState {
 
   /** Run one transition over the selection, with a single toast for the batch. */
   async runBulk(action: BulkAction): Promise<void> {
-    const rows = [...this.selectedRows];
-    if (rows.length === 0 || !this.bulk[action].enabled) return;
+    if (!this.bulk[action].enabled) return;
+    const allows = BULK_ALLOWS[action];
+    const rows = this.selectedRows.filter(allows);
+    if (rows.length === 0) return;
     this.clearSelection();
     if (action === 'approve') {
       for (const a of rows) await this.approve(a.id);

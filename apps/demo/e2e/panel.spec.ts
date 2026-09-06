@@ -30,7 +30,7 @@ test('a collapsed row sends its draft without being expanded', async ({ page, si
   await expect(first.locator('button.head')).toHaveAttribute('aria-expanded', 'false');
 });
 
-test('three review rows approve together, and a mixed selection disables what is illegal', async ({
+test('three review rows approve together in one step', async ({
   page,
   site,
   agent,
@@ -64,7 +64,7 @@ test('three review rows approve together, and a mixed selection disables what is
   await expect(overlay(page).locator('.toast')).toContainText('Approved 3');
 });
 
-test('a mixed selection offers only the transitions every row allows', async ({
+test('a mixed selection acts on the rows that allow it and says how many', async ({
   page,
   site,
   agent,
@@ -87,7 +87,12 @@ test('a mixed selection offers only the transitions every row allows', async ({
 
   const footer = panel(page).locator('footer');
   await expect(footer).toContainText('2 selected');
-  await expect(footer.getByRole('button', { name: /^Approve \(1\)/ })).toBeDisabled();
-  await expect(footer.getByRole('button', { name: /^Send \(1\)/ })).toBeDisabled();
-  await expect(footer.getByRole('button', { name: /^Delete \(1\)/ })).toBeDisabled();
+  // One review + one draft: each action names the subset it would touch and stays live for it.
+  const approve = footer.getByRole('button', { name: /^Approve \(1 of 2\)/ });
+  await expect(approve).toBeEnabled();
+  await expect(footer.getByRole('button', { name: /^Send \(1 of 2\)/ })).toBeEnabled();
+  await expect(footer.getByRole('button', { name: /^Delete \(1 of 2\)/ })).toBeEnabled();
+
+  await approve.click();
+  await expect.poll(() => statuses(page)).toEqual(['approved', 'draft']);
 });

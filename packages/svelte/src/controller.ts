@@ -63,7 +63,8 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
   const doc = state.doc;
 
   const onKeyDown = (event: KeyboardEvent): void => {
-    if (isTyping(event.target, host) || state.capturingKey) return;
+    // Escape still gets through while typing; it is how you leave the field you are in.
+    if ((isTyping(event.target, host) && event.key !== 'Escape') || state.capturingKey) return;
     const focused = state.focusedId ? state.annotations.get(state.focusedId) : null;
     const action = keyAction(event, {
       mode: state.mode,
@@ -267,11 +268,29 @@ export function primaryAction(state: AnnotState): void {
 }
 
 /** Centre the annotation's target in the viewport and show its card. */
+export const LOCATE_KEY = 'annot:locate';
+
 export function locate(state: AnnotState, id: string): void {
-  const anchor = state.anchors.get(id);
+  const annotation = state.annotations.get(id);
   const view = state.doc.defaultView;
-  const rect = anchor?.rects[0];
-  if (!view || !rect) return;
+  if (!view || !annotation) return;
+
+  // Anchors only exist for the route in the DOM right now, so another route has to be visited first.
+  if (annotation.route !== state.route) {
+    try {
+      view.sessionStorage?.setItem(LOCATE_KEY, id);
+    } catch {
+      // private mode; the target route still opens, just without the flash
+    }
+    view.location.assign(annotation.route);
+    return;
+  }
+
+  const rect = state.anchors.get(id)?.rects[0];
+  if (!rect) {
+    state.toast('That annotation has lost its anchor on this page');
+    return;
+  }
   view.scrollTo({
     top: Math.max(0, rect.y - view.innerHeight / 2 + rect.height / 2),
     left: 0,

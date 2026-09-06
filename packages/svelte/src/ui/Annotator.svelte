@@ -7,6 +7,7 @@
     drawingPalette,
     freezeWhile,
     locate,
+    LOCATE_KEY,
     paintTextHighlights,
     primaryAction,
     watchViewport,
@@ -105,6 +106,30 @@
   $effect(() => {
     if (given) return;
     return connectLive(annot, annot.client, { hot: merged.hot ?? null });
+  });
+
+  // A cross-route Locate navigates first and finishes here, once the target has an anchor.
+  $effect(() => {
+    const view = annot.doc.defaultView;
+    if (!view) return;
+    let pending: string | null = null;
+    try {
+      pending = view.sessionStorage?.getItem(LOCATE_KEY) ?? null;
+      if (pending) view.sessionStorage.removeItem(LOCATE_KEY);
+    } catch {
+      return;
+    }
+    if (!pending) return;
+    const id = pending;
+    let tries = 0;
+    const timer = view.setInterval(() => {
+      const ready = annot.anchors.get(id);
+      if (ready || (tries += 1) > 20) {
+        view.clearInterval(timer);
+        if (ready) locate(annot, id);
+      }
+    }, 150);
+    return () => view.clearInterval(timer);
   });
 
   $effect(() => watchViewport(annot));

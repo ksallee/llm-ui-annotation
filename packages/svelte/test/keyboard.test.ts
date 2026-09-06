@@ -35,12 +35,21 @@ describe('isTyping', () => {
     expect(isTyping(document.body, null)).toBe(false);
   });
 
-  it('does not ignore keys typed inside the overlay', () => {
+  it('catches typing in our own fields, which retarget to the host', () => {
     const host = document.createElement('annot-overlay');
-    const input = document.createElement('textarea');
-    host.append(input);
+    const root = host.attachShadow({ mode: 'open' });
+    const field = document.createElement('textarea');
+    const button = document.createElement('button');
+    root.append(field, button);
     document.body.append(host);
-    expect(isTyping(input, host)).toBe(false);
+
+    // A caption or an answer field is in the shadow root, so the event target is the host itself.
+    button.focus();
+    expect(isTyping(host, host)).toBe(false);
+    field.focus();
+    expect(isTyping(host, host)).toBe(true);
+
+    host.remove();
   });
 });
 

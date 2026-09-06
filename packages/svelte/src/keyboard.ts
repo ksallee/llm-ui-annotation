@@ -35,13 +35,21 @@ const SYMBOL: Record<string, string> = { Meta: '⌘', Control: '⌃', Alt: '⌥'
 
 export const DEFAULT_PALETTE_KEY = 'Alt+KeyA';
 
-/** True while the user is typing somewhere that is not our own overlay. */
+function isEditable(el: Element | null | undefined): boolean {
+  if (!el) return false;
+  if (TYPING_TAGS.has(el.tagName)) return true;
+  return el instanceof HTMLElement && el.isContentEditable;
+}
+
+/** True while the user is typing, in the host page or in one of our own fields. */
 export function isTyping(target: EventTarget | null, overlayHost: Element | null): boolean {
   const el = target as Element | null;
   if (!el || !('tagName' in el)) return false;
-  if (overlayHost && (el === overlayHost || overlayHost.contains(el))) return false;
-  if (TYPING_TAGS.has(el.tagName)) return true;
-  return el instanceof HTMLElement && el.isContentEditable;
+  // Events from the shadow root retarget to the host, so ask the root what actually has focus.
+  if (overlayHost && (el === overlayHost || overlayHost.contains(el))) {
+    return isEditable((overlayHost as HTMLElement).shadowRoot?.activeElement);
+  }
+  return isEditable(el);
 }
 
 /** A layout-independent name for a chord, e.g. `Alt+KeyA`. Empty for a bare modifier. */

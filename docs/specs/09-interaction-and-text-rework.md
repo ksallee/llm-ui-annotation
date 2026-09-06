@@ -23,7 +23,11 @@ The overlay sits on top of an app we do not control, which may bind anything. On
 - **Global**: `⌥A` opens the command palette. Configurable in Settings, persisted in `annot:prefs`. Nothing else in the overlay binds a key while idle.
 - **Scoped to an active mode**: `E` `H` `D` switch modes, `I` panel, `⇧P` pause, `⌫` delete focused draft, `⌘Z`/`⇧⌘Z` undo in Draw, `Esc` exits. Safe because an active mode already runs the capture layer over the page, so the host is not receiving input anyway.
 - **Scoped to a surface**: while the palette, panel, popup or settings has focus, keys belong to that surface.
-- **Never**: while focus is in a host input, textarea or contenteditable. Unchanged.
+- **Never**: while focus is in any input, textarea or contenteditable — the host page's *or one of
+  ours*. Events from the shadow root retarget to the host element, so the event target alone cannot
+  answer this; ask the shadow root what has focus. Without that, typing a caption in Draw fires `E`,
+  `D`, `I` and the `1`–`6` tool keys. `Escape` still passes through while typing, since it is how you
+  leave the field.
 
 Holding `⌘`/`Ctrl` still passes events through to the host; the cursor changes to indicate it (currently a gap).
 
@@ -105,9 +109,11 @@ review" is too blunt for it.
 
 - A checkbox per row, appearing on hover and staying once anything is selected. `⇧`-click extends a
   range, `⌘`/`Ctrl`-click toggles one, `⌘A` selects everything the current filter shows.
-- With a selection, the panel footer becomes a bulk bar: **Approve (n)** · **Reopen (n)** · **Send
-  (n)** · **Delete (n)**, each enabled only when every selected note allows that transition, with the
-  count of those that do. Illegal combinations disable rather than partially apply.
+- With a selection, the panel footer becomes a bulk bar: **Approve** · **Reopen** · **Send** ·
+  **Delete**. Each acts on the selected notes that allow the transition and names them: `Approve (3)`
+  when every selected note qualifies, `Approve (1 of 3)` when only some do, and disabled at `(0 of 3)`
+  when none do. Acting on the subset beats going dead — a bar reading "Approve (0)" with everything
+  greyed reads as a broken panel, not as a rule, which is exactly how it was first reported.
 - One undo toast for the whole batch, 6 s, same as Approve all today.
 - Selection is per route, clears on filter change, and is announced in the live region
   (`3 annotations selected`).

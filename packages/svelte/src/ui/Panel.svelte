@@ -117,7 +117,9 @@
           onclick={() => void annot.runBulk(action.id)}
         >
           <Icon name={action.icon} size={14} />
-          {action.label} ({annot.bulk[action.id].count})
+          {action.label} ({annot.bulk[action.id].count < annot.bulk[action.id].total
+            ? `${annot.bulk[action.id].count} of ${annot.bulk[action.id].total}`
+            : annot.bulk[action.id].count})
         </button>
       {/each}
       <button class="btn quiet small" onclick={() => annot.clearSelection()}>Clear</button>
