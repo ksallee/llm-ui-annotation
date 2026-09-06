@@ -289,11 +289,17 @@
   border-radius: var(--annot-radius-sm);
   background: var(--annot-pill);
   color: var(--annot-pill-ink);
-  font-size: var(--annot-text-xs);
+  font-size: var(--annot-text-sm);
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--annot-motion-fast);
+}
+
+/* A cap inside a tooltip annotates the label; it must not tower over it. */
+.tooltip kbd {
+  font-size: var(--annot-text-sm);
+  padding: 2px 5px;
 }
 
 .icon-btn:hover .tooltip,
@@ -507,11 +513,6 @@ kbd {
   background: currentColor;
   opacity: 0.18;
   margin: 0 calc(var(--annot-space-1) * 0.5);
-}
-
-.draw-bar .tooltip {
-  bottom: auto;
-  bottom: calc(100% + 8px);
 }
 
 /* ----------------------------------------------------------------- palette */
