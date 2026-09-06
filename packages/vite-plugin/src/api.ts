@@ -1,15 +1,28 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import {
+  ATTACHMENT_MAX_BYTES,
+  cleanAttachmentName,
   isId,
   isSlug,
   PROTOCOL_VERSION,
+  type Attachment,
   type CreateBatchRequest,
   type Event,
   type PatchAnnotationRequest,
   type TransitionRequest,
 } from '@llm-ui-annotation/core';
 import { ApiError, badRequest, notFound } from './errors.js';
-import { isPng, PNG_LIMIT, readBody, readJson, sendError, sendJson } from './http.js';
+import {
+  assertSameOrigin,
+  isPng,
+  PNG_LIMIT,
+  readBody,
+  readJson,
+  sendError,
+  sendJson,
+} from './http.js';
 import type { ResolvedOptions } from './options.js';
 import type { Store } from './store.js';
 
@@ -53,6 +66,12 @@ function match(route: Route, method: string, segments: string[]): Record<string,
 function safeId(params: Record<string, string>): string {
   const id = params['id'] as string;
   if (!isId(id)) throw badRequest('id: expected an annotation id');
+  return id;
+}
+
+function safeAttachmentId(params: Record<string, string>): string {
+  const id = params['attachmentId'] as string;
+  if (!isId(id)) throw badRequest('attachmentId: expected an attachment id');
   return id;
 }
 
@@ -136,9 +155,30 @@ export function createApi(
   });
 
   on('POST', '/screenshots/:id', async (req, res, params) => {
+    assertSameOrigin(req);
     const body = await readBody(req, PNG_LIMIT);
     if (!isPng(body)) throw badRequest('body: expected a PNG image');
     sendJson(res, 201, { path: await store.saveScreenshot(safeId(params), body) });
+  });
+
+  on('POST', '/annotations/:id/attachments', async (req, res, params, url) => {
+    assertSameOrigin(req);
+    const id = safeId(params);
+    const name = cleanAttachmentName(url.searchParams.get('name') ?? '');
+    const body = await readBody(req, ATTACHMENT_MAX_BYTES);
+    const { attachment } = await store.addAttachment(id, body, name);
+    sendJson(res, 201, attachment);
+  });
+
+  on('DELETE', '/annotations/:id/attachments/:attachmentId', async (req, res, params) => {
+    assertSameOrigin(req);
+    await store.removeAttachment(safeId(params), safeAttachmentId(params));
+    sendJson(res, 200, { ok: true });
+  });
+
+  on('GET', '/attachments/:id/:attachmentId', async (_req, res, params) => {
+    const { attachment, file } = await store.attachment(safeId(params), safeAttachmentId(params));
+    await sendAttachment(res, attachment, file);
   });
 
   const prefix = options.basePath;
@@ -220,4 +260,24 @@ async function streamEvents(
     replaying = false;
     for (const event of pending) write(event);
   }
+}
+
+/** Served inert: sniffing off, scripts off, so an SVG cannot run on the dev origin. */
+async function sendAttachment(res: ServerResponse, attachment: Attachment, file: string): Promise<void> {
+  const info = await stat(file).catch(() => null);
+  if (info === null) throw notFound(`attachment ${attachment.id} is missing from disk`);
+  res.writeHead(200, {
+    'content-type': attachment.type,
+    'content-length': info.size,
+    'content-disposition': `inline; filename*=UTF-8''${encodeURIComponent(attachment.name)}`,
+    'x-content-type-options': 'nosniff',
+    'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+    'cache-control': 'no-store',
+  });
+  await new Promise<void>((resolve, reject) => {
+    const stream = createReadStream(file);
+    stream.on('error', reject);
+    stream.on('end', resolve);
+    stream.pipe(res);
+  });
 }

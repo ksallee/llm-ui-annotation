@@ -1,8 +1,46 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { ApiError } from './errors.js';
+import { ApiError, forbidden, unsupportedMedia } from './errors.js';
 
 export const JSON_LIMIT = 1024 * 1024;
 export const PNG_LIMIT = 20 * 1024 * 1024;
+
+/** Content types a cross-origin page can send without a preflight. */
+const SIMPLE_TYPES = ['text/plain', 'application/x-www-form-urlencoded', 'multipart/form-data'];
+
+function header(req: IncomingMessage, name: string): string | undefined {
+  const value = req.headers[name];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export function contentType(req: IncomingMessage): string {
+  return (header(req, 'content-type') ?? '').split(';')[0]?.trim().toLowerCase() ?? '';
+}
+
+/**
+ * Refuse anything a page on another origin could send us. A request carrying a body must not be
+ * CORS-simple, so the browser preflights it and — no CORS headers here — never sends it.
+ */
+export function assertSameOrigin(req: IncomingMessage): void {
+  const site = header(req, 'sec-fetch-site');
+  if (site !== undefined && site !== 'same-origin' && site !== 'none') {
+    throw forbidden(`cross-origin request refused (sec-fetch-site: ${site})`);
+  }
+  const origin = header(req, 'origin');
+  const host = header(req, 'host');
+  if (origin !== undefined && origin !== 'null') {
+    let originHost: string;
+    try {
+      originHost = new URL(origin).host;
+    } catch {
+      throw forbidden(`cross-origin request refused (origin: ${origin})`);
+    }
+    if (originHost !== host) throw forbidden(`cross-origin request refused (origin: ${origin})`);
+  }
+  const type = contentType(req);
+  if (SIMPLE_TYPES.includes(type)) {
+    throw unsupportedMedia(`content-type ${type} is not accepted on this endpoint`);
+  }
+}
 
 export function sendJson(res: ServerResponse, status: number, body: unknown): void {
   const text = JSON.stringify(body);
