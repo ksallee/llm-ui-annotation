@@ -152,3 +152,7 @@ Kept so nobody re-files them.
 - **The overlay cannot tell whether an agent is listening** (bug). Sending shows "Waiting for the agent" even when no `annot watch` is attached, so a correct send looks like a failure. The plugin already knows the answer from its open SSE clients.
 - **Strokes cannot be selected, moved, resized or restyled** (unimplemented). Draw is write-once: undo or erase the whole stroke. The resizable region from spec 09 §6 is the capture box, not the marks.
 - **A drawing cannot be grabbed as one object** (unimplemented). No select-all, and the region box cannot be dragged to move the marks inside it; `Clear drawing` is the only whole-drawing action.
+
+## Found by hand, not yet specced
+
+- **A sent annotation cannot be deleted** (bug, design). Spec 01 allows deletion for `draft` only, so a note sent by mistake can never be removed — Approve is the only way to hide it, which claims the agent did something. `.annotations/` is a scratch directory, not an audit log. Delete should be allowed for any status, with a confirmation naming the risk when the agent may be mid-work (`sent`, `acknowledged`), and the plugin removing the screenshot and attachment directory with it.
