@@ -31,6 +31,10 @@ The demo mounts the overlay through the Vite plugin (auto-inject), with an accen
 10. **palette** (spec 09 §3): `⌥A` opens it, it filters by comment text and jumps to `#N`, it never offers a loop transition, the key rebinds and survives a reload, and the drawing bar exists only in Draw.
 11. **panel** (spec 09 §8, §9): a collapsed row sends its draft without expanding; three `review` rows approve together with one undo toast; a mixed selection disables the illegal transitions.
 12. **a11y**: axe-core scan of the overlay with the popup and panel open: no serious violations.
+13. **inspector** (spec 12 §1–§3): a selection switches an open drawer to Inspect and deselecting
+    switches it back, a closed drawer stays closed, the toggle holds until the selection changes;
+    the box model draws over a padded element and draws nothing under 24×24; "what the agent will
+    see" matches the `styles` stored on the annotation, key for key.
 
 ## Harness
 
@@ -39,7 +43,7 @@ temporary `ANNOT_DIR`, so no two tests share storage. Each worker gets its own V
 because concurrent dev servers sharing one dependency cache serve `504 Outdated Optimize Dep` at
 each other; a global setup warms the first cache and copies it to the rest.
 
-Twelve suites, one file each in `apps/demo/e2e/`.
+One suite per file in `apps/demo/e2e/`.
 
 ## Acceptance criteria
 

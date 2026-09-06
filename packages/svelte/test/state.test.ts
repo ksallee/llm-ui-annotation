@@ -181,12 +181,13 @@ describe('AnnotState writes', () => {
     expect(state.annotations.has(created.id)).toBe(true);
   });
 
-  it('only deletes drafts', async () => {
+  it('deletes a note whatever its status, and says which one went', async () => {
     const { state, client } = make();
-    state.applyLocal(annotation({ id: 'A', status: 'sent' }));
-    await state.deleteDraft('A');
-    expect(state.annotations.has('A')).toBe(true);
-    expect(client.calls).toHaveLength(0);
+    state.applyLocal(annotation({ id: 'A', status: 'review', number: 4 }));
+    await state.deleteRow('A');
+    expect(state.annotations.has('A')).toBe(false);
+    expect(client.calls).toEqual(['remove:A']);
+    expect(state.toasts.map((t) => t.text)).toEqual(['Deleted #4']);
   });
 
   it('moves drafts to sent when the batch goes out', async () => {
@@ -212,6 +213,38 @@ describe('drawing stack', () => {
     state.pushStroke({ tool: 'rect', rect: { x: 0, y: 0, width: 1, height: 1 }, color: 'red', width: 2 });
     expect(state.drawing.undone).toHaveLength(0);
     expect(state.drawingRegion).not.toBeNull();
+  });
+});
+
+describe('the drawer channel', () => {
+  it('follows the selection, and the toggle holds until the selection changes', () => {
+    const { state } = make();
+    const one = document.createElement('button');
+    const two = document.createElement('a');
+    state.mode = 'element';
+    expect(state.channel).toBe('notes');
+
+    state.selection = [one];
+    expect(state.channel).toBe('inspect');
+
+    state.setChannel('notes');
+    state.selection = [one];
+    expect(state.channel).toBe('notes');
+
+    state.selection = [two];
+    expect(state.channel).toBe('inspect');
+
+    state.selection = [];
+    expect(state.channel).toBe('notes');
+  });
+
+  it('reads nothing outside Element mode', () => {
+    const { state } = make();
+    state.mode = 'element';
+    state.selection = [document.createElement('button')];
+    state.setMode('text');
+    expect(state.inspected).toBeNull();
+    expect(state.channel).toBe('notes');
   });
 });
 

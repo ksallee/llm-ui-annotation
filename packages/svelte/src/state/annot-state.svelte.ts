@@ -44,6 +44,8 @@ import { DEFAULT_PREFS, loadPrefs, savePrefs, type Prefs } from './prefs.js';
 
 export type Connection = 'connected' | 'polling' | 'offline';
 export type Filter = 'needs-you' | 'open' | 'done' | 'all';
+/** The drawer's two channels. */
+export type Channel = 'notes' | 'inspect';
 export type BulkAction = 'approve' | 'reopen' | 'send' | 'delete';
 
 /** How a click on a row changes the selection. */
@@ -54,7 +56,8 @@ export const BULK_ALLOWS: Record<BulkAction, (a: Annotation) => boolean> = {
   approve: (a) => a.status === 'review',
   reopen: (a) => a.status === 'review' || a.status === 'approved',
   send: (a) => a.status === 'draft' && a.comment.trim().length > 0,
-  delete: (a) => a.status === 'draft',
+  // `.annotations/` is a scratch directory, not an audit log: a note sent by mistake has to go.
+  delete: () => true,
 };
 
 export interface BulkOffer {
@@ -188,7 +191,9 @@ export class AnnotState {
   prefs = $state<Prefs>({ ...DEFAULT_PREFS });
   popup = $state<PopupState | null>(null);
   hover = $state<HoverState>({ el: null, rect: null, label: '' });
-  selection = $state<Element[]>([]);
+  #selection = $state<Element[]>([]);
+  /** Held by the channel toggle until the selection changes. */
+  channelPin = $state<Channel | null>(null);
   marquee = $state<Rect | null>(null);
   drawings = $state<PendingDrawing[]>([]);
   activeDrawingId = $state<string | null>(null);
@@ -252,6 +257,30 @@ export class AnnotState {
     this.url = options.url ?? this.doc?.defaultView?.location.href ?? '';
     this.route = options.route ?? routeOf(this.url);
     this.mode = options.mode ?? this.prefs.mode ?? null;
+  }
+
+  // ------------------------------------------------------- element selection
+
+  get selection(): Element[] {
+    return this.#selection;
+  }
+
+  /** A changed selection releases the channel toggle, so the next pick reads as a new subject. */
+  set selection(next: Element[]) {
+    const same =
+      next.length === this.#selection.length && next.every((el, i) => el === this.#selection[i]);
+    this.#selection = next;
+    if (!same) this.channelPin = null;
+  }
+
+  /** The element the inspector reads. */
+  readonly inspected = $derived(this.mode === 'element' ? (this.selection[0] ?? null) : null);
+
+  /** Selecting an element switches an open drawer to Inspect; it never opens a closed one. */
+  readonly channel = $derived<Channel>(this.channelPin ?? (this.inspected ? 'inspect' : 'notes'));
+
+  setChannel(channel: Channel): void {
+    this.channelPin = channel;
   }
 
   // ---------------------------------------------------------------- derived
@@ -383,7 +412,7 @@ export class AnnotState {
       this.batchToast(`Sent ${rows.length}`, null);
       return;
     }
-    for (const a of rows) await this.deleteDraft(a.id);
+    for (const a of rows) await this.deleteNote(a.id);
     this.batchToast(`Deleted ${rows.length}`, null);
   }
 
@@ -448,6 +477,7 @@ export class AnnotState {
   setMode(mode: Mode | null): void {
     const was = this.mode;
     this.mode = this.mode === mode ? null : mode;
+    if (this.mode !== was) this.channelPin = null;
     this.setPref('mode', this.mode);
     if (was === 'page' && this.mode !== 'page') {
       this.clearDrawSelection();
@@ -616,15 +646,24 @@ export class AnnotState {
     }
   }
 
-  async deleteDraft(id: string): Promise<void> {
+  async deleteNote(id: string): Promise<void> {
     const current = this.annotations.get(id);
-    if (!current || current.status !== 'draft') return;
+    if (!current) return;
     this.removeLocal(id);
     try {
       await this.client.remove(id);
     } catch {
       this.connection = 'offline';
     }
+  }
+
+  /** Delete from a user gesture. No confirmation; the toast names what went. */
+  async deleteRow(id: string): Promise<void> {
+    const current = this.annotations.get(id);
+    if (!current) return;
+    await this.deleteNote(id);
+    this.announce(`Deleted annotation ${current.number}`);
+    this.toast(`Deleted #${current.number}`, null);
   }
 
   async move(id: string, to: Status, by: Actor, message?: { kind: MessageKind; text: string }): Promise<void> {
@@ -1023,7 +1062,7 @@ export class AnnotState {
     const a = this.annotations.get(id);
     if (a?.status === 'draft') {
       this.selectedDrawings.delete(id);
-      void this.deleteDraft(id);
+      void this.deleteNote(id);
       return;
     }
     this.toast('That drawing has been sent; reopen it before deleting');
@@ -1359,7 +1398,7 @@ export class AnnotState {
     const abandoned = this.popup?.draftId ?? null;
     this.popup = null;
     this.#creating = null;
-    if (abandoned) void this.deleteDraft(abandoned);
+    if (abandoned) void this.deleteNote(abandoned);
   }
 
   breadcrumb(target: Target): string {

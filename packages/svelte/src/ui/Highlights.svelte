@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { AnnotState } from '../state/annot-state.svelte.js';
+  import { boxDrawable, boxModel } from '../dom/inspect.js';
+  import BoxModel from './BoxModel.svelte';
   import Strokes from './Strokes.svelte';
 
   let {
@@ -8,6 +10,14 @@
   }: { annot: AnnotState; textPainted?: boolean } = $props();
 
   const shift = $derived(`translate(${-annot.scroll.x} ${-annot.scroll.y})`);
+
+  // Recomputed whenever the hovered element changes; the bands are read off the live element.
+  const box = $derived.by(() => {
+    if (annot.mode !== 'element' || !annot.hover.el) return null;
+    void annot.hover.rect;
+    const model = boxModel(annot.hover.el);
+    return model && boxDrawable(model) ? model : null;
+  });
 </script>
 
 <svg class="layer highlights" aria-hidden="true">
@@ -48,7 +58,7 @@
             />
           {/each}
         {:else if a.target.kind === 'page' && !annot.hiddenDrawings.has(a.id)}
-          <Strokes strokes={a.target.strokes} opacity={a.status === 'draft' ? 0.7 : 0.9} />
+          <Strokes strokes={a.target.strokes} status={a.status} />
         {/if}
       {/if}
     {/each}
@@ -84,7 +94,9 @@
       />
     {/each}
 
-    {#if annot.hover.rect && annot.mode === 'element'}
+    {#if box}
+      <BoxModel {box} />
+    {:else if annot.hover.rect && annot.mode === 'element'}
       <rect
         x={annot.hover.rect.x}
         y={annot.hover.rect.y}

@@ -3,6 +3,7 @@
   import { trapFocus } from './focus.js';
   import Icon from './Icon.svelte';
   import type { IconName } from '../icons.js';
+  import Inspector from './Inspector.svelte';
   import PanelRow from './PanelRow.svelte';
 
   let {
@@ -29,6 +30,7 @@
 
   const shown = $derived(annot.filtered);
   const picked = $derived(annot.selected.size);
+  const notes = $derived(annot.channel === 'notes');
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -67,78 +69,99 @@
         onclick={() => annot.togglePanel(false)}><Icon name="close" size={16} /></button
       >
     </div>
-    <div class="chips">
-      {#each FILTERS as filter (filter.id)}
-        <button
-          class="filter-chip"
-          aria-pressed={annot.panelFilter === filter.id}
-          onclick={() => annot.setFilter(filter.id)}
-        >
-          {filter.label}
-          <span class="n">{annot.filterCounts[filter.id]}</span>
-        </button>
-      {/each}
+    <div class="channels" role="group" aria-label="Panel channel">
+      <button
+        class="channel"
+        aria-label="Notes channel"
+        aria-pressed={notes}
+        onclick={() => annot.setChannel('notes')}>Notes</button
+      >
+      <button
+        class="channel"
+        aria-label="Inspect channel"
+        aria-pressed={!notes}
+        onclick={() => annot.setChannel('inspect')}>Inspect</button
+      >
     </div>
-  </header>
 
-  <div class="rows">
-    {#if picked > 0}
-      <!-- Floats at the top of the list: the rows being selected are what it acts on. -->
-      <div class="bulk" role="group" aria-label="Bulk actions">
-        <div class="row">
-          <span class="muted mono">{picked} selected</span>
-          <span class="spacer"></span>
-          <button class="btn quiet small" onclick={() => annot.clearSelection()}>Clear</button>
-        </div>
-        <div class="row wrap">
-          {#each BULK as action (action.id)}
-            <button
-              class="btn small"
-              class:primary={action.id === 'approve'}
-              disabled={!annot.bulk[action.id].enabled}
-              onclick={() => void annot.runBulk(action.id)}
-            >
-              <Icon name={action.icon} size={14} />
-              {action.label} ({annot.bulk[action.id].count < annot.bulk[action.id].total
-                ? `${annot.bulk[action.id].count} of ${annot.bulk[action.id].total}`
-                : annot.bulk[action.id].count})
-            </button>
-          {/each}
-        </div>
+    {#if notes}
+      <div class="chips">
+        {#each FILTERS as filter (filter.id)}
+          <button
+            class="filter-chip"
+            aria-pressed={annot.panelFilter === filter.id}
+            onclick={() => annot.setFilter(filter.id)}
+          >
+            {filter.label}
+            <span class="n">{annot.filterCounts[filter.id]}</span>
+          </button>
+        {/each}
       </div>
     {/if}
+  </header>
 
-    {#each shown as a (a.id)}
-      <PanelRow
-        {annot}
-        annotation={a}
-        expanded={annot.expandedId === a.id}
-        ontoggle={() => {
-          annot.expandedId = annot.expandedId === a.id ? null : a.id;
-          if (annot.expandedId) onlocate(a.id);
-        }}
-        onlocate={() => onlocate(a.id)}
-      />
-    {:else}
-      <div class="muted" style="padding: 24px; text-align: center">Nothing here.</div>
-    {/each}
-  </div>
+  {#if !notes}
+    <Inspector {annot} />
+  {:else}
+    <div class="rows">
+      {#if picked > 0}
+        <!-- Floats at the top of the list: the rows being selected are what it acts on. -->
+        <div class="bulk" role="group" aria-label="Bulk actions">
+          <div class="row">
+            <span class="muted mono">{picked} selected</span>
+            <span class="spacer"></span>
+            <button class="btn quiet small" onclick={() => annot.clearSelection()}>Clear</button>
+          </div>
+          <div class="row wrap">
+            {#each BULK as action (action.id)}
+              <button
+                class="btn small"
+                class:primary={action.id === 'approve'}
+                disabled={!annot.bulk[action.id].enabled}
+                onclick={() => void annot.runBulk(action.id)}
+              >
+                <Icon name={action.icon} size={14} />
+                {action.label} ({annot.bulk[action.id].count < annot.bulk[action.id].total
+                  ? `${annot.bulk[action.id].count} of ${annot.bulk[action.id].total}`
+                  : annot.bulk[action.id].count})
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
 
-  <footer>
-    <button
-      class="btn small"
-      disabled={annot.inReview.length === 0}
-      onclick={() => void annot.approveAll()}
-    >
-      <Icon name="check-all" size={14} /> Approve all ({annot.inReview.length})
-    </button>
-    {#if annot.sendMode === 'batch'}
-      <button class="btn primary small" disabled={sendable === 0} onclick={onsend}>
-        <Icon name="send" size={14} />
-        {annot.draftsNeedingComment.length > 0
-          ? `Send drafts (${sendable}, ${annot.draftsNeedingComment.length} need a comment)`
-          : `Send drafts (${sendable})`}
+      {#each shown as a (a.id)}
+        <PanelRow
+          {annot}
+          annotation={a}
+          expanded={annot.expandedId === a.id}
+          ontoggle={() => {
+            annot.expandedId = annot.expandedId === a.id ? null : a.id;
+            if (annot.expandedId) onlocate(a.id);
+          }}
+          onlocate={() => onlocate(a.id)}
+        />
+      {:else}
+        <div class="muted" style="padding: 24px; text-align: center">Nothing here.</div>
+      {/each}
+    </div>
+
+    <footer>
+      <button
+        class="btn small"
+        disabled={annot.inReview.length === 0}
+        onclick={() => void annot.approveAll()}
+      >
+        <Icon name="check-all" size={14} /> Approve all ({annot.inReview.length})
       </button>
-    {/if}
-  </footer>
+      {#if annot.sendMode === 'batch'}
+        <button class="btn primary small" disabled={sendable === 0} onclick={onsend}>
+          <Icon name="send" size={14} />
+          {annot.draftsNeedingComment.length > 0
+            ? `Send drafts (${sendable}, ${annot.draftsNeedingComment.length} need a comment)`
+            : `Send drafts (${sendable})`}
+        </button>
+      {/if}
+    </footer>
+  {/if}
 </div>

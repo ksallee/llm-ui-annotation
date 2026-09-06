@@ -105,7 +105,8 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
           state.shortcutsOpen = false;
         } else if (state.mode === 'page' && state.stepOutDraw()) {
           // inside a drawing → that drawing selected → nothing selected → leave Draw
-        } else if (state.prefs.panelOpen) state.togglePanel(false);
+        } else if (state.mode === 'element' && state.selection.length > 0) state.selection = [];
+        else if (state.prefs.panelOpen) state.togglePanel(false);
         else if (state.mode) state.setMode(null);
         else state.collapse();
         break;
@@ -135,7 +136,7 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
         break;
       case 'delete':
         // Picked marks first: otherwise ⌫ inside a drawing deleted the whole annotation.
-        if (!state.deleteSelectedMarks() && state.focusedId) void state.deleteDraft(state.focusedId);
+        if (!state.deleteSelectedMarks() && state.focusedId) void state.deleteNote(state.focusedId);
         break;
       case 'help':
         state.shortcutsOpen = true;

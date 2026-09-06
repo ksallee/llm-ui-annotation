@@ -47,7 +47,8 @@ Tooltips show label and shortcut, the key rendered as a keycap at `--annot-text-
 ## Modes
 
 ### Element mode
-Hover shows a 2 px outline and a small label chip (`button "Save"`) above the element; the label is `describeName(el)` from `core/dom`. Click opens the popup anchored to the element. Drag from empty space draws a marquee: the outermost elements at least 50% inside are selected, then the selection steps down one level for as long as a single container is tiled (≥ 70% of its area) by children that are ≥ 90% inside, so a box round a card grid selects the cards and a box round one card selects the card. `⇧` extends the selection and shows an Annotate chip. Ignore the overlay host, `html`, `body`.
+Hover shows a 2 px outline and a small label chip (`button "Save"`) above the element; the label is `describeName(el)` from `core/dom`. It also draws the box model — content, padding, border and margin as nested bands with the non-zero numbers on each side (spec 12 §2) — for anything at least 24 px in both directions; smaller than that, the outline alone.
+Clicking empty space clears the selection, and so does `Esc` before it reaches the panel. Click opens the popup anchored to the element. Drag from empty space draws a marquee: the outermost elements at least 50% inside are selected, then the selection steps down one level for as long as a single container is tiled (≥ 70% of its area) by children that are ≥ 90% inside, so a box round a card grid selects the cards and a box round one card selects the card. `⇧` extends the selection and shows an Annotate chip. Ignore the overlay host, `html`, `body`.
 
 ### Highlight mode
 Native selection stays enabled on the host (capture layer uses `pointer-events: none` in this mode and listens to `selectionchange` on the document). When a non-collapsed selection ends (mouseup / keyup), show an **Annotate** chip at the end of the selection; click or `⌘↵` opens the popup with the quote shown. A selection crossing block boundaries is one annotation whose container is the nearest common block (spec 09 §5); only a selection whose common ancestor would be `body` is refused, with the chip reading "that is the whole page". Existing text annotations are highlighted; hovering shows the pin and the comment card.
@@ -84,6 +85,11 @@ Triggered by Send. Lists the drafts on this route as one-line rows (number, mode
 
 ## Panel (drawer)
 
+Two channels, chosen by a segmented control under the header: **Notes** (everything below) and
+**Inspect** (spec 12 §3). Selecting an element in Element mode switches an open drawer to Inspect and
+deselecting switches back; a closed drawer stays closed, and the toggle holds the channel until the
+selection changes.
+
 Header: route (mono), "all routes" toggle, close. One chip row, not two: the counts live on the
 filter chips — Needs you (question + review, default when non-empty) · Open (draft, sent,
 acknowledged) · Done (approved) · All, each with its count (spec 11 §3).
@@ -94,7 +100,8 @@ comment, a thread preview (last message, role-colored) and the row's actions (sp
 `⋯` menu holding Edit, Delete and Locate. The 3 px status bar stays but is no longer the only
 signal. Expand to show the full thread with role labels and the field the status calls for:
 
-- `draft`: the thread. Send is on the row, Edit and Delete are in the `⋯` menu.
+- `draft`: the thread. Send is on the row, Edit and Delete are in the `⋯` menu. Delete is offered
+  whatever the status (spec 01) and asks nothing first; the toast names what went.
 - `sent` / `acknowledged`: a comment field (appends a comment message), no delete.
 - `question`: Answer field, **Answer** (→ acknowledged).
 - `review`: **Reopen** with a required comment; Approve stays on the row.
@@ -114,7 +121,7 @@ Command palette key (click, then press a chord; persisted). Send mode: batch / i
 
 ## Keyboard summary
 
-`⌥A` is the only global binding and opens the command palette; everything else is scoped to an active mode or to a focused surface — spec 09 §2. Scoped: `E` `H` `D` modes · `Esc` exit mode / close popup / close panel · `⌘↵` add or send · `I` panel · `⇧P` pause · `⌘Z` `⇧⌘Z` in Draw mode · `1`–`6` drawing tools · `⌫` delete focused draft · `?` shows the sheet. Shortcuts are ignored while typing in the host page (focus inside an input/textarea/contenteditable outside the overlay).
+`⌥A` is the only global binding and opens the command palette; everything else is scoped to an active mode or to a focused surface — spec 09 §2. Scoped: `E` `H` `D` modes · `Esc` close popup / clear the element selection / close panel / exit mode · `⌘↵` add or send · `I` panel · `⇧P` pause · `⌘Z` `⇧⌘Z` in Draw mode · `1`–`6` drawing tools · `⌫` delete focused draft · `?` shows the sheet. Shortcuts are ignored while typing in the host page (focus inside an input/textarea/contenteditable outside the overlay).
 
 ## State
 

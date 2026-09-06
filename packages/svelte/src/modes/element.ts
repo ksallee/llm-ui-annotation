@@ -93,7 +93,10 @@ export function elementMode(state: AnnotState, layer: HTMLElement): () => void {
     }
 
     const el = elementUnder(state, event.clientX, event.clientY);
-    if (!el) return;
+    if (!el) {
+      state.selection = [];
+      return;
+    }
     if (event.shiftKey) {
       state.selection = state.selection.includes(el)
         ? state.selection.filter((other) => other !== el)

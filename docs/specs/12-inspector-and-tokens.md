@@ -10,21 +10,22 @@ The right drawer is 360px and already belongs to the annotations panel. It gains
 
 - A segmented control at the top: **Notes** · **Inspect**.
 - Selecting an element in Element mode switches an **already-open** drawer to Inspect. Deselecting, or leaving Element mode, switches back to Notes.
-- A **closed** drawer stays closed. Selecting an element must not force chrome open.
+- A **closed** drawer stays closed. Selecting an element must not force chrome open. The channel is a function of the selection, not an event, so a drawer opened later with the element still selected opens on Inspect.
 - The toggle overrides the automatic switch until the selection changes, so you can read a note while an element is selected.
+- Deselecting is a click on empty space, or `Esc` — which now clears the selection before it closes the panel.
 
 ## 2. On canvas: the box model
 
 Hovering in Element mode already draws an outline and a name chip. It gains the devtools reading of the box: content, padding, border and margin as nested tinted bands, with the numbers on each side that is non-zero. Content size sits in the middle as `w × h`.
 
-Colours come from the theme, not from devtools' orange and green: `--annot-element` for content, its `-fill` at descending alpha for padding and margin. Suppressed under `prefers-reduced-motion`? No — it is not motion. Suppressed when the element is smaller than 24×24, where the bands would be unreadable.
+Colours come from the theme, not from devtools' orange and green: `--annot-element` for content, its `-fill` at descending alpha for padding, border and margin. Suppressed under `prefers-reduced-motion`? No — it is not motion. Suppressed when the element is under 24 px in either direction, where the bands would be unreadable; the hover outline stays. The `w × h` label needs a content box of at least 56×14 to sit in without covering the side numbers — under that the drawer has the same figure.
 
 ## 3. In the drawer: the inspector
 
 For the selected element, in this order:
 
 - **Identity** — the name, the selector in mono, the role, and the tag chain to `body`.
-- **Box** — width, height, and the four sides of padding, border, margin.
+- **Box** — the content size, and the four sides of padding, border, margin. This is the used box, read off the element; the payload's `width`/`height` are the computed CSS values and honour `box-sizing`, so the two disagree on a border-box element. Both are true, and the section headings say which is which.
 - **Layout** — `display`, `position`, and when it is flex or grid, the direction, alignment and template.
 - **Type** — family, size, weight, line-height, letter-spacing, and the resolved text colour.
 - **Colour** — text, background, border, shadow.

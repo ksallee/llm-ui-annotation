@@ -854,6 +854,167 @@ kbd {
   color: var(--annot-ink);
 }
 
+/* ------------------------------------------------------------- inspector */
+
+/* The drawer's two channels. Notes is the list; Inspect reads the selected element. */
+.channels {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--annot-line);
+  border-radius: var(--annot-radius-sm);
+  background: var(--annot-surface-2);
+}
+
+.channel {
+  flex: 1;
+  height: 26px;
+  border: 0;
+  border-radius: calc(var(--annot-radius-sm) - 2px);
+  background: transparent;
+  color: var(--annot-ink-2);
+  font-size: var(--annot-text-sm);
+  cursor: pointer;
+}
+
+.channel[aria-pressed='true'] {
+  background: var(--annot-surface);
+  color: var(--annot-ink);
+  box-shadow: var(--annot-shadow);
+}
+
+.inspect {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--annot-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--annot-space-3);
+}
+
+.inspect .empty {
+  padding: var(--annot-space-5) 0;
+  text-align: center;
+}
+
+.sec {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sec h4 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--annot-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--annot-ink-3);
+}
+
+.sec h4 .muted {
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+  font-size: var(--annot-text-xs);
+}
+
+.inspect .ident {
+  font-size: var(--annot-text-md);
+}
+
+.inspect .sel,
+.inspect .chain {
+  font-size: var(--annot-text-xs);
+  overflow-wrap: anywhere;
+}
+
+.inspect .sel {
+  color: var(--annot-ink-2);
+}
+
+.inspect .chain {
+  color: var(--annot-ink-3);
+}
+
+.pairs {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 8.5em) minmax(0, 1fr);
+  gap: 3px var(--annot-space-2);
+  font-size: var(--annot-text-sm);
+}
+
+.pairs dt {
+  font-family: var(--annot-font-mono);
+  font-size: var(--annot-text-xs);
+  color: var(--annot-ink-3);
+  overflow-wrap: anywhere;
+}
+
+.pairs dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.pairs .nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.pairs.payload dd {
+  font-family: var(--annot-font-mono);
+  font-size: var(--annot-text-xs);
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid var(--annot-line);
+}
+
+.token {
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: var(--annot-radius-sm);
+  background: var(--annot-accent-soft);
+  color: var(--annot-ink);
+  font-family: var(--annot-font-mono);
+  font-size: var(--annot-text-xs);
+  white-space: nowrap;
+}
+
+.warn {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--annot-radius-sm);
+  background: var(--annot-question-fill);
+  color: var(--annot-ink);
+  font-size: var(--annot-text-xs);
+}
+
+/* Readable over any page: the ink is stroked with the surface colour before it is filled. */
+.box-num {
+  font-family: var(--annot-font-mono);
+  font-size: var(--annot-text-xs);
+  fill: var(--annot-ink);
+  stroke: var(--annot-surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.box-num.size {
+  font-size: var(--annot-text-sm);
+}
+
 /* Floats at the top of the list rather than sitting under it: the rows it acts on are right here. */
 .bulk {
   position: sticky;

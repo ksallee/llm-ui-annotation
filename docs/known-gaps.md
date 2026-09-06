@@ -13,6 +13,8 @@ spec asks for it, nobody built it) or **non-goal** (deliberate, recorded so nobo
   suppressed as "same as default". On a page that styles tags rather than classes the agent gets
   `width` and `height` and nothing else. **bug** — spec 02's probe rule is the cause, so fixing it
   means changing the spec too (probe inside an iframe with no author CSS, or drop the diff rule).
+  No longer silent: the inspector's "what the agent will see" shows the subset verbatim and says so
+  when it holds two entries or fewer (spec 12 §3).
 - `border: 0px none <color>` and other no-op values reach the agent as noise; `EMPTY` filters
   `0px` and `none` alone, not the shorthand that combines them. **bug**, cosmetic.
 - `Annotation.anchorState` is documented as browser-only and not persisted, but nothing strips it
