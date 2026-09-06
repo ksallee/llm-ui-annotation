@@ -75,6 +75,7 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
       paletteOpen: state.paletteOpen,
       panelOpen: state.prefs.panelOpen,
       focusedDraft: focused?.status === 'draft',
+      marksPicked: state.marksPicked,
       paletteKey: state.prefs.paletteKey,
     });
     if (!action) return;
@@ -133,7 +134,8 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
         state.redoStroke();
         break;
       case 'delete':
-        if (state.focusedId) void state.deleteDraft(state.focusedId);
+        // Picked marks first: otherwise ⌫ inside a drawing deleted the whole annotation.
+        if (!state.deleteSelectedMarks() && state.focusedId) void state.deleteDraft(state.focusedId);
         break;
       case 'help':
         state.shortcutsOpen = true;

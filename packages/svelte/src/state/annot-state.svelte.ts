@@ -33,6 +33,7 @@ import {
   rangeRects,
   resolveSelector,
   strokeBounds,
+  union,
   transformStrokes,
 } from '../dom/core-dom.js';
 import { routeOf, type DetailLevel, type MarkerVisibility, type SendMode } from '../options.js';
@@ -977,6 +978,43 @@ export class AnnotState {
     }
   }
 
+  /** Something is picked that delete should act on. */
+  readonly marksPicked = $derived(this.selectedStrokes.size > 0 || this.selectedDrawings.size > 0);
+
+  /**
+   * Delete what is picked: the strokes inside a drawing, else the picked drawings. Returns false
+   * when nothing was picked, so the caller can fall back to deleting the focused draft.
+   */
+  deleteSelectedMarks(): boolean {
+    const inside = this.insideDrawing;
+    if (inside && this.selectedStrokes.size > 0) {
+      const ref = this.drawingRef(inside);
+      if (!ref) return false;
+      const kept = ref.strokes.filter((_, i) => !this.selectedStrokes.has(i));
+      this.selectedStrokes.clear();
+      if (kept.length === 0) this.#deleteDrawing(inside);
+      else this.setDrawingStrokes(inside, kept);
+      return true;
+    }
+    if (this.selectedDrawings.size === 0) return false;
+    for (const id of [...this.selectedDrawings]) this.#deleteDrawing(id);
+    return true;
+  }
+
+  #deleteDrawing(id: string): void {
+    if (this.#isPending(id)) {
+      this.dropDrawing(id);
+      return;
+    }
+    const a = this.annotations.get(id);
+    if (a?.status === 'draft') {
+      this.selectedDrawings.delete(id);
+      void this.deleteDraft(id);
+      return;
+    }
+    this.toast('That drawing has been sent; reopen it before deleting');
+  }
+
   drawingRef(id: string | null): DrawingRef | null {
     return id ? (this.routeDrawings.find((d) => d.id === id) ?? null) : null;
   }
@@ -1005,8 +1043,23 @@ export class AnnotState {
   }
 
   setDrawingStrokes(id: string, strokes: Stroke[]): void {
-    if (this.#isPending(id)) this.#patch(id, { strokes });
-    else this.#setPageTarget(id, { strokes });
+    const region = this.#regionFor(id, strokes);
+    if (this.#isPending(id)) this.#patch(id, region ? { strokes, region } : { strokes });
+    else this.#setPageTarget(id, region ? { strokes, region } : { strokes });
+  }
+
+  /**
+   * The box a drawing needs once its marks moved. The box is the screenshot crop, so a mark outside
+   * it would vanish from what the agent sees. An unframed box re-fits; a framed one only grows.
+   */
+  #regionFor(id: string, strokes: Stroke[]): Rect | null {
+    if (strokes.length === 0) return null;
+    const fit = strokeBounds(strokes);
+    const pending = this.drawings.find((d) => d.id === id);
+    if (pending) return pending.region === null ? null : union(pending.region, fit);
+    const a = this.annotations.get(id);
+    if (!a || a.target.kind !== 'page') return null;
+    return union(a.target.region, fit);
   }
 
   setDrawingRegion(id: string, region: Rect): void {
@@ -1051,7 +1104,7 @@ export class AnnotState {
     this.transformDrawing(id, ref.region, { ...ref.region, x: ref.region.x + dx, y: ref.region.y + dy });
   }
 
-  /** Move or scale the picked strokes, leaving every other mark and the box where they are. */
+  /** Move or scale the picked strokes; the box grows to keep every mark inside the capture. */
   transformPickedStrokes(from: Rect, to: Rect): void {
     const id = this.insideDrawing;
     const ref = this.drawingRef(id);

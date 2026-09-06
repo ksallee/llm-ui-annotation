@@ -26,6 +26,8 @@ export interface KeyContext {
   paletteOpen: boolean;
   panelOpen: boolean;
   focusedDraft: boolean;
+  /** A drawing or its strokes are picked, so delete has something nearer to act on. */
+  marksPicked: boolean;
   /** The one global binding, as `comboOf` writes it. */
   paletteKey: string;
 }
@@ -131,7 +133,7 @@ export function keyAction(event: KeyboardEvent, ctx: KeyContext): KeyAction | nu
       return 'help';
     case 'Backspace':
     case 'Delete':
-      return ctx.focusedDraft ? 'delete' : null;
+      return ctx.focusedDraft || ctx.marksPicked ? 'delete' : null;
     default:
       return null;
   }

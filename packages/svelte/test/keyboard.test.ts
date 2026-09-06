@@ -19,6 +19,7 @@ const ctx = (over: Partial<KeyContext> = {}): KeyContext => ({
   paletteOpen: false,
   panelOpen: false,
   focusedDraft: false,
+  marksPicked: false,
   paletteKey: DEFAULT_PALETTE_KEY,
   ...over,
 });
@@ -126,6 +127,10 @@ describe('keyAction', () => {
     expect(keyAction(key({ key: 'z', metaKey: true }), ctx({ mode: 'element' }))).toBeNull();
     expect(keyAction(key({ key: 'z', metaKey: true }), ctx({ mode: 'page' }))).toBe('undo');
     expect(keyAction(key({ key: 'Z', metaKey: true, shiftKey: true }), ctx({ mode: 'page' }))).toBe('redo');
+  });
+
+  it('deletes picked marks even with no focused draft', () => {
+    expect(keyAction(key({ key: 'Backspace' }), ctx({ mode: 'page', marksPicked: true }))).toBe('delete');
   });
 
   it('deletes only when a draft marker has focus', () => {

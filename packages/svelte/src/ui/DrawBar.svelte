@@ -129,11 +129,15 @@
   </button>
   <button
     class="icon-btn"
-    aria-label="Clear drawing"
-    disabled={annot.drawing.strokes.length === 0}
-    onclick={() => annot.clearDrawing()}
+    aria-label={annot.marksPicked ? 'Delete the selection' : 'Clear drawing'}
+    disabled={!annot.marksPicked && annot.drawing.strokes.length === 0}
+    onclick={() => {
+      if (!annot.deleteSelectedMarks()) annot.clearDrawing();
+    }}
   >
     <Icon name="trash" />
-    <span class="tooltip">Clear</span>
+    <span class="tooltip"
+      >{annot.marksPicked ? 'Delete selection' : 'Clear'}<kbd>⌫</kbd></span
+    >
   </button>
 </div>
