@@ -292,3 +292,39 @@ test('leaving Draw keeps the drawings as drafts and lets a click reach what is u
   await expect(popup(page)).toBeVisible();
   await expect(popup(page)).toContainText('Choose Pro');
 });
+
+test('one Draw session is one drawing, wherever the marks land', async ({ page, site }) => {
+  await page.goto(`${site}/`);
+  await setMode(page, 'Draw');
+  const free = (await page.locator('article[data-plan="Free"]').boundingBox())!;
+  const team = (await page.locator('article[data-plan="Team"]').boundingBox())!;
+
+  await tool(page, 'Rectangle').click();
+  await drawRect(page, { x: free.x + 20, y: free.y + 20 }, { x: free.x + 90, y: free.y + 70 });
+  await drawRect(page, { x: team.x + 20, y: team.y + 20 }, { x: team.x + 90, y: team.y + 70 });
+
+  // Far apart, and still one note: the session is the unit, not the distance between marks.
+  await expect.poll(() => strokeXs(page).then((xs) => xs.length)).toBe(2);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const el = document.querySelector('annot-overlay') as { state?: { drawings: unknown[] } } | null;
+        return el?.state?.drawings.length ?? 0;
+      }),
+    )
+    .toBe(1);
+});
+
+test('the page is held still while drawing, and free again after', async ({ page, site }) => {
+  await page.goto(`${site}/`);
+  await setMode(page, 'Draw');
+  const before = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, 400);
+  await page.waitForTimeout(200);
+  expect(await page.evaluate(() => window.scrollY)).toBe(before);
+
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  await page.mouse.wheel(0, 400);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before);
+});

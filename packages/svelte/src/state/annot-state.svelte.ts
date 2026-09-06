@@ -453,6 +453,10 @@ export class AnnotState {
       this.clearDrawSelection();
       void this.commitDrawings();
     }
+    if (this.mode === 'page' && was !== 'page') {
+      this.announce('Drawing. The page is held still; Esc to move around.');
+      this.toast('The page is held still while you draw — Esc to move around', null, 4000);
+    }
     if (!this.mode) this.clearTransient();
   }
 
@@ -1044,12 +1048,15 @@ export class AnnotState {
     return best;
   }
 
-  /** The drawing a stroke starting at this point joins, or a new one. */
-  drawingForPoint(x: number, y: number): string {
-    const hit = this.drawingAt(x, y);
-    if (!hit) return this.newDrawing();
-    if (!hit.committed) this.activeDrawingId = hit.id;
-    return hit.id;
+  /**
+   * The drawing a new stroke joins. One Draw session is one drawing wherever you put the marks;
+   * stepping inside an existing one with Move is the only way to add to that one instead.
+   */
+  drawingForPoint(_x: number, _y: number): string {
+    if (this.insideDrawing) return this.insideDrawing;
+    const open = this.activeDrawingId;
+    if (open && this.drawings.some((d) => d.id === open)) return open;
+    return this.newDrawing();
   }
 
   setDrawingStrokes(id: string, strokes: Stroke[]): void {

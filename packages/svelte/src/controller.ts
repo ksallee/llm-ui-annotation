@@ -173,6 +173,34 @@ export function paintTextHighlights(state: AnnotState): void {
   paintHighlights(state.doc, byStatus);
 }
 
+const SCROLL_KEYS = new Set([
+  'PageUp', 'PageDown', 'Home', 'End', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ',
+]);
+
+/**
+ * Hold the page still while a drawing is open. A drawing is anchored in document coordinates, so
+ * scrolling mid-drawing would stretch one note across a screenful it never meant to cover. Events
+ * are suppressed rather than styles changed: the host page's DOM is never ours to touch.
+ */
+export function holdScroll(state: AnnotState, host: Element | null, held: boolean): () => void {
+  const doc = state.doc;
+  const view = doc.defaultView;
+  if (!held || !view) return () => {};
+  const stop = (event: Event): void => event.preventDefault();
+  const stopKeys = (event: KeyboardEvent): void => {
+    if (isTyping(event.target, host) || !SCROLL_KEYS.has(event.key)) return;
+    event.preventDefault();
+  };
+  view.addEventListener('wheel', stop, { passive: false });
+  view.addEventListener('touchmove', stop, { passive: false });
+  doc.addEventListener('keydown', stopKeys);
+  return () => {
+    view.removeEventListener('wheel', stop);
+    view.removeEventListener('touchmove', stop);
+    doc.removeEventListener('keydown', stopKeys);
+  };
+}
+
 export function freezeWhile(state: AnnotState, frozen: boolean): () => void {
   if (!frozen) return () => {};
   return freezeAnimations(state.doc);

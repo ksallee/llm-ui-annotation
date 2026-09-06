@@ -7,6 +7,7 @@
     commitPopup,
     drawingPalette,
     freezeWhile,
+    holdScroll,
     locate,
     LOCATE_KEY,
     paintTextHighlights,
@@ -147,6 +148,8 @@
   $effect(() => bindKeys(annot, host, { commit: () => primaryAction(annot) }));
 
   $effect(() => freezeWhile(annot, annot.frozen));
+
+  $effect(() => holdScroll(annot, host, annot.mode === 'page'));
 
   $effect(() => {
     const mode = annot.mode;

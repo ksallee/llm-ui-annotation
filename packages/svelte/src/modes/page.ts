@@ -1,5 +1,5 @@
 import type { Rect, Stroke } from '@llm-ui-annotation/core';
-import { findElementsInRect, strokeBounds } from '../dom/core-dom.js';
+import { findElementsInRect } from '../dom/core-dom.js';
 import { rectFromPoints, sample } from '../dom/geometry.js';
 import type { AnnotState } from '../state/annot-state.svelte.js';
 
