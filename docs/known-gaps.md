@@ -152,3 +152,8 @@ Kept so nobody re-files them.
 - **The overlay cannot tell whether an agent is listening** (bug). Sending shows "Waiting for the agent" even when no `annot watch` is attached, so a correct send looks like a failure. The plugin already knows the answer from its open SSE clients.
 - **Strokes cannot be selected, moved, resized or restyled** (unimplemented). Draw is write-once: undo or erase the whole stroke. The resizable region from spec 09 §6 is the capture box, not the marks.
 - **A drawing cannot be grabbed as one object** (unimplemented). No select-all, and the region box cannot be dragged to move the marks inside it; `Clear drawing` is the only whole-drawing action.
+
+## Found by hand, not yet specced
+
+- ~~A sent annotation cannot be deleted~~ — fixed: delete is allowed for any status, and removes the screenshot and attachment directory with it.
+- **`vite-plugin/test/ws.test.ts` is flaky under CPU load** (test). The external-edit case waits on an `fs.watch` debounce of 100 ms; with several agents building in parallel the window is missed. Passes 4/4 in isolation, fails around half the time under load. The debounce should be configurable so the test can widen it.

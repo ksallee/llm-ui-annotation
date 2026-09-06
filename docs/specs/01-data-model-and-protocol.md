@@ -148,7 +148,7 @@ Every transition appends a `Message` when one is given. The resolution comes fro
 
 Also exported: `allowedTransitions(from, by)`, `IllegalTransitionError` (carries `allowed`), `makeMessage`.
 
-Deletion is allowed for `draft` only. Anything sent is history; the user can approve it to hide it.
+Deletion is allowed for **any** status. `.annotations/` is a scratch directory, not an audit log: a note sent by mistake has to be removable, and approving it to hide it claims the agent did work it never did. Deleting removes the annotation, its screenshot and its attachment directory.
 
 ## Files on disk
 

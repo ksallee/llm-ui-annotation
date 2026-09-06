@@ -141,19 +141,23 @@ describe('annotations', () => {
     expect((await readEventLog()).at(-1)?.type).toBe('thread.message');
   });
 
-  it('deletes a draft and refuses to delete anything sent', async () => {
+  it('deletes a note whatever its status', async () => {
     const draft = await post<Annotation>('/__annot/annotations', makeAnnotation());
-    const kept = await post<Annotation>('/__annot/annotations', makeAnnotation());
+    const sent = await post<Annotation>('/__annot/annotations', makeAnnotation());
     await post<Batch>('/__annot/batches', {
       route: '/pricing',
-      annotationIds: [kept.id],
+      annotationIds: [sent.id],
       summary: null,
     });
+    await post<Annotation>(`/__annot/annotations/${sent.id}/transition`, {
+      to: 'acknowledged',
+      by: 'agent',
+    });
 
+    // `.annotations/` is a scratch directory, not an audit log: a note sent by mistake has to go.
     expect(await h.api(`/__annot/annotations/${draft.id}`, { method: 'DELETE' })).toEqual({ ok: true });
-    const refused = await h.raw(`/__annot/annotations/${kept.id}`, { method: 'DELETE' });
-    expect(refused.status).toBe(409);
-    expect((await routeOf('/pricing')).annotations.map((a) => a.id)).toEqual([kept.id]);
+    expect(await h.api(`/__annot/annotations/${sent.id}`, { method: 'DELETE' })).toEqual({ ok: true });
+    expect((await routeOf('/pricing')).annotations).toEqual([]);
   });
 });
 
