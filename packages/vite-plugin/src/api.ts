@@ -165,8 +165,9 @@ export function createApi(
     assertSameOrigin(req);
     const id = safeId(params);
     const name = cleanAttachmentName(url.searchParams.get('name') ?? '');
+    const by = url.searchParams.get('by') === 'agent' ? 'agent' : 'user';
     const body = await readBody(req, ATTACHMENT_MAX_BYTES);
-    const { attachment } = await store.addAttachment(id, body, name);
+    const { attachment } = await store.addAttachment(id, body, name, by);
     sendJson(res, 201, attachment);
   });
 

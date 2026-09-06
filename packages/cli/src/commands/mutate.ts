@@ -1,4 +1,6 @@
-import type { Annotation, NewMessage, Status } from '@llm-ui-annotation/core';
+import { formatBytes, type Annotation, type Attachment, type NewMessage, type Status } from '@llm-ui-annotation/core';
+import { readFile } from 'node:fs/promises';
+import { basename, isAbsolute, join, resolve } from 'node:path';
 import { flagString, type Args } from '../args.js';
 import type { Context } from '../context.js';
 import { CliError, EXIT_OK } from '../errors.js';
@@ -90,5 +92,40 @@ export async function reply(ctx: Context, args: Args, io: Io): Promise<number> {
   const next = await ctx.store.appendMessage(a, { role: 'agent', kind: 'comment', text });
   if (ctx.json) json(io, { annotations: [next] });
   else io.out(statusLine(next.number, next.status, 'comment'));
+  return EXIT_OK;
+}
+
+/** `annot attach <id> <file…>`: hand a file back to the user. */
+export async function attach(ctx: Context, args: Args, io: Io): Promise<number> {
+  const [token, ...files] = args.positionals;
+  if (token === undefined || files.length === 0) {
+    throw new CliError('usage: annot attach <id> <file…>');
+  }
+  const all = await ctx.store.annotations();
+  let a = resolveOne(all, token, ctx.route);
+
+  const added: Attachment[] = [];
+  for (const file of files) {
+    const path = isAbsolute(file) ? file : resolve(process.cwd(), file);
+    const bytes = await readFile(path).catch(() => {
+      throw new CliError(`cannot read ${file}`);
+    });
+    const result = await ctx.store.attach(a, bytes, basename(path));
+    a = result.annotation;
+    added.push(result.attachment);
+  }
+
+  if (ctx.json) {
+    json(io, { annotations: [a], attachments: added });
+    return EXIT_OK;
+  }
+  io.out(
+    added
+      .flatMap((x) => [
+        `#${a.number} attached ${x.name} (${x.type}, ${formatBytes(x.bytes)})`,
+        `  ${join(ctx.dir, x.path)}`,
+      ])
+      .join('\n'),
+  );
   return EXIT_OK;
 }

@@ -1,10 +1,19 @@
 import {
+  ACCEPTED_ATTACHMENT_TYPES,
   applyTransition,
+  ATTACHMENT_MAX_BYTES,
+  ATTACHMENT_MAX_COUNT,
+  ATTACHMENT_TOTAL_MAX_BYTES,
+  attachmentExtension,
+  cleanAttachmentName,
   makeMessage,
+  newId,
   nowIso,
   slug,
+  sniffAttachmentType,
   type Actor,
   type Annotation,
+  type Attachment,
   type Batch,
   type Event,
   type NewEvent,
@@ -17,15 +26,44 @@ import {
 import {
   appendEvent,
   lastEventSeq,
+  writeAttachment,
   readAllAnnotations,
   readBatch,
   readEvents,
   readRoute,
   writeRoute,
 } from '@llm-ui-annotation/core/node';
-import { CliError, EXIT_ILLEGAL } from './errors.js';
+import { CliError, EXIT_FAIL, EXIT_ILLEGAL } from './errors.js';
 
 export const POLL_MS = 150;
+
+export interface Attached {
+  annotation: Annotation;
+  attachment: Attachment;
+}
+
+/** The type and the caps, applied the same way the plugin applies them. */
+export function checkAttachment(a: Annotation, bytes: Uint8Array, name: string): string {
+  if (bytes.length === 0) throw new CliError(`${name} is empty`);
+  if (bytes.length > ATTACHMENT_MAX_BYTES) {
+    throw new CliError(`${name} is larger than ${ATTACHMENT_MAX_BYTES} bytes`);
+  }
+  const type = sniffAttachmentType(bytes, name);
+  if (type === null) {
+    throw new CliError(`${name}: unsupported file type`, EXIT_FAIL, [
+      `accepted: ${ACCEPTED_ATTACHMENT_TYPES.join(', ')}`,
+    ]);
+  }
+  const existing = a.attachments ?? [];
+  if (existing.length >= ATTACHMENT_MAX_COUNT) {
+    throw new CliError(`#${a.number} already has ${ATTACHMENT_MAX_COUNT} attachments`);
+  }
+  const total = existing.reduce((n, x) => n + x.bytes, 0);
+  if (total + bytes.length > ATTACHMENT_TOTAL_MAX_BYTES) {
+    throw new CliError(`#${a.number} would exceed ${ATTACHMENT_TOTAL_MAX_BYTES} bytes of attachments`);
+  }
+  return type;
+}
 
 export interface Store {
   readonly kind: 'http' | 'file';
@@ -35,6 +73,7 @@ export interface Store {
   batch(id: string): Promise<Batch | null>;
   transition(a: Annotation, to: Status, by: Actor, msg?: NewMessage): Promise<Annotation>;
   appendMessage(a: Annotation, msg: NewMessage): Promise<Annotation>;
+  attach(a: Annotation, bytes: Uint8Array, name: string): Promise<Attached>;
   events(since: number): Promise<Event[]>;
   lastSeq(): Promise<number>;
   stream(since: number, signal: AbortSignal): AsyncGenerator<Event>;
@@ -126,6 +165,37 @@ export class FileStore implements Store {
       status: a.status,
       message,
     });
+  }
+
+  async attach(a: Annotation, bytes: Uint8Array, rawName: string): Promise<Attached> {
+    const name = cleanAttachmentName(rawName);
+    const type = checkAttachment(a, bytes, name);
+    const now = nowIso();
+    const id = newId();
+    const path = await writeAttachment(this.dir, a.id, id, attachmentExtension(type), bytes);
+    const attachment: Attachment = {
+      id,
+      name,
+      type,
+      bytes: bytes.length,
+      path,
+      at: now,
+      by: 'agent',
+    };
+    const next: Annotation = {
+      ...a,
+      attachments: [...(a.attachments ?? []), attachment],
+      updatedAt: now,
+    };
+    const annotation = await this.commit(a, next, {
+      at: now,
+      type: 'annotation.updated',
+      by: 'agent',
+      route: a.route,
+      annotationId: a.id,
+      status: a.status,
+    });
+    return { annotation, attachment };
   }
 
   events(since: number): Promise<Event[]> {
@@ -220,6 +290,23 @@ export class HttpStore implements Store {
   /** No wire verb appends a message without a transition, so this one writes files. */
   appendMessage(a: Annotation, msg: NewMessage): Promise<Annotation> {
     return this.files.appendMessage(a, msg);
+  }
+
+  async attach(a: Annotation, bytes: Uint8Array, rawName: string): Promise<Attached> {
+    const name = cleanAttachmentName(rawName);
+    checkAttachment(a, bytes, name);
+    const attachment = await this.request<Attachment>(
+      `/annotations/${a.id}/attachments?name=${encodeURIComponent(name)}&by=agent`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/octet-stream' },
+        body: new Blob([Uint8Array.from(bytes)]),
+      },
+    );
+    return {
+      annotation: { ...a, attachments: [...(a.attachments ?? []), attachment] },
+      attachment,
+    };
   }
 
   async events(since: number): Promise<Event[]> {

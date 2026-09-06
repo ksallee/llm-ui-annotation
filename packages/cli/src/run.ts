@@ -5,7 +5,7 @@ import { CliError, EXIT_FAIL, EXIT_OK } from './errors.js';
 import { HELP } from './help.js';
 import { consoleIo, type Io } from './output.js';
 import { init } from './commands/init.js';
-import { ack, ask, decline, done, reply } from './commands/mutate.js';
+import { ack, ask, attach, decline, done, reply } from './commands/mutate.js';
 import { doctor, pending, routes, screenshot, show } from './commands/read.js';
 import { watch } from './commands/watch.js';
 
@@ -19,6 +19,7 @@ const COMMANDS: Record<string, Command> = {
   show,
   ack,
   ask,
+  attach,
   reply,
   done,
   decline,
