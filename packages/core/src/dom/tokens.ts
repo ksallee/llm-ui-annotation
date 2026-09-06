@@ -141,12 +141,16 @@ function collectRules(
     }
 
     const nested = (rule as CSSGroupingRule).cssRules;
-    if (nested) {
+    const { style, selectorText } = rule as CSSStyleRule;
+
+    // Since CSS nesting, a browser gives every style rule a `cssRules` list of its own, so what
+    // makes a rule a grouping rule is the missing selector, not the presence of the list.
+    if (nested && selectorText === undefined) {
       if (conditionHolds(rule, view)) collectRules(nested, chain, view, into);
       continue;
     }
+    if (nested && nested.length > 0) collectRules(nested, chain, view, into);
 
-    const { style, selectorText } = rule as CSSStyleRule;
     if (!style || selectorText === undefined) continue;
     const names = customNames(style);
     if (names.length === 0) continue;

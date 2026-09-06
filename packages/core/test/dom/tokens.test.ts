@@ -143,3 +143,20 @@ describe('markdown', () => {
     );
   });
 });
+
+describe('a browser that gives every style rule a cssRules list', () => {
+  it('still reads the declarations of a style rule', () => {
+    const el = styled(
+      ':root{--brand:#2c8a85}button.cta{background:var(--brand)}',
+      '<button class="cta" data-target>Go</button>',
+    );
+    // Since CSS nesting, Chrome's CSSStyleRule carries an empty `cssRules` of its own.
+    for (const sheet of Array.from(document.styleSheets)) {
+      for (const rule of Array.from(sheet.cssRules)) {
+        if ((rule as CSSStyleRule).selectorText === undefined) continue;
+        Object.defineProperty(rule, 'cssRules', { get: () => [] as unknown as CSSRuleList });
+      }
+    }
+    expect(describeElement(el).tokens?.['background-color']).toBe('--brand');
+  });
+});
