@@ -10,6 +10,7 @@
     LOCATE_KEY,
     paintTextHighlights,
     primaryAction,
+    watchPageDrops,
     watchViewport,
   } from '../controller.js';
   import { clearHighlights, ensureHighlightStyle, supportsHighlights } from '../dom/highlights.js';
@@ -134,6 +135,8 @@
 
   $effect(() => watchViewport(annot));
 
+  $effect(() => (annot.mode ? watchPageDrops(annot) : undefined));
+
   $effect(() => bindKeys(annot, host, { commit: () => primaryAction(annot) }));
 
   $effect(() => freezeWhile(annot, annot.frozen));
@@ -245,6 +248,14 @@
         }}
         onblur={() => commitLabel(annot)}
       />
+    {/if}
+
+    {#if annot.pageDrop}
+      <div class="drop-veil">
+        <span class="chip">
+          {annot.popup ? 'Drop to attach to this note' : 'Write a note first, then drop the file on it'}
+        </span>
+      </div>
     {/if}
 
     {#if hovered}

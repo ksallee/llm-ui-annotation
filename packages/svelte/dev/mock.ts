@@ -1,9 +1,14 @@
 import {
+  ACCEPTED_ATTACHMENT_TYPES,
   applyTransition,
+  attachmentExtension,
+  attachmentFile,
   newId,
   nowIso,
+  sniffAttachmentType,
   slug,
   type Annotation,
+  type Attachment,
   type Batch,
   type Event,
   type RouteFile,
@@ -46,11 +51,17 @@ const find = (id: string): Annotation | null => {
   return null;
 };
 
-const body = async (req: Connect.IncomingMessage): Promise<string> => {
+const bytes = async (req: Connect.IncomingMessage): Promise<Buffer> => {
   const chunks: Buffer[] = [];
   for await (const chunk of req) chunks.push(chunk as Buffer);
-  return Buffer.concat(chunks).toString('utf8');
+  return Buffer.concat(chunks);
 };
+
+const body = async (req: Connect.IncomingMessage): Promise<string> =>
+  (await bytes(req)).toString('utf8');
+
+/** Attachment bytes, by `<annotationId>/<attachmentId>`. */
+const files = new Map<string, { type: string; data: Buffer }>();
 
 /** Pretends to be the agent: acks a batch, then answers by the comment prefix. */
 function fakeAgent(batch: Batch): void {
@@ -174,6 +185,61 @@ export function mockAnnot(base = '/__annot'): Plugin {
             emit({ type: 'annotation.deleted', by: 'user', route: a.route, annotationId: id });
           }
           return send(200, { ok: true });
+        }
+
+        const attach = /^\/annotations\/([^/]+)\/attachments$/.exec(path);
+        if (attach && req.method === 'POST') {
+          const a = find(attach[1]!);
+          const data = await bytes(req);
+          if (!a) return send(404, { error: 'not found' });
+          const name = url.searchParams.get('name') ?? 'file';
+          const type = sniffAttachmentType(data, name);
+          if (!type) {
+            return send(415, {
+              error: 'unsupported file type',
+              problems: [`accepted: ${ACCEPTED_ATTACHMENT_TYPES.join(', ')}`],
+            });
+          }
+          const attachment: Attachment = {
+            id: newId(),
+            name,
+            type,
+            bytes: data.length,
+            path: attachmentFile(a.id, newId(), attachmentExtension(type)),
+            at: nowIso(),
+            by: 'user',
+          };
+          files.set(`${a.id}/${attachment.id}`, { type, data });
+          const next = { ...a, attachments: [...(a.attachments ?? []), attachment], updatedAt: nowIso() };
+          put(next);
+          emit({ type: 'annotation.updated', by: 'user', route: next.route, annotationId: next.id, data: next });
+          return send(201, attachment);
+        }
+
+        const detach = /^\/annotations\/([^/]+)\/attachments\/([^/]+)$/.exec(path);
+        if (detach && req.method === 'DELETE') {
+          const a = find(detach[1]!);
+          if (!a) return send(404, { error: 'not found' });
+          files.delete(`${a.id}/${detach[2]!}`);
+          const next = {
+            ...a,
+            attachments: (a.attachments ?? []).filter((x) => x.id !== detach[2]),
+            updatedAt: nowIso(),
+          };
+          put(next);
+          emit({ type: 'annotation.updated', by: 'user', route: next.route, annotationId: next.id, data: next });
+          return send(200, { ok: true });
+        }
+
+        const attachment = /^\/attachments\/([^/]+)\/([^/]+)$/.exec(path);
+        if (attachment && req.method === 'GET') {
+          const stored = files.get(`${attachment[1]}/${attachment[2]}`);
+          if (!stored) return send(404, { error: 'not found' });
+          res.statusCode = 200;
+          res.setHeader('content-type', stored.type);
+          res.setHeader('x-content-type-options', 'nosniff');
+          res.end(stored.data);
+          return;
         }
 
         const shot = /^\/screenshots\/([^/]+)$/.exec(path);

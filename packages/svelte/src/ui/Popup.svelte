@@ -2,7 +2,10 @@
   import type { ElementRef } from '@llm-ui-annotation/core';
   import { place } from '../dom/geometry.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
+  import Attachments from './Attachments.svelte';
+  import { fileDrop, filesOf } from './drop.js';
   import { trapFocus } from './focus.js';
+  import Icon from './Icon.svelte';
 
   let {
     annot,
@@ -17,6 +20,18 @@
   const primary = $derived(
     popup.editing ? 'Save' : annot.sendMode === 'immediate' ? 'Send' : 'Add',
   );
+
+  const attachedTo = $derived(popup.editing ?? popup.draftId);
+  const attachments = $derived(
+    attachedTo ? (annot.annotations.get(attachedTo)?.attachments ?? []) : [],
+  );
+
+  /** Attach to the note being written, creating the draft behind it on the first file. */
+  async function take(files: File[]): Promise<void> {
+    if (files.length === 0) return;
+    const id = await annot.popupAnnotation();
+    if (id) await annot.attach(id, files);
+  }
 
   const refs = $derived.by((): ElementRef[] => {
     const target = popup.target;
@@ -67,10 +82,17 @@
   class="card popup"
   bind:this={card}
   use:trapFocus
+  use:fileDrop={(files) => void take(files)}
   role="dialog"
   tabindex="-1"
   aria-label="Annotation"
   style="left: {at.x}px; top: {at.y}px"
+  onpaste={(e) => {
+    const files = filesOf(e);
+    if (files.length === 0) return;
+    e.preventDefault();
+    void take(files);
+  }}
   onkeydown={(e) => {
     if (e.key === 'Escape') {
       e.stopPropagation();
@@ -97,6 +119,12 @@
     placeholder="What should change?"
     aria-label="What should change?"
   ></textarea>
+
+  {#if attachedTo}
+    <Attachments {annot} id={attachedTo} items={attachments} />
+  {/if}
+
+  <span class="drop-hint"><Icon name="clip" size={14} /> Drop to attach</span>
 
   <div class="row">
     <button

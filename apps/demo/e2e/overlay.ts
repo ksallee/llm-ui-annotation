@@ -125,6 +125,32 @@ export async function clickHost(page: Page, selector: string): Promise<void> {
   await page.mouse.click(at.x, at.y);
 }
 
+/** 1×1 PNG, real enough for the server's magic-byte sniff. */
+export const PNG_FILE =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+/** Drag a file over a target inside the shadow root and drop it there. */
+export async function dropFile(
+  page: Page,
+  target: Locator,
+  name: string,
+  type: string,
+  base64: string,
+): Promise<void> {
+  const transfer = await page.evaluateHandle(
+    ({ name, type, base64 }) => {
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      const data = new DataTransfer();
+      data.items.add(new File([bytes], name, { type }));
+      return data;
+    },
+    { name, type, base64 },
+  );
+  await target.dispatchEvent('dragenter', { dataTransfer: transfer });
+  await target.dispatchEvent('dragover', { dataTransfer: transfer });
+  await target.dispatchEvent('drop', { dataTransfer: transfer });
+}
+
 export async function marquee(
   page: Page,
   from: { x: number; y: number },
