@@ -52,7 +52,27 @@ endpoint be written to cross-origin. 415 rather than the 400 first written here:
 exactly this, and the body still names the list. Callers send the real MIME or `application/octet-stream`.
 Attachments are served back with `nosniff` and a sandbox CSP so an uploaded SVG cannot run on the dev origin.
 
-### What the agent sees
+#### In the overlay
+
+Four ways to say "make it look like this", all of them a file landing on one annotation:
+
+- **Drop on the popup** while writing, and **paste** an image from the clipboard into it. The note
+  has no id yet, so the first file creates its draft server-side — status `draft`, empty comment,
+  empty thread — and the commit PATCHes the comment onto it. Cancelling deletes that draft, and
+  with it the attachment directory.
+- **Drop on a panel row**, which is the common case: the reference turns up after the note is
+  written.
+- **Drop on the page** while a mode is active attaches to the note being written; with no popup
+  open the toast says where to drop instead of doing nothing quietly.
+
+Only file drags are taken: a text drag in the host page is never preventDefaulted, and a target
+outlines itself only while files are over it. Attachments show as chips under the comment, images as
+32 px thumbnails from `GET /attachments/:id/:attachmentId`, each opening in a new tab and each
+removable. A refusal is a toast naming the reason: the accepted list for 415, the caps for 413.
+Uploads go out as `application/octet-stream` — the server refuses the CORS-simple types, so a `.txt`
+sent under its own MIME would come back 415.
+
+## What the agent sees
 
 `renderBatchMarkdown` gains a line per annotation that has them, at every level:
 

@@ -2,6 +2,8 @@
   import type { Annotation, Status } from '@llm-ui-annotation/core';
   import { relativeTime } from '../dom/geometry.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
+  import Attachments from './Attachments.svelte';
+  import { fileDrop } from './drop.js';
   import Icon from './Icon.svelte';
   import Thumb from './Thumb.svelte';
   import { targetLine } from './target-line.js';
@@ -65,6 +67,7 @@
   );
   const picked = $derived(annot.selected.has(a.id));
   const hidden = $derived(annot.hiddenDrawings.has(a.id));
+  const attachments = $derived(a.attachments ?? []);
 
   function send(kind: 'answer' | 'reopen' | 'comment'): void {
     const text = reply.trim();
@@ -97,6 +100,7 @@
   class="entry"
   class:approved={a.status === 'approved'}
   class:picked
+  use:fileDrop={(files) => void annot.attach(a.id, files)}
   onmouseenter={() => (annot.previewId = a.id)}
   onmouseleave={() => annot.previewId === a.id && (annot.previewId = null)}
 >
@@ -152,6 +156,9 @@
         }}>Say what should change before sending this</button
       >
     {/if}
+
+    <Attachments {annot} id={a.id} items={attachments} />
+    <span class="drop-hint"><Icon name="clip" size={14} /> Drop to attach to #{a.number}</span>
 
     {#if !expanded && last && last.kind !== 'comment'}
       <div class="muted" style="color: var(--annot-{last.role === 'agent' ? 'accent' : 'ink-2'})">

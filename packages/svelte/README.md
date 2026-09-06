@@ -77,6 +77,15 @@ on the page. A checkbox per row appears on hover: `⇧`-click extends, `⌘A` ta
 and the footer turns into Approve / Reopen / Send / Delete with the count each transition allows,
 enabled only when every selected row allows it.
 
+## Attachments
+
+Drop a file on the popup, on a panel row, or on the page while a mode is active, or paste an image
+into the popup. The first file dropped on a note being written creates its draft so the bytes have
+somewhere to land; cancelling the popup deletes that draft and its files. Chips sit under the
+comment, images as 32 px thumbnails, each removable and each opening in a new tab. Only file drags
+are intercepted, so dragging text around the host page still works. Accepted types and caps live in
+the plugin; a refusal becomes a toast naming the accepted list or the cap.
+
 ## Design and isolation
 
 Every colour, size, radius and duration comes from a token computed by

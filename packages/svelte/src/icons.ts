@@ -35,6 +35,8 @@ export const ICONS = {
   frame: '<path d="M6 2.5V14h11.5"/><path d="M2.5 6H14v11.5"/>',
   fit: '<path d="M3.5 7V3.5H7M13 3.5h3.5V7M16.5 13v3.5H13M7 16.5H3.5V13"/><rect x="7" y="7" width="6" height="6" rx="1"/>',
   warn: '<path d="M10 4.5 17 16H3z"/><path d="M10 9v3M10 14h.01"/>',
+  file: '<path d="M11.5 3.5H6A1.5 1.5 0 0 0 4.5 5v10A1.5 1.5 0 0 0 6 16.5h8a1.5 1.5 0 0 0 1.5-1.5V7.5z"/><path d="M11.5 3.5v4h4"/>',
+  clip: '<path d="M14.8 9.3 9.5 14.6a3.2 3.2 0 0 1-4.5-4.5l5.8-5.8a2.1 2.1 0 0 1 3 3l-5.8 5.8a1 1 0 0 1-1.4-1.4l5.1-5.1"/>',
 } as const;
 
 export type IconName = keyof typeof ICONS;

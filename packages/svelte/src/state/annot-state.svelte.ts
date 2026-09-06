@@ -1,5 +1,9 @@
 import {
+  ACCEPTED_ATTACHMENT_TYPES,
   applyTransition,
+  ATTACHMENT_MAX_BYTES,
+  ATTACHMENT_TOTAL_MAX_BYTES,
+  formatBytes,
   newId,
   nowIso,
   PROTOCOL_VERSION,
@@ -7,6 +11,7 @@ import {
   type AnchorState,
   type Annotation,
   type Actor,
+  type Attachment,
   type Event,
   type Message,
   type MessageKind,
@@ -31,7 +36,7 @@ import {
   transformStrokes,
 } from '../dom/core-dom.js';
 import { routeOf, type DetailLevel, type MarkerVisibility, type SendMode } from '../options.js';
-import { AnnotClient } from '../transport/client.js';
+import { AnnotClient, AnnotHttpError } from '../transport/client.js';
 import { DEFAULT_PREFS, loadPrefs, savePrefs, type Prefs } from './prefs.js';
 
 export type Connection = 'connected' | 'polling' | 'offline';
@@ -71,6 +76,21 @@ export interface PopupState {
   detail: boolean;
   editing: string | null;
   busy: boolean;
+  /** The draft created early so a dropped file had somewhere to land. */
+  draftId: string | null;
+}
+
+/** What a refused attachment says to the user, reason first. */
+export function attachFailure(name: string, error: unknown): string {
+  if (!(error instanceof AnnotHttpError)) return `Could not attach ${name}`;
+  if (error.status === 415) {
+    return `${name}: unsupported type — ${error.problems[0] ?? `accepted: ${ACCEPTED_ATTACHMENT_TYPES.join(', ')}`}`;
+  }
+  if (error.status === 413) {
+    return `${name}: too large — ${formatBytes(ATTACHMENT_MAX_BYTES)} per file, ${formatBytes(ATTACHMENT_TOTAL_MAX_BYTES)} per annotation`;
+  }
+  if (error.status === 403) return `${name}: refused, uploads must come from this origin`;
+  return `${name}: ${error.message}`;
 }
 
 export interface HoverState {
@@ -198,6 +218,10 @@ export class AnnotState {
   announcement = $state('');
   otherRouteDrafts = $state(0);
   paletteOpen = $state(false);
+  /** A file drag is over the page while a mode is active. */
+  pageDrop = $state(false);
+  /** Annotations with an attachment upload in flight. */
+  readonly attaching = new SvelteSet<string>();
   /** Settings is listening for the next chord; the controller must not act on it. */
   capturingKey = $state(false);
   readonly selected = new SvelteSet<string>();
@@ -210,6 +234,7 @@ export class AnnotState {
   #selectionAnchor: string | null = null;
 
   #hoverTimer = 0;
+  #creating: Promise<string | null> | null = null;
 
   readonly doc: Document;
   readonly client: AnnotClient;
@@ -727,6 +752,95 @@ export class AnnotState {
     }
   }
 
+  // ----------------------------------------------------------- attachments
+
+  /** Post files to an annotation, one toast per refusal. */
+  async attach(id: string, files: readonly File[]): Promise<void> {
+    for (const file of files) {
+      if (file.size > ATTACHMENT_MAX_BYTES) {
+        this.toast(
+          `${file.name}: too large — ${formatBytes(ATTACHMENT_MAX_BYTES)} per file, ${formatBytes(ATTACHMENT_TOTAL_MAX_BYTES)} per annotation`,
+        );
+        continue;
+      }
+      this.attaching.add(id);
+      try {
+        const attachment = await this.client.attach(id, file, file.name);
+        this.mergeAttachment(id, attachment);
+        this.announce(`Attached ${attachment.name}`);
+      } catch (error) {
+        if (!(error instanceof AnnotHttpError)) this.connection = 'offline';
+        this.toast(attachFailure(file.name, error));
+      } finally {
+        this.attaching.delete(id);
+      }
+    }
+  }
+
+  mergeAttachment(id: string, attachment: Attachment): void {
+    const current = this.annotations.get(id);
+    if (!current) return;
+    const rest = (current.attachments ?? []).filter((a) => a.id !== attachment.id);
+    this.applyLocal({ ...current, attachments: [...rest, attachment] });
+  }
+
+  async detach(id: string, attachmentId: string): Promise<void> {
+    const current = this.annotations.get(id);
+    if (!current) return;
+    this.applyLocal({
+      ...current,
+      attachments: (current.attachments ?? []).filter((a) => a.id !== attachmentId),
+    });
+    try {
+      await this.client.detach(id, attachmentId);
+    } catch {
+      this.connection = 'offline';
+      this.applyLocal(current);
+    }
+  }
+
+  /** The id the popup writes into, created server-side on first need; null when that failed. */
+  async popupAnnotation(): Promise<string | null> {
+    const popup = this.popup;
+    if (!popup) return null;
+    if (popup.editing) return popup.editing;
+    this.#creating ??= this.#createPopupDraft(popup);
+    return this.#creating;
+  }
+
+  async #createPopupDraft(popup: PopupState): Promise<string | null> {
+    // Always a draft, never an immediate send: the comment is still being typed. The empty thread
+    // is what the commit's PATCH fills in, so the note ends up with one comment message, not two.
+    const annotation: Annotation = {
+      ...this.draft(popup.mode, popup.target, ''),
+      status: 'draft',
+      sentAt: null,
+      thread: [],
+    };
+    this.nextNumber++;
+    this.optimistic.add(annotation.id);
+    this.applyLocal(annotation);
+    popup.draftId = annotation.id;
+    try {
+      this.applyServer(await this.client.create(annotation));
+    } catch {
+      this.connection = 'offline';
+      this.toast('Dev server not reachable; kept in memory');
+      return null;
+    }
+    return annotation.id;
+  }
+
+  /** Finish a draft the popup created early: its comment, and the send when that is immediate. */
+  async finishDraft(id: string, comment: string): Promise<Annotation> {
+    await this.editComment(id, comment);
+    if (this.prefs.sendMode === 'immediate') {
+      await this.sendOne(id);
+      this.announce('Sent 1 annotation');
+    }
+    return this.annotations.get(id)!;
+  }
+
   // ---------------------------------------------------------------- anchors
 
   /** Re-resolve every visible annotation against the live DOM. */
@@ -1165,11 +1279,17 @@ export class AnnotState {
       detail: false,
       editing,
       busy: false,
+      draftId: null,
     };
+    this.#creating = null;
   }
 
+  /** Closing without committing takes the early draft, and its attachments, with it. */
   closePopup(): void {
+    const abandoned = this.popup?.draftId ?? null;
     this.popup = null;
+    this.#creating = null;
+    if (abandoned) void this.deleteDraft(abandoned);
   }
 
   breadcrumb(target: Target): string {

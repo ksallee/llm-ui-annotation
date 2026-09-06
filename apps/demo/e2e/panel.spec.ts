@@ -77,8 +77,9 @@ test('a drawing shows its marks in the row, an element note shows the mode icon'
   await commit(page, 'this grid is cramped');
 
   await openPanel(page);
-  await expect(row(page, 2).locator('.thumb .marks')).toBeVisible();
-  await expect(row(page, 1).locator('.thumb .marks')).toHaveCount(0);
+  // Either half of the rule: the screenshot once the plugin serves it, the strokes until then.
+  await expect(row(page, 2).locator('.thumb img, .thumb .marks')).toHaveCount(1);
+  await expect(row(page, 1).locator('.thumb img, .thumb .marks')).toHaveCount(0);
 });
 
 test('three review rows approve together in one step', async ({

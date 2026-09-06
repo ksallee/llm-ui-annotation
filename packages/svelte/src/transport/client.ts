@@ -2,6 +2,7 @@ import {
   DEFAULT_BASE_PATH,
   slug,
   type Annotation,
+  type Attachment,
   type Batch,
   type CreateBatchRequest,
   type ErrorResponse,
@@ -107,8 +108,6 @@ export class AnnotClient {
 
   /** An object URL for a stored screenshot, or null when the server has none. */
   async screenshotUrl(id: string): Promise<string | null> {
-    // TODO(ws-11 §1): the plugin has no `GET /screenshots/:id` yet; until it does this returns
-    // null and the panel falls back to drawing the strokes itself.
     try {
       const response = await this.#fetch(`${this.basePath}/screenshots/${id}`);
       if (!response.ok) return null;
@@ -124,5 +123,26 @@ export class AnnotClient {
       headers: { 'content-type': 'image/png' },
       body: png,
     });
+  }
+
+  /** Post one file to an annotation that already exists server-side. */
+  attach(id: string, file: Blob, name: string): Promise<Attachment> {
+    // The server sniffs the bytes and refuses the CORS-simple types, so the file's own MIME never
+    // goes on the wire: a .txt would arrive as `text/plain` and come back 415.
+    return this.#json<Attachment>(
+      `/annotations/${id}/attachments?name=${encodeURIComponent(name)}`,
+      { method: 'POST', headers: { 'content-type': 'application/octet-stream' }, body: file },
+    );
+  }
+
+  async detach(id: string, attachmentId: string): Promise<void> {
+    await this.#json<{ ok: true }>(`/annotations/${id}/attachments/${attachmentId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /** Where the browser reads an attachment back: an `<img>` source, or a tab to open. */
+  attachmentUrl(id: string, attachmentId: string): string {
+    return `${this.basePath}/attachments/${id}/${attachmentId}`;
   }
 }

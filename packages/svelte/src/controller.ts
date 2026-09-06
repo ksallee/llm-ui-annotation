@@ -6,6 +6,7 @@ import { DRAW_TOOLS } from './draw-tools.js';
 import { openElementPopup, openPagePopup, openTextPopup } from './modes/index.js';
 import { domToCanvas } from './screenshot.js';
 import type { AnnotState } from './state/annot-state.svelte.js';
+import { filesOf, isFileDrag } from './ui/drop.js';
 import { formatOklch, parseColor, type ThemeTokens } from '@llm-ui-annotation/core/theme';
 
 /** Scroll position, re-anchoring and the mutation watchdog. */
@@ -197,6 +198,52 @@ export function accentSuggestions(tokens: ThemeTokens): string[] {
   );
 }
 
+/** Files dropped on the page itself land on the note being written. */
+export function watchPageDrops(state: AnnotState): () => void {
+  const doc = state.doc;
+  const view = doc.defaultView;
+  if (!view) return () => {};
+  let timer = 0;
+
+  // dragover repeats for as long as the drag lives, so its silence is what ends the affordance;
+  // dragleave fires at every element boundary and cannot be trusted for it.
+  const idle = (): void => {
+    view.clearTimeout(timer);
+    timer = view.setTimeout(() => (state.pageDrop = false), 160);
+  };
+
+  const over = (event: DragEvent): void => {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    state.pageDrop = true;
+    idle();
+  };
+
+  const drop = (event: DragEvent): void => {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    view.clearTimeout(timer);
+    state.pageDrop = false;
+    const files = filesOf(event);
+    if (files.length === 0) return;
+    if (!state.popup) {
+      state.toast('Nothing is being written — drop the file on a note, or on its row in the panel');
+      return;
+    }
+    void state.popupAnnotation().then((id) => (id ? state.attach(id, files) : undefined));
+  };
+
+  doc.addEventListener('dragover', over);
+  doc.addEventListener('drop', drop);
+  return () => {
+    view.clearTimeout(timer);
+    state.pageDrop = false;
+    doc.removeEventListener('dragover', over);
+    doc.removeEventListener('drop', drop);
+  };
+}
+
 /** Turn the popup into an annotation, capturing a screenshot for page targets. */
 export async function commitPopup(state: AnnotState): Promise<void> {
   const popup = state.popup;
@@ -213,7 +260,11 @@ export async function commitPopup(state: AnnotState): Promise<void> {
   }
 
   let target: Target = popup.target;
-  const created = await state.add(popup.mode, target, comment);
+  // A file dropped while writing created the draft already, so it had somewhere to land.
+  const created = popup.draftId
+    ? await state.finishDraft(popup.draftId, comment)
+    : await state.add(popup.mode, target, comment);
+  popup.draftId = null;
 
   if (target.kind === 'page') {
     const png = await capturePage(state, target.region, target.strokes);
