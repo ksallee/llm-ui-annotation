@@ -281,10 +281,6 @@ export class Store {
     await this.withRoute(route, async () => {
       const file = await this.mutableRoute(route);
       const at = this.locate(file, id);
-      const previous = file.annotations[at] as Annotation;
-      if (previous.status !== 'draft') {
-        throw conflict(`only drafts can be deleted; #${previous.number} is ${previous.status}`);
-      }
       file.annotations.splice(at, 1);
       await this.save(file);
       await removeScreenshot(this.dir, id);

@@ -155,4 +155,5 @@ Kept so nobody re-files them.
 
 ## Found by hand, not yet specced
 
-- **A sent annotation cannot be deleted** (bug, design). Spec 01 allows deletion for `draft` only, so a note sent by mistake can never be removed — Approve is the only way to hide it, which claims the agent did something. `.annotations/` is a scratch directory, not an audit log. Delete should be allowed for any status, with a confirmation naming the risk when the agent may be mid-work (`sent`, `acknowledged`), and the plugin removing the screenshot and attachment directory with it.
+- ~~A sent annotation cannot be deleted~~ — fixed: delete is allowed for any status, and removes the screenshot and attachment directory with it.
+- **`vite-plugin/test/ws.test.ts` is flaky under CPU load** (test). The external-edit case waits on an `fs.watch` debounce of 100 ms; with several agents building in parallel the window is missed. Passes 4/4 in isolation, fails around half the time under load. The debounce should be configurable so the test can widen it.
