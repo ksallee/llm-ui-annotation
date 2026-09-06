@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
+import { screenshotPath } from '@llm-ui-annotation/core/node';
 import {
   ATTACHMENT_MAX_BYTES,
   cleanAttachmentName,
@@ -182,6 +183,11 @@ export function createApi(
     await sendAttachment(res, attachment, file);
   });
 
+  on('GET', '/screenshots/:id', async (_req, res, params) => {
+    const id = safeId(params);
+    await sendFileInert(res, screenshotPath(options.dir, id), 'image/png', `${id}.png`);
+  });
+
   const prefix = options.basePath;
 
   return (req, res, next) => {
@@ -263,14 +269,23 @@ async function streamEvents(
   }
 }
 
-/** Served inert: sniffing off, scripts off, so an SVG cannot run on the dev origin. */
 async function sendAttachment(res: ServerResponse, attachment: Attachment, file: string): Promise<void> {
+  await sendFileInert(res, file, attachment.type, attachment.name);
+}
+
+/** Served inert: sniffing off, scripts off, so an SVG cannot run on the dev origin. */
+async function sendFileInert(
+  res: ServerResponse,
+  file: string,
+  type: string,
+  name: string,
+): Promise<void> {
   const info = await stat(file).catch(() => null);
-  if (info === null) throw notFound(`attachment ${attachment.id} is missing from disk`);
+  if (info === null) throw notFound(`${name} is missing from disk`);
   res.writeHead(200, {
-    'content-type': attachment.type,
+    'content-type': type,
     'content-length': info.size,
-    'content-disposition': `inline; filename*=UTF-8''${encodeURIComponent(attachment.name)}`,
+    'content-disposition': `inline; filename*=UTF-8''${encodeURIComponent(name)}`,
     'x-content-type-options': 'nosniff',
     'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
     'cache-control': 'no-store',

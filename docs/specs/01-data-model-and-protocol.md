@@ -212,6 +212,7 @@ POST   /__annot/annotations/:id/transition      body { to: Status, by: Actor, me
 GET    /__annot/events?since=<seq>              → { events: Event[] }
 GET    /__annot/events/stream?since=<seq>       SSE, one Event per message, heartbeat every 15 s       (used by annot watch)
 POST   /__annot/screenshots/:id                 body image/png → { path }
+GET    /__annot/screenshots/:id                 → the PNG, served inert (nosniff, sandboxed CSP)
 POST   /__annot/annotations/:id/attachments     body the file bytes, ?name=<encoded>&by=user|agent → Attachment
 DELETE /__annot/annotations/:id/attachments/:attachmentId       → { ok: true }
 GET    /__annot/attachments/:id/:attachmentId                   → the file
