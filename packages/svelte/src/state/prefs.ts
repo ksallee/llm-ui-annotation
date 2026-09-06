@@ -18,6 +18,8 @@ export interface Prefs {
   expanded: boolean;
   /** The one global binding, as `comboOf` writes it. */
   paletteKey: string;
+  /** Viewport position of the drawing bar; null keeps it top centre. */
+  drawBar: { x: number; y: number } | null;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -33,6 +35,7 @@ export const DEFAULT_PREFS: Prefs = {
   blockInteractions: true,
   expanded: false,
   paletteKey: DEFAULT_PALETTE_KEY,
+  drawBar: null,
 };
 
 type Storage = Pick<globalThis.Storage, 'getItem' | 'setItem'>;

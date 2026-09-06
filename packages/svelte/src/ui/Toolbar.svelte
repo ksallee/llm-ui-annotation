@@ -32,6 +32,11 @@
       : cornerStyle(annot.prefs.corner, 20, annot.prefs.panelOpen ? 376 : 0),
   );
 
+  // A tooltip renders above its button; near the top of the viewport there is no room for one.
+  const tipsBelow = $derived(
+    dragging ? dragging.y < 48 : annot.prefs.corner === 'tl' || annot.prefs.corner === 'tr',
+  );
+
   function startDrag(event: PointerEvent): void {
     const pill = (event.currentTarget as HTMLElement).closest('.pill') as HTMLElement | null;
     const view = annot.doc.defaultView;
@@ -56,7 +61,7 @@
   }
 </script>
 
-<div class="pill" {style} role="toolbar" aria-label="Annotation toolbar">
+<div class="pill" class:tips-below={tipsBelow} {style} role="toolbar" aria-label="Annotation toolbar">
   {#if !annot.prefs.expanded}
     <button
       class="icon-btn"

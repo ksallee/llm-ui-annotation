@@ -46,6 +46,12 @@ The single pill has grown to about twenty-six controls, which is why it stopped 
 
 Tools carry number shortcuts `1`–`6` while Draw is active, shown in their tooltips.
 
+The drawing bar is draggable by its grip and clamped to the viewport, like the pill; its position is
+remembered in `annot:prefs` as `drawBar`, and top centre is only the default. Tooltips render above
+their button, so any bar sitting within 48 px of the viewport top flips them below — otherwise the
+bar's own tooltips are clipped by the top of the window. The same rule applies to the pill in a top
+corner.
+
 ## 5. Multi-block highlight
 
 Today a selection crossing a paragraph boundary is refused with a chip telling the reader to stay

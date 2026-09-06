@@ -10,9 +10,50 @@
 
   const tools: { tool: StrokeTool | 'eraser'; icon: IconName; label: string; key: string }[] =
     DRAW_TOOLS.map((t, i) => ({ ...t, key: String(i + 1) }));
+
+  let bar = $state<HTMLElement | null>(null);
+  let dragging = $state<{ x: number; y: number } | null>(null);
+
+  const at = $derived(dragging ?? annot.prefs.drawBar);
+  const style = $derived(at ? `left: ${at.x}px; top: ${at.y}px; transform: none;` : '');
+  // A tooltip renders above its button; below the fold of the viewport top there is no room for one.
+  const tipsBelow = $derived((at?.y ?? 16) < 48);
+
+  function startDrag(event: PointerEvent): void {
+    const view = annot.doc.defaultView;
+    if (!bar || !view) return;
+    const box = bar.getBoundingClientRect();
+    const offsetX = event.clientX - box.left;
+    const offsetY = event.clientY - box.top;
+    const clamp = (x: number, y: number): { x: number; y: number } => ({
+      x: Math.min(Math.max(x, 8), view.innerWidth - box.width - 8),
+      y: Math.min(Math.max(y, 8), view.innerHeight - box.height - 8),
+    });
+    const move = (e: PointerEvent): void => {
+      dragging = clamp(e.clientX - offsetX, e.clientY - offsetY);
+    };
+    const up = (e: PointerEvent): void => {
+      view.removeEventListener('pointermove', move);
+      view.removeEventListener('pointerup', up);
+      annot.setPref('drawBar', clamp(e.clientX - offsetX, e.clientY - offsetY));
+      dragging = null;
+    };
+    view.addEventListener('pointermove', move);
+    view.addEventListener('pointerup', up);
+  }
 </script>
 
-<div class="draw-bar" role="toolbar" aria-label="Drawing tools" in:drop={{ duration: 200 }} out:drop={{ duration: 120 }}>
+<div
+  class="draw-bar"
+  class:tips-below={tipsBelow}
+  bind:this={bar}
+  {style}
+  role="toolbar"
+  aria-label="Drawing tools"
+  in:drop={{ duration: 200 }}
+  out:drop={{ duration: 120 }}
+>
+  <span class="grip" onpointerdown={startDrag} aria-hidden="true"><Icon name="grip" size={16} /></span>
   {#each tools as item (item.tool)}
     <button
       class="icon-btn"

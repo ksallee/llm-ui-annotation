@@ -178,13 +178,13 @@
   user-select: none;
 }
 
-.pill .grip {
+.grip {
   cursor: grab;
   opacity: 0.5;
   padding: 0 2px;
 }
 
-.pill .grip:active {
+.grip:active {
   cursor: grabbing;
 }
 
@@ -270,6 +270,11 @@
 
 .dot.offline {
   background: var(--annot-ink-3);
+}
+
+.tips-below .tooltip {
+  bottom: auto;
+  top: calc(100% + 8px);
 }
 
 .tooltip {
@@ -438,6 +443,7 @@ kbd {
   top: var(--annot-space-4);
   left: 50%;
   transform: translateX(-50%);
+  pointer-events: auto;
   display: flex;
   align-items: center;
   gap: var(--annot-space-1);
