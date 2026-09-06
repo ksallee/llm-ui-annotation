@@ -114,6 +114,22 @@ Draw tools keep `1`–`6`. A stroke started inside a visible box joins that draw
 every box, it begins a new one. The boxes are on screen while you draw, so this is a rule you can
 see rather than a guess.
 
+### What a new drawing captures
+
+The box is the screenshot, so a crop tight round an arrow shows the agent the arrow and none of the
+UI it points at. An unframed drawing therefore defaults to the **content column its marks sit in**:
+`contentFrame(doc, strokeBounds(strokes))` in `packages/core/src/dom/frame.js` takes the narrowest
+block ancestor whose box spans the marks horizontally — a card, a section, `main` — and pairs its
+width with the marks' own height, plus 24px of padding. It falls back to the marks when nothing
+spans them, and never runs off the top or left of the document.
+
+Strokes and the box are both in **document coordinates**, so a drawing stays anchored to the page:
+scroll away and back and it is where you left it. There is one region per drawing, not one per
+screenful; drawing outside every existing box starts a new drawing.
+
+Any deliberate transform — Move or Frame — pins the box. Leaving it derived would snap it back to the
+content column and a drag would appear to do nothing.
+
 ### Committing, and what happens after
 
 - **Leaving Draw commits every uncommitted drawing** as a draft note with an empty comment. Nothing

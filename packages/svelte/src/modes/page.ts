@@ -241,7 +241,7 @@ export function commitLabel(state: AnnotState): void {
 export function openPagePopup(state: AnnotState): void {
   const strokes = state.drawing.strokes;
   if (strokes.length === 0) return;
-  const region = state.drawingRegion ?? strokeBounds(strokes);
+  const region = state.drawingRegion ?? state.defaultRegion(strokes);
   const elements = findElementsInRect(state.doc, region, { styles: false });
   state.openPopup('page', { kind: 'page', region, strokes, screenshot: null, elements }, region);
 }

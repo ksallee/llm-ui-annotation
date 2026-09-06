@@ -1,3 +1,4 @@
+export { contentFrame, type ContentFrameOptions } from './frame.js';
 export { collapse, escapeIdent, isStableClass, isUtilityClass, quoteValue, truncate } from './css.js';
 export { describeElement, findElementsInRect, isOverlay, type DescribeOptions } from './describe.js';
 export { describeSelector, fullPath, resolveSelector, SHADOW_SEP, type SelectorRef } from './selector.js';

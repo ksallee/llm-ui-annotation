@@ -32,6 +32,8 @@ import {
   findElementsInRect,
   rangeRects,
   resolveSelector,
+  contentFrame,
+  OVERLAY_TAG,
   strokeBounds,
   union,
   transformStrokes,
@@ -929,7 +931,7 @@ export class AnnotState {
       });
     }
     for (const d of this.drawings) {
-      const region = d.region ?? (d.strokes.length > 0 ? strokeBounds(d.strokes) : null);
+      const region = d.region ?? (d.strokes.length > 0 ? this.defaultRegion(d.strokes) : null);
       if (region) refs.push({ id: d.id, region, strokes: d.strokes, committed: false });
     }
     return refs;
@@ -976,6 +978,14 @@ export class AnnotState {
       this.insideDrawing = null;
       this.selectedStrokes.clear();
     }
+  }
+
+  /**
+   * What an unframed drawing captures: the content column its marks sit in, by their height. A crop
+   * tight round an arrow shows the agent the arrow and none of the UI it is pointing at.
+   */
+  defaultRegion(strokes: Stroke[]): Rect {
+    return contentFrame(this.doc, strokeBounds(strokes, 0), { overlayTag: OVERLAY_TAG });
   }
 
   /** Something is picked that delete should act on. */
@@ -1092,9 +1102,9 @@ export class AnnotState {
       this.#setPageTarget(id, { region: to, strokes });
       return;
     }
-    // Moving a box that still tracks its marks leaves it tracking; resizing pins it.
-    const tracked = pending.region === null && to.width === from.width && to.height === from.height;
-    this.#patch(id, { strokes, region: tracked ? null : to });
+    // Any deliberate transform pins the box. An unframed box is derived from the content column the
+    // marks sit in, so leaving it derived would snap it straight back and the drag would do nothing.
+    this.#patch(id, { strokes, region: to });
   }
 
   /** Shift a whole drawing, each by its own box, so a multi-drawing drag stays coherent. */
@@ -1288,7 +1298,7 @@ export class AnnotState {
     this.drawings = [];
     this.activeDrawingId = null;
     for (const d of pending) {
-      const region = d.region ?? strokeBounds(d.strokes);
+      const region = d.region ?? this.defaultRegion(d.strokes);
       const target: PageTarget = {
         kind: 'page',
         region,
