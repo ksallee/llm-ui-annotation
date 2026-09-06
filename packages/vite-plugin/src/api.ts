@@ -124,8 +124,17 @@ export function createApi(
 
   on('PATCH', '/annotations/:id', async (req, res, params) => {
     const body = (await readJson(req)) as PatchAnnotationRequest;
-    if (typeof body.comment !== 'string') throw badRequest('comment: expected string');
-    sendJson(res, 200, await store.patchAnnotation(safeId(params), body.comment));
+    if (body.comment !== undefined && typeof body.comment !== 'string') {
+      throw badRequest('comment: expected string');
+    }
+    if (body.comment === undefined && body.target === undefined) {
+      throw badRequest('comment or target: expected one');
+    }
+    const patch = {
+      ...(body.comment !== undefined ? { comment: body.comment } : {}),
+      ...(body.target !== undefined ? { target: body.target } : {}),
+    };
+    sendJson(res, 200, await store.patchAnnotation(safeId(params), patch));
   });
 
   on('DELETE', '/annotations/:id', async (_req, res, params) => {

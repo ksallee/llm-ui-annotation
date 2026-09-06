@@ -28,6 +28,7 @@ export {
 } from './text.js';
 export {
   labelBox,
+  transformStrokes,
   translateStrokes,
   renderStrokes,
   strokeBounds,

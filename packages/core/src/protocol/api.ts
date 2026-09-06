@@ -9,6 +9,7 @@ import type {
   ProtocolVersion,
   Resolution,
   Status,
+  Target,
 } from '../model/types.js';
 
 export interface ErrorResponse {
@@ -37,6 +38,8 @@ export type RouteResponse = RouteFile;
 
 export interface PatchAnnotationRequest {
   comment?: string;
+  /** New geometry for a drawing; appends a `drawing edited` message and returns `review` to `sent`. */
+  target?: Target;
 }
 
 export interface CreateBatchRequest {

@@ -56,6 +56,44 @@ export function translateStrokes(strokes: Stroke[], dx: number, dy: number): Str
   });
 }
 
+/** Every stroke mapped from the `from` box onto the `to` box, as new objects. */
+export function transformStrokes(strokes: Stroke[], from: Rect, to: Rect): Stroke[] {
+  // A degenerate source side scales by 1 rather than by Infinity or NaN.
+  const ratio = (a: number, b: number): number => (a > 0 && Number.isFinite(b / a) ? b / a : 1);
+  const sx = ratio(from.width, to.width);
+  const sy = ratio(from.height, to.height);
+  if (sx === 1 && sy === 1) return translateStrokes(strokes, to.x - from.x, to.y - from.y);
+
+  const fx = (x: number): number => to.x + (x - from.x) * sx;
+  const fy = (y: number): number => to.y + (y - from.y) * sy;
+
+  return strokes.map((stroke): Stroke => {
+    switch (stroke.tool) {
+      case 'brush':
+        return { ...stroke, points: stroke.points.map(([x, y]) => [fx(x), fy(y)]) };
+      case 'arrow':
+        return {
+          ...stroke,
+          from: [fx(stroke.from[0]), fy(stroke.from[1])],
+          to: [fx(stroke.to[0]), fy(stroke.to[1])],
+        };
+      case 'label':
+        return { ...stroke, at: [fx(stroke.at[0]), fy(stroke.at[1])] };
+      default:
+        return {
+          ...stroke,
+          rect: {
+            ...stroke.rect,
+            x: fx(stroke.rect.x),
+            y: fy(stroke.rect.y),
+            width: stroke.rect.width * sx,
+            height: stroke.rect.height * sy,
+          },
+        };
+    }
+  });
+}
+
 /** Pill size for a label, without measuring text. */
 export function labelBox(text: string, size: number): { width: number; height: number } {
   return {

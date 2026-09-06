@@ -34,6 +34,7 @@ import {
   type RouteFile,
   type RouteSummary,
   type Status,
+  type Target,
   type TransitionRequest,
 } from '@llm-ui-annotation/core';
 import {
@@ -226,20 +227,29 @@ export class Store {
     });
   }
 
-  async patchAnnotation(id: string, comment: string): Promise<Annotation> {
+  async patchAnnotation(id: string, patch: { comment?: string; target?: Target }): Promise<Annotation> {
     const route = await this.routeOf(id);
     return this.withRoute(route, async () => {
       const file = await this.mutableRoute(route);
       const at = this.locate(file, id);
       const previous = file.annotations[at] as Annotation;
       const now = nowIso();
-      const message = makeMessage({ role: 'user', kind: 'comment', text: comment }, now);
+      const edited = patch.target !== undefined;
+      const text = patch.comment ?? 'drawing edited';
+      const message = makeMessage({ role: 'user', kind: 'comment', text }, now);
+      // The agent's answer was about the old marks, so a reviewed drawing goes back to the agent.
+      const status = edited && previous.status === 'review' ? 'sent' : previous.status;
       const next: Annotation = {
         ...previous,
-        comment,
+        ...(patch.comment !== undefined ? { comment: patch.comment } : {}),
+        ...(patch.target !== undefined ? { target: patch.target } : {}),
+        status,
+        sentAt: status === 'sent' && previous.status !== 'sent' ? now : previous.sentAt,
         thread: [...previous.thread, message],
         updatedAt: now,
       };
+      const problems = validateAnnotation(next);
+      if (problems.length > 0) throw badRequest('invalid annotation', problems);
       file.annotations[at] = next;
       await this.save(file);
       await this.emit({
@@ -250,6 +260,17 @@ export class Store {
         annotationId: id,
         message,
       });
+      if (status !== previous.status) {
+        await this.emit({
+          at: now,
+          type: 'status.changed',
+          by: 'user',
+          route: file.route,
+          annotationId: id,
+          status,
+          data: next,
+        });
+      }
       this.change({ kind: 'annotation', annotation: next });
       return next;
     });

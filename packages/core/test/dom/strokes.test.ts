@@ -5,6 +5,7 @@ import {
   labelBox,
   renderStrokes,
   strokeBounds,
+  transformStrokes,
   translateStrokes,
   type StrokeContext,
 } from '../../src/dom/strokes.js';
@@ -91,5 +92,49 @@ describe('translateStrokes', () => {
   it('returns the same array for a zero delta', () => {
     const strokes: Stroke[] = [{ tool: 'rect', rect: { x: 0, y: 0, width: 1, height: 1 }, color: 'r', width: 1 }];
     expect(translateStrokes(strokes, 0, 0)).toBe(strokes);
+  });
+});
+
+describe('transformStrokes', () => {
+  const from = { x: 0, y: 0, width: 100, height: 100 };
+
+  it('is a translation when the box keeps its size', () => {
+    const moved = transformStrokes(STROKES, from, { x: 10, y: -5, width: 100, height: 100 });
+    expect(moved).toEqual(translateStrokes(STROKES, 10, -5));
+  });
+
+  it('scales every stroke kind onto the new box', () => {
+    const scaled = transformStrokes(
+      [
+        { tool: 'brush', points: [[0, 0], [50, 100]], color: 'red', width: 2 },
+        { tool: 'arrow', from: [0, 0], to: [100, 50], color: 'red', width: 2 },
+        { tool: 'rect', rect: { x: 10, y: 20, width: 30, height: 40 }, color: 'red', width: 2 },
+        { tool: 'label', at: [50, 50], text: 'hi', color: 'red', size: 16 },
+      ],
+      from,
+      { x: 0, y: 0, width: 200, height: 50 },
+    );
+    expect(scaled[0]).toMatchObject({ points: [[0, 0], [100, 50]] });
+    expect(scaled[1]).toMatchObject({ from: [0, 0], to: [200, 25] });
+    expect(scaled[2]).toMatchObject({ rect: { x: 20, y: 10, width: 60, height: 20 } });
+    expect(scaled[3]).toMatchObject({ at: [100, 25], size: 16 });
+  });
+
+  it('lands every point where the new box says it should', () => {
+    const to = { x: 300, y: 120, width: 40, height: 500 };
+    const filling: Stroke[] = [
+      { tool: 'rect', rect: from, color: 'r', width: 0 },
+      { tool: 'brush', points: [[0, 0], [100, 100]], color: 'r', width: 0 },
+    ];
+    const scaled = transformStrokes(filling, from, to);
+    expect(scaled[0]).toMatchObject({ rect: to });
+    expect(scaled[1]).toMatchObject({ points: [[300, 120], [340, 620]] });
+    expect(strokeBounds(scaled, 0)).toEqual(to);
+  });
+
+  it('clamps a degenerate source box instead of producing NaN', () => {
+    const flat: Stroke[] = [{ tool: 'arrow', from: [5, 5], to: [5, 5], color: 'r', width: 1 }];
+    const moved = transformStrokes(flat, { x: 5, y: 5, width: 0, height: 0 }, { x: 9, y: 9, width: 40, height: 40 });
+    expect(moved[0]).toMatchObject({ from: [9, 9], to: [9, 9] });
   });
 });
