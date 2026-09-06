@@ -34,12 +34,21 @@ Accepted: `image/png|jpeg|gif|webp|svg+xml`, `application/pdf`, `text/markdown|p
 `<dir>/attachments/<annotationId>/<attachmentId>.<ext>`. Deleting a draft deletes its attachment directory.
 
 ```
-POST   /__annot/annotations/:id/attachments    body: the file, ?name=<encoded>  → Attachment
-DELETE /__annot/annotations/:id/attachments/:attachmentId                        → { ok }
+POST   /__annot/annotations/:id/attachments    body: the file, ?name=<encoded>[&by=user|agent] → Attachment
+DELETE /__annot/annotations/:id/attachments/:attachmentId                        → { ok: true }
 GET    /__annot/attachments/:id/:attachmentId                                    → the file
 ```
 
-`:id` and `:attachmentId` go through `isId` before touching the filesystem. Emit `annotation.updated`.
+`:id` and `:attachmentId` go through `isId` before touching the filesystem, and the file is located from the
+stored record rather than from the URL. Emit `annotation.updated` on attach and on detach.
+
+Failures: 400 on a bad id or an empty body · 403 on a foreign `Origin`/`Sec-Fetch-Site` · 404 on an unknown
+annotation or attachment · 409 on the eleventh file · 413 over 20 MB per file or 50 MB per annotation ·
+**415** on an unsupported type, with the accepted list in `problems`, and on the CORS-simple content types
+(`text/plain`, `multipart/form-data`, `application/x-www-form-urlencoded`) that let the old screenshot
+endpoint be written to cross-origin. 415 rather than the 400 first written here: the status exists for
+exactly this, and the body still names the list. Callers send the real MIME or `application/octet-stream`.
+Attachments are served back with `nosniff` and a sandbox CSP so an uploaded SVG cannot run on the dev origin.
 
 ### What the agent sees
 
@@ -79,7 +88,7 @@ Keep the list; tighten it. Every problem below is visible in the panel as it sta
 ## Acceptance criteria
 
 - A PNG dropped on the popup and a PDF dropped on a panel row both land in `attachments/<annotationId>/`, appear in the row, and show up in `annot pending` as absolute paths with name, type and size.
-- A rejected type returns 400 naming the accepted list; a 21 MB file is refused; a traversing `:attachmentId` is refused.
+- A rejected type returns 415 naming the accepted list; a 21 MB file is refused; a traversing `:attachmentId` is refused; a write with a CORS-simple content type or a foreign `Origin` is refused.
 - Deleting a draft removes its attachment directory.
 - Clicking a committed drawing selects it; dragging moves marks and box together; the stored `PageTarget` reflects the new geometry.
 - Editing a `review` drawing returns it to `sent` and appends a thread message.
