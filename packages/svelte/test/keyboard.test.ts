@@ -15,6 +15,7 @@ const ctx = (over: Partial<KeyContext> = {}): KeyContext => ({
   mode: 'element',
   popupOpen: false,
   dialogOpen: false,
+  expanded: false,
   paletteOpen: false,
   panelOpen: false,
   focusedDraft: false,
@@ -70,6 +71,13 @@ describe('keyAction', () => {
     }
     expect(keyAction(key({ key: 'Escape' }), idle)).toBeNull();
     expect(keyAction(key({ key: 'a', code: 'KeyA', altKey: true }), idle)).toBe('palette');
+  });
+
+  it('answers mode letters with no mode when the pill is open', () => {
+    // After Esc leaves a mode the pill stays open, and D has to get you back into Draw.
+    expect(keyAction(key({ key: 'd' }), ctx({ mode: null, expanded: false }))).toBeNull();
+    expect(keyAction(key({ key: 'd' }), ctx({ mode: null, expanded: true }))).toBe('mode:page');
+    expect(keyAction(key({ key: 'i' }), ctx({ mode: null, expanded: true }))).toBe('panel');
   });
 
   it('maps the mode letters while a mode is active', () => {

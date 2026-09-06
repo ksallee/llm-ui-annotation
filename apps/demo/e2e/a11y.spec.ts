@@ -16,7 +16,33 @@ interface Violation {
   id: string;
   impact: string | null;
   help: string;
-  nodes: { target: unknown[] }[];
+  nodes: { target: unknown[]; failureSummary?: string }[];
+}
+
+/** One line per offending node: a rule name alone does not say what to fix. */
+const describe = (v: Violation): string[] =>
+  v.nodes.map(
+    (n) =>
+      `${v.id} (${v.impact}) ${JSON.stringify(n.target)} — ${(n.failureSummary ?? v.help)
+        .replace(/\s+/g, ' ')
+        .slice(0, 160)}`,
+  );
+
+/**
+ * Wait until every overlay surface has finished its enter transition. axe composites whatever is
+ * behind a half-faded card, so scanning mid-animation reports contrast against a blend of the page.
+ */
+async function settled(page: Page): Promise<void> {
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const root = document.querySelector('annot-overlay')?.shadowRoot;
+        if (!root) return false;
+        const surfaces = [...root.querySelectorAll('.popup, .panel, .card, .toast')];
+        return surfaces.every((el) => getComputedStyle(el).opacity === '1');
+      }),
+    )
+    .toBe(true);
 }
 
 async function scanOverlay(
@@ -48,12 +74,10 @@ test('the overlay has no serious axe violations with the popup and panel open', 
   await clickHost(page, 'article[data-plan="Pro"]');
   await expect(popup(page)).toBeVisible();
 
+  await settled(page);
   const { serious, checked } = await scanOverlay(page);
   expect(checked, 'axe reached the overlay through its shadow root').toBeGreaterThan(10);
-  expect(
-    serious.map((v) => `${v.id} (${v.impact}) ${v.help}`),
-    'serious or critical axe violations in the overlay',
-  ).toEqual([]);
+  expect(serious.flatMap(describe), 'serious or critical axe violations in the overlay').toEqual([]);
 });
 
 test('every overlay control carries a name, and the markers announce their status', async ({

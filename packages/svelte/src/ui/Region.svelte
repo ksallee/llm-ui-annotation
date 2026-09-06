@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Rect } from '@llm-ui-annotation/core';
-  import { findElementsInRect } from '../dom/core-dom.js';
+  import { findElementsInRect, translateStrokes } from '../dom/core-dom.js';
   import { resizeRect, type Edge } from '../dom/geometry.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import Icon from './Icon.svelte';
@@ -36,8 +36,14 @@
     event.stopPropagation();
     const start = { x: event.clientX, y: event.clientY };
     const from = { ...region };
+    // Moving takes the marks with it: the box is the drawing's handle, not a separate crop.
+    // Resizing does not, so the capture area can be widened around what is already drawn.
+    const strokes = edge === 'move' ? annot.drawing.strokes : null;
     const move = (e: PointerEvent): void => {
-      const next = resizeRect(from, edge, e.clientX - start.x, e.clientY - start.y);
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      const next = resizeRect(from, edge, dx, dy);
+      if (strokes) annot.setStrokes(translateStrokes(strokes, dx, dy));
       annot.setRegion(next);
       count(next);
     };

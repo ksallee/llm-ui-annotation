@@ -21,7 +21,7 @@ Owner: `packages/svelte`, plus `packages/core/src/model/types.ts` and `src/dom/t
 The overlay sits on top of an app we do not control, which may bind anything. One binding is global; everything else is scoped.
 
 - **Global**: `⌥A` opens the command palette. Configurable in Settings, persisted in `annot:prefs`. Nothing else in the overlay binds a key while idle.
-- **Scoped to an active mode**: `E` `H` `D` switch modes, `I` panel, `⇧P` pause, `⌫` delete focused draft, `⌘Z`/`⇧⌘Z` undo in Draw, `Esc` exits. Safe because an active mode already runs the capture layer over the page, so the host is not receiving input anyway.
+- **Scoped to an engaged overlay**: `E` `H` `D` switch modes, `I` panel, `⇧P` pause, `⌫` delete focused draft, `⌘Z`/`⇧⌘Z` undo in Draw, `Esc` exits. Engaged means a mode is active *or the pill is expanded*. An active mode already runs the capture layer over the page, and expanding the pill is an explicit act; without the second half, `Esc` out of a mode leaves the pill open with every letter dead, so there is no way back into a mode from the keyboard.
 - **Scoped to a surface**: while the palette, panel, popup or settings has focus, keys belong to that surface.
 - **Never**: while focus is in any input, textarea or contenteditable — the host page's *or one of
   ours*. Events from the shadow root retarget to the host element, so the event target alone cannot
@@ -83,7 +83,9 @@ export interface TextTarget {
 
 The dashed bounding box around a drawing is currently derived from `strokeBounds` and fixed. It decides which elements are captured and what the screenshot crops to, so the user must be able to correct it.
 
-Eight handles plus drag-to-move, minimum 40×40, live-updating the intersecting element list underneath. Once moved, the box stops tracking `strokeBounds`; a small **Fit to drawing** action restores that. The region is what `PageTarget.region` records.
+Eight handles plus drag-to-move, minimum 40×40, live-updating the intersecting element list underneath. Once resized, the box stops tracking `strokeBounds`; a small **Fit to drawing** action restores that. The region is what `PageTarget.region` records.
+
+**Dragging the grip moves the marks with the box.** The box is the drawing's handle, not a separate crop: moving it repositions the whole annotation over a different part of the page, and leaving the strokes behind just separates them from their own outline. Resizing does *not* move the strokes, so the capture area can still be widened around what is already drawn. The translation is `translateStrokes(strokes, dx, dy)` in `packages/core/src/dom/strokes.ts`, so the SVG layer and the screenshot canvas cannot disagree.
 
 ## 7. Connection dot
 
@@ -144,4 +146,5 @@ palette's right-hand column.
 - Selecting three `review` rows and pressing Approve moves all three and offers one undo toast; a mixed selection disables the actions that would be illegal.
 - Keycaps render at 12 px and are legible in both schemes.
 - Dragging a region handle changes `PageTarget.region` and the captured element list; **Fit to drawing** restores it.
+- Dragging the region grip moves the box, every stroke and every caption by the same delta.
 - Every icon is recognisable at 20 px next to its label; no glyph is reused for two meanings.

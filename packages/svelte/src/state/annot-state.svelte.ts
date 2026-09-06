@@ -765,6 +765,11 @@ export class AnnotState {
     this.regionOverride = rect;
   }
 
+  /** Replace the pending strokes, keeping the redo stack. */
+  setStrokes(strokes: Stroke[]): void {
+    this.drawing = { strokes, undone: this.drawing.undone };
+  }
+
   fitRegionToDrawing(): void {
     this.regionOverride = null;
   }

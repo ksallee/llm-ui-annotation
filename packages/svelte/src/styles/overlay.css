@@ -299,7 +299,7 @@
 /* A cap inside a tooltip annotates the label; it must not tower over it. */
 .tooltip kbd {
   font-size: var(--annot-text-sm);
-  padding: 2px 5px;
+  padding: 1px 5px;
 }
 
 .icon-btn:hover .tooltip,
@@ -315,7 +315,9 @@ kbd {
   line-height: 1;
   padding: 3px 7px;
   border-radius: var(--annot-radius-sm);
-  background: color-mix(in oklch, currentColor 16%, transparent);
+  /* Outlined, not filled: tinting the background with currentColor darkens it toward the very ink
+     sitting on it, which only ever loses contrast — on a primary button it drops below 4.5. */
+  border: 1px solid color-mix(in oklch, currentColor 30%, transparent);
   opacity: 0.95;
   white-space: nowrap;
 }

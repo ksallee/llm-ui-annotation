@@ -70,6 +70,7 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
       mode: state.mode,
       popupOpen: Boolean(state.popup),
       dialogOpen: state.sendOpen || state.settingsOpen || state.shortcutsOpen,
+      expanded: state.prefs.expanded,
       paletteOpen: state.paletteOpen,
       panelOpen: state.prefs.panelOpen,
       focusedDraft: focused?.status === 'draft',

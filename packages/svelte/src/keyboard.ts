@@ -19,6 +19,8 @@ export interface KeyContext {
   mode: Mode | null;
   popupOpen: boolean;
   dialogOpen: boolean;
+  /** The pill is open, which is an explicit act: the overlay has the user's attention. */
+  expanded: boolean;
   paletteOpen: boolean;
   panelOpen: boolean;
   focusedDraft: boolean;
@@ -96,7 +98,10 @@ export function keyAction(event: KeyboardEvent, ctx: KeyContext): KeyAction | nu
   }
 
   if (meta || event.altKey) return null;
-  if (ctx.popupOpen || ctx.dialogOpen || !ctx.mode) return null;
+  // Scoped, not global: a mode is active, or the user has opened the pill. Otherwise the host
+  // page owns the keyboard, and an expanded pill is how you get back into a mode after Esc.
+  const engaged = Boolean(ctx.mode) || ctx.expanded;
+  if (ctx.popupOpen || ctx.dialogOpen || !engaged) return null;
 
   if (ctx.mode === 'page' && event.key >= '1' && event.key <= '6') {
     return `tool:${Number(event.key)}`;

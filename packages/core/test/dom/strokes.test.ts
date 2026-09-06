@@ -1,7 +1,13 @@
 /** @vitest-environment happy-dom */
 import { describe, expect, it } from 'vitest';
 import type { Stroke } from '../../src/model/types.js';
-import { labelBox, renderStrokes, strokeBounds, type StrokeContext } from '../../src/dom/strokes.js';
+import {
+  labelBox,
+  renderStrokes,
+  strokeBounds,
+  translateStrokes,
+  type StrokeContext,
+} from '../../src/dom/strokes.js';
 
 const STROKES: Stroke[] = [
   { tool: 'brush', points: [[10, 10], [20, 30], [40, 20], [60, 50]], color: '#e11d48', width: 4 },
@@ -61,5 +67,29 @@ describe('renderStrokes', () => {
     );
     expect(calls).toContain('rect(20, 40, 100, 40)');
     expect(calls).toContain('lineWidth = 4');
+  });
+});
+
+describe('translateStrokes', () => {
+  it('shifts every stroke kind by the same delta', () => {
+    const moved = translateStrokes(
+      [
+        { tool: 'brush', points: [[0, 0], [10, 10]], color: 'red', width: 2 },
+        { tool: 'arrow', from: [0, 0], to: [5, 5], color: 'red', width: 2 },
+        { tool: 'rect', rect: { x: 1, y: 2, width: 3, height: 4 }, color: 'red', width: 2 },
+        { tool: 'label', at: [7, 8], text: 'hi', color: 'red', size: 16 },
+      ],
+      100,
+      -50,
+    );
+    expect(moved[0]).toMatchObject({ points: [[100, -50], [110, -40]] });
+    expect(moved[1]).toMatchObject({ from: [100, -50], to: [105, -45] });
+    expect(moved[2]).toMatchObject({ rect: { x: 101, y: -48, width: 3, height: 4 } });
+    expect(moved[3]).toMatchObject({ at: [107, -42] });
+  });
+
+  it('returns the same array for a zero delta', () => {
+    const strokes: Stroke[] = [{ tool: 'rect', rect: { x: 0, y: 0, width: 1, height: 1 }, color: 'r', width: 1 }];
+    expect(translateStrokes(strokes, 0, 0)).toBe(strokes);
   });
 });

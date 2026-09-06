@@ -34,6 +34,28 @@ export type StrokeContext = Pick<
   | 'textBaseline'
 >;
 
+/** Every stroke shifted by `dx`/`dy`, as new objects. */
+export function translateStrokes(strokes: Stroke[], dx: number, dy: number): Stroke[] {
+  if (dx === 0 && dy === 0) return strokes;
+  const shift = (r: Rect): Rect => ({ ...r, x: r.x + dx, y: r.y + dy });
+  return strokes.map((stroke): Stroke => {
+    switch (stroke.tool) {
+      case 'brush':
+        return { ...stroke, points: stroke.points.map(([x, y]) => [x + dx, y + dy]) };
+      case 'arrow':
+        return {
+          ...stroke,
+          from: [stroke.from[0] + dx, stroke.from[1] + dy],
+          to: [stroke.to[0] + dx, stroke.to[1] + dy],
+        };
+      case 'label':
+        return { ...stroke, at: [stroke.at[0] + dx, stroke.at[1] + dy] };
+      default:
+        return { ...stroke, rect: shift(stroke.rect) };
+    }
+  });
+}
+
 /** Pill size for a label, without measuring text. */
 export function labelBox(text: string, size: number): { width: number; height: number } {
   return {
