@@ -10,7 +10,7 @@ Give every other workstream a single vocabulary: what an annotation is, how it i
 
 - `id`: 26-char Crockford base32 ULID-like string generated client-side (10-char time prefix + 16 random). Provide `newId(now = Date.now())`. Sortable, no dependency; ids made in the same millisecond increment the random part so the order is strict. Also `isId`, `idTime`, `compareIds`, `nowIso`.
 - All timestamps ISO 8601 UTC strings (`2026-09-05T18:24:41.048Z`).
-- `protocolVersion: 2` (`PROTOCOL_VERSION`). Readers accept every version in `SUPPORTED_PROTOCOL_VERSIONS` — `[1, 2]` — so files written before multi-block highlights keep loading; a v1 text target simply has no `blocks`. `validateAnnotation` is the one place that decides. `attachments` (spec 11 §1) did **not** bump it: the field is additive and optional, so a v2 reader that predates it sees an annotation without attachments, which is a state it already handles.
+- `protocolVersion: 2` (`PROTOCOL_VERSION`). Readers accept every version in `SUPPORTED_PROTOCOL_VERSIONS` — `[1, 2]` — so files written before multi-block highlights keep loading; a v1 text target simply has no `blocks`. `validateAnnotation` is the one place that decides. `attachments` (spec 11 §1) did **not** bump it: the field is additive and optional, so a v2 reader that predates it sees an annotation without attachments, which is a state it already handles. `tokens` on `ElementRef` (spec 12 §4) does not bump it either, for the same reason: a reader that predates it sees an element with no tokens, which every element without a design system already looks like.
 
 ## Types (TypeScript, exported from `@llm-ui-annotation/core`)
 
@@ -39,6 +39,7 @@ export interface ElementRef {
   fixed: boolean;              // inside position: fixed/sticky ancestor
   attrs: Record<string, string>;      // id, class, data-*, name, type, href, src, aria-* (values trimmed to 100)
   styles?: Record<string, string>;    // subset, see spec 02; omitted in compact payloads
+  tokens?: Record<string, string>;    // property → custom property name, see spec 12 §4; absent when none resolve
   context?: { parent: string | null; prev: string | null; next: string | null };  // names of neighbours
 }
 

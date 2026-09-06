@@ -131,6 +131,7 @@ function checkElementRef(p: Problems, v: unknown, path: string): void {
   p.bool(v['fixed'], `${path}.fixed`);
   p.stringMap(v['attrs'], `${path}.attrs`);
   if (v['styles'] !== undefined) p.stringMap(v['styles'], `${path}.styles`);
+  if (v['tokens'] !== undefined) p.stringMap(v['tokens'], `${path}.tokens`);
   if (v['context'] !== undefined && p.rec(v['context'], `${path}.context`)) {
     for (const k of ['parent', 'prev', 'next']) {
       const val = v['context'][k];

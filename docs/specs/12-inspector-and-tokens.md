@@ -38,14 +38,31 @@ If a page defines `--color-primary-600` and the button computes to that colour, 
 
 ### Resolving
 
-`tokenMap(doc): Map<string, string>` in `packages/core/src/dom/tokens.ts`:
+`tokenMap(doc, el?): TokenMap` in `packages/core/src/dom/tokens.ts`, where `TokenMap` is a
+`Map<string, string>` from normalised value to custom property name carrying one extra field,
+`skipped` — the sheets that could not be read. One return value, because the inspector needs both.
 
-- Walk `document.styleSheets`, and every rule whose selector matches `:root`, `html`, `body` or a class on an ancestor of the element. Cross-origin sheets throw on `.cssRules` — catch and skip, and say how many were skipped.
-- Collect every `--*` declaration and its declared value.
-- Normalise both sides before comparing: colours through `toOklch` from `core/theme`, lengths to px, shorthands expanded. A hex that computes to `oklch(...)` must still match its token.
-- Where two tokens share a value, prefer the one declared on the closest ancestor, then the shortest name. Report one, never a list.
+- Walk `document.styleSheets`, and every rule whose selector matches an ancestor-or-self of `el`
+  (`:root` and `body` match it that way, so they need no special case); without `el`, only `:root`,
+  `html`, `body` and `*`. Recurse into `@media` whose condition currently matches, into `@supports`
+  and other grouping rules unconditionally, and into `@import`ed sheets.
+- Cross-origin sheets throw on `.cssRules` — catch, skip, and count in `skipped`. A sheet that
+  returns no rules at all counts the same way.
+- Collect every `--*` declaration. A name declared more than once keeps the closest ancestor's, then
+  the last in cascade order. A value that is itself a `var(--other)` follows the alias, up to 8 hops.
+- Normalise both sides before comparing: colours through `parseColor`/`formatOklch` from
+  `core/theme`, absolute lengths and `rem` to px, `,` spacing and case collapsed. A hex that computes
+  to `oklch(...)` must still match its token, and so must the `oklch(…) (#hex)` form `styles` stores.
+  `em`, `%` and viewport units are compared as written, so they only ever match themselves.
+- Where two tokens share a value, prefer the one declared on the closest ancestor, then the shortest
+  name, then alphabetical. Report one, never a list.
 
 `resolveTokens(styles, map): Record<string, string>` maps a property to the token that produced it.
+It matches the whole value first, then, for a value of several parts (parentheses respected, so
+`rgb(1, 2, 3)` stays whole), every part — and only reports the property when **every** part resolves,
+joined by a space: `padding` → `--space-3 --space-4`. So `border: 1px solid var(--line)` reports
+nothing, because `1px` and `solid` are literals. `describeElement` builds the map itself unless
+`opts.tokens` hands it one, which is how several elements share a single walk.
 
 ### Protocol
 
@@ -66,7 +83,8 @@ export interface ElementRef {
 styles: background-color oklch(0.55 0.15 250) var(--color-primary-600) · padding 12px 16px var(--space-3) var(--space-4) · font-size 14px var(--text-sm)
 ```
 
-A property with no token reads exactly as it does today.
+A property with no token reads exactly as it does today. `annot init --claude-md` tells the agent
+what the `var(…)` means: change or reuse the token, do not paste the value.
 
 ## Acceptance criteria
 

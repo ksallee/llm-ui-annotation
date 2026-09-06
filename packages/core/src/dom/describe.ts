@@ -5,6 +5,7 @@ import { area, intersect, rectOf } from './rect.js';
 import { roleOf } from './roles.js';
 import { describeSelector } from './selector.js';
 import { computedStyles } from './styles.js';
+import { resolveTokens, tokenMap, type TokenMap } from './tokens.js';
 
 const DEFAULT_OVERLAY_TAG = 'annot-overlay';
 const DEFAULT_MAX_TEXT = 200;
@@ -29,6 +30,8 @@ export interface DescribeOptions {
   overlayTag?: string;
   /** Cap on `text`. Default 200. */
   maxText?: number;
+  /** A map to reuse across several elements, instead of one built per call. */
+  tokens?: TokenMap;
 }
 
 export function isOverlay(el: Element, overlayTag = DEFAULT_OVERLAY_TAG): boolean {
@@ -109,7 +112,12 @@ export function describeElement(el: Element, opts: DescribeOptions = {}): Elemen
     fixed: isFixed(el),
     attrs: attrsOf(el, detailed),
   };
-  if (detailed) ref.styles = computedStyles(el);
+  if (detailed) {
+    const styles = computedStyles(el);
+    ref.styles = styles;
+    const tokens = resolveTokens(styles, opts.tokens ?? tokenMap(el.ownerDocument, el));
+    if (Object.keys(tokens).length > 0) ref.tokens = tokens;
+  }
   if (opts.context !== false) ref.context = contextOf(el, overlayTag);
   return ref;
 }

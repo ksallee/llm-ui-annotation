@@ -44,6 +44,17 @@ function pairs(map: Record<string, string>): string {
     .join(' · ');
 }
 
+/** The style subset, each value followed by the token that produced it when one did. */
+function styleText(el: ElementRef): string {
+  return Object.entries(el.styles ?? {})
+    .map(([prop, value]) => {
+      const token = el.tokens?.[prop];
+      if (token === undefined) return `${prop} ${value}`;
+      return `${prop} ${value} ${token.split(' ').map((name) => `var(${name})`).join(' ')}`;
+    })
+    .join(' · ');
+}
+
 function elementLines(el: ElementRef, level: RenderLevel): string[] {
   const lines = [`selector: ${el.selector}`];
 
@@ -59,7 +70,7 @@ function elementLines(el: ElementRef, level: RenderLevel): string[] {
     lines.push(`context: parent ${parent ?? 'null'}, prev ${prev ?? 'null'}, next ${next ?? 'null'}`);
   }
   if (level !== 'compact' && el.styles && Object.keys(el.styles).length > 0) {
-    lines.push(`styles: ${pairs(el.styles)}`);
+    lines.push(`styles: ${styleText(el)}`);
   }
   if (level === 'detailed') {
     if (el.fallbacks.length > 0) lines.push(`fallbacks: ${el.fallbacks.join(' | ')}`);

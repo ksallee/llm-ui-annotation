@@ -35,6 +35,8 @@ Shadow DOM: if `el` is inside an open shadow root, produce `hostSelector >>> inn
 - layout containers (`display` flex/grid): add `flex-direction align-items justify-content grid-template-columns`
 Colors are reported as `oklch()` strings via `toOklch()` from `core/theme` so the agent gets perceptual values, with the original value in parentheses when it was a named color or hex. Numbers rounded to 2 decimals. Max 20 entries. The UA default is read from a hidden probe element of the same tag appended to `body` and removed again, cached per document and tag; `width` and `height` are always reported.
 
+`tokens` (when `styles` is included): `resolveTokens(styles, tokenMap(doc, el))` from spec 12 §4, property → custom property name. Omitted entirely when nothing resolves. `opts.tokens` takes a map built once, for describing several elements without rebuilding it.
+
 `context`: `name` of parent element, previous element sibling, next element sibling (nulls allowed). Skip the overlay host element (`annot-overlay`) and `script/style`.
 
 Also export `resolveSelector(root, selector): Element | null` (handles `>>>`) and `findElementsInRect(doc, rect, opts): ElementRef[]` for page mode: elements whose rect intersects `rect` by ≥ 30% of their own area, excluding the overlay host and its descendants, `html`, `body`, elements smaller than 8×8 or larger than 90% of the region unless nothing else matches; sort by intersection area desc; dedupe ancestors that add nothing (if a child covers ≥ 80% of the parent's intersection, drop the parent); cap at 12; compact (no styles).

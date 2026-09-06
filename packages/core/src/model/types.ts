@@ -57,6 +57,8 @@ export interface ElementRef {
   attrs: Record<string, string>;
   /** Omitted in compact payloads. */
   styles?: Record<string, string>;
+  /** Property to the custom property that produced it; absent when none resolve. */
+  tokens?: Record<string, string>;
   context?: ElementContext;
 }
 
