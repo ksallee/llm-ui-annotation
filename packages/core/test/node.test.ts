@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { emptyRouteFile, nowIso, type Event, type NewEvent, type RouteFile } from '../src/index.js';
 import {
   appendEvent,
+  attachmentDirPath,
   findAnnotationsDir,
   initDir,
   lastEventSeq,
@@ -15,10 +16,14 @@ import {
   readEvents,
   readRoute,
   readRouteBySlug,
+  readAttachment,
   readServerInfo,
+  removeAttachment,
+  removeAttachments,
   removeScreenshot,
   removeServerInfo,
   screenshotPath,
+  writeAttachment,
   writeBatch,
   writeFileAtomic,
   writeRoute,
@@ -182,5 +187,26 @@ describe('findAnnotationsDir', () => {
     const empty = await mkdtemp(join(tmpdir(), 'annot-none-'));
     expect(await findAnnotationsDir(empty, '.no-such-dir-here')).toBeNull();
     await rm(empty, { recursive: true, force: true });
+  });
+});
+
+describe('attachments', () => {
+  const ID = ELEMENT_ANNOTATION.id;
+  const FILE = '01JBZZZZZZ00000000000000A1';
+
+  it('round-trips a file and removes it', async () => {
+    const bytes = new Uint8Array([1, 2, 3, 4]);
+    const rel = await writeAttachment(dir, ID, FILE, 'png', bytes);
+    expect(rel).toBe(`attachments/${ID}/${FILE}.png`);
+    expect(new Uint8Array((await readAttachment(dir, rel)) ?? new Uint8Array())).toEqual(bytes);
+    await removeAttachment(dir, rel);
+    expect(await readAttachment(dir, rel)).toBeNull();
+  });
+
+  it('drops the whole directory, twice without complaining', async () => {
+    await writeAttachment(dir, ID, FILE, 'png', new Uint8Array([1]));
+    await removeAttachments(dir, ID);
+    await removeAttachments(dir, ID);
+    await expect(readdir(attachmentDirPath(dir, ID))).rejects.toThrow();
   });
 });

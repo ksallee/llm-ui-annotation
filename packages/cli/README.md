@@ -21,7 +21,7 @@ The `annot` binary. A coding agent runs it to receive UI feedback from the brows
 
 ## Commands
 
-`annot --help` lists them in lifecycle order: `watch · pending · show · ack · ask · reply · done · decline · screenshot · routes · init · doctor`. Output is markdown because the reader is a language model; `--json` for machines.
+`annot --help` lists them in lifecycle order: `watch · pending · show · ack · ask · reply · done · decline · attach · screenshot · routes · init · doctor`. Output is markdown because the reader is a language model; `--json` for machines.
 
 ## Setup
 
@@ -34,6 +34,7 @@ This project uses llm-ui-annotation. The user annotates the running UI in the br
 
 - When asked to "watch for feedback" or "pick up annotations", run `annot watch` with `run_in_background` and keep working; when it exits, read its output, then start another `annot watch` before doing anything else so nothing is missed.
 - For each item: `annot ack <id>`, locate the code with the selector / quote / screenshot, make the change, then `annot done <id> --summary "<one or two sentences: what changed, where>"`. If you will not do it, `annot decline <id> --reason "..."`.
+- An item may carry an `attachments:` block of absolute paths — a mock, a PDF, notes the user dropped on it. Read them before changing anything; `annot attach <id> <file…>` hands a file back the other way.
 - If the request is ambiguous, `annot ask <id> "<one precise question>"` and move on to other items; the answer arrives through `annot watch`.
 - Keep summaries concrete (file and what changed). The user reads them in the browser before approving.
 - Do not edit files under `.annotations/` by hand.

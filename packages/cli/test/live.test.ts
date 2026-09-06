@@ -1,7 +1,7 @@
 import { newId, nowIso, type Annotation, type Batch } from '@llm-ui-annotation/core';
 import { readServerInfo } from '@llm-ui-annotation/core/node';
 import { annotations } from '@llm-ui-annotation/vite-plugin';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -174,6 +174,33 @@ describe('against the real vite plugin', () => {
     const { a } = await send(url, '/pricing', 'Make this taller.');
     await annot(dir, 'ack', a.id);
     expect((await annot(dir, 'ack', a.id)).code).toBe(2);
+  });
+
+  it('attaches a file over HTTP and reads it back in pending', async () => {
+    const { dir, url } = await start();
+    const { a } = await send(url, '/pricing', 'Make it look like this.');
+    const png = join(live?.root ?? '', 'mock-v2.png');
+    await writeFile(
+      png,
+      Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        'base64',
+      ),
+    );
+
+    const res = await annot(dir, 'attach', a.id, png);
+    expect(res.code).toBe(0);
+    expect(res.err).not.toContain('dev server not running');
+
+    const file = (await (await fetch(`${url}/routes/__pricing`)).json()) as {
+      annotations: Annotation[];
+    };
+    const attachment = file.annotations[0]?.attachments?.[0];
+    expect(attachment).toMatchObject({ name: 'mock-v2.png', type: 'image/png', by: 'agent' });
+    expect(await readFile(join(dir, attachment?.path ?? ''))).toHaveLength(70);
+    expect((await annot(dir, 'pending')).out).toContain(
+      `${join(dir, attachment?.path ?? '')}   mock-v2.png (image/png, 70 B)`,
+    );
   });
 
   it('exits 124 when nothing happens', async () => {

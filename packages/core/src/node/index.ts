@@ -1,8 +1,12 @@
-import { open, readdir, rm } from 'node:fs/promises';
+import { open, readdir, readFile, rm } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { nowIso } from '../model/id.js';
 import type { Annotation, Batch } from '../model/types.js';
 import { lastSeq, parseEvents, serializeEvent, type Event, type NewEvent } from '../protocol/events.js';
+import {
+  attachmentDir,
+  attachmentFile,
+} from '../protocol/attachments.js';
 import {
   DEFAULT_DIR,
   EVENTS_FILE,
@@ -164,6 +168,45 @@ export async function writeScreenshot(dir: string, id: string, png: Uint8Array):
 
 export async function removeScreenshot(dir: string, id: string): Promise<void> {
   await rm(screenshotPath(dir, id), { force: true });
+}
+
+export function attachmentDirPath(dir: string, annotationId: string): string {
+  return join(dir, attachmentDir(annotationId));
+}
+
+export function attachmentPath(dir: string, relative: string): string {
+  return join(dir, relative);
+}
+
+/** Write an attachment and return its path relative to `dir`. */
+export async function writeAttachment(
+  dir: string,
+  annotationId: string,
+  attachmentId: string,
+  ext: string,
+  bytes: Uint8Array,
+): Promise<string> {
+  const relative = attachmentFile(annotationId, attachmentId, ext);
+  await writeFileAtomic(join(dir, relative), bytes);
+  return relative;
+}
+
+export async function readAttachment(dir: string, relative: string): Promise<Buffer | null> {
+  try {
+    return await readFile(join(dir, relative));
+  } catch (err) {
+    if (isEnoent(err)) return null;
+    throw err;
+  }
+}
+
+export async function removeAttachment(dir: string, relative: string): Promise<void> {
+  await rm(join(dir, relative), { force: true });
+}
+
+/** Drop the whole `attachments/<annotationId>/` directory. */
+export async function removeAttachments(dir: string, annotationId: string): Promise<void> {
+  await rm(attachmentDirPath(dir, annotationId), { recursive: true, force: true });
 }
 
 /** Create the directory skeleton. */

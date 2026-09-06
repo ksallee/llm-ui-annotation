@@ -1,20 +1,29 @@
 import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
+  ACCEPTED_ATTACHMENT_TYPES,
   allowedTransitions,
   applyTransition,
   assignBatch,
+  ATTACHMENT_MAX_BYTES,
+  ATTACHMENT_MAX_COUNT,
+  ATTACHMENT_TOTAL_MAX_BYTES,
+  attachmentExtension,
+  attachmentFile,
   canTransition,
+  cleanAttachmentName,
   emptyRouteFile,
   makeMessage,
   newId,
   nowIso,
   routeFileFromSlug,
+  sniffAttachmentType,
   slug,
   STATUSES,
   validateAnnotation,
   type Actor,
   type Annotation,
+  type Attachment,
   type Batch,
   type CreateBatchRequest,
   type Event,
@@ -29,19 +38,23 @@ import {
 } from '@llm-ui-annotation/core';
 import {
   appendEvent,
+  attachmentPath,
   initDir,
   isEnoent,
   lastEventSeq,
   listRouteSlugs,
   readEvents,
   readTextOrNull,
+  removeAttachment,
+  removeAttachments,
   removeScreenshot,
   routePath,
+  writeAttachment,
   writeBatch,
   writeFileAtomic,
   writeScreenshot,
 } from '@llm-ui-annotation/core/node';
-import { badRequest, conflict, notFound } from './errors.js';
+import { badRequest, conflict, notFound, tooLarge, unsupportedMedia } from './errors.js';
 
 export type Change =
   | { kind: 'annotation'; annotation: Annotation }
@@ -70,6 +83,11 @@ function resolutionMessage(resolution: Resolution | undefined, by: Actor): NewMe
     kind: resolution.kind === 'declined' ? 'decline' : 'summary',
     text: resolution.summary,
   };
+}
+
+/** Rebuilt from the ids and the type, so a tampered `path` in a route file cannot escape the dir. */
+function safeAttachmentPath(annotationId: string, attachment: Attachment): string {
+  return attachmentFile(annotationId, attachment.id, attachmentExtension(attachment.type));
 }
 
 /** Sole writer of the annotations directory while the dev server runs. */
@@ -157,12 +175,15 @@ export class Store {
 
       if (at >= 0) {
         const previous = file.annotations[at] as Annotation;
+        // Attachments are server-owned: a re-posted draft carries a stale list, or none at all.
         const next: Annotation = {
           ...incoming,
           number: previous.number,
           createdAt: previous.createdAt,
           updatedAt: now,
         };
+        delete next.attachments;
+        if (previous.attachments) next.attachments = previous.attachments;
         file.annotations[at] = next;
         await this.save(file);
         await this.emit({
@@ -188,6 +209,7 @@ export class Store {
         updatedAt: now,
         sentAt: incoming.status === 'sent' ? (incoming.sentAt ?? now) : incoming.sentAt,
       };
+      delete next.attachments;
       file.nextNumber = Math.max(file.nextNumber, number + 1);
       file.annotations.push(next);
       await this.save(file);
@@ -245,6 +267,7 @@ export class Store {
       file.annotations.splice(at, 1);
       await this.save(file);
       await removeScreenshot(this.dir, id);
+      await removeAttachments(this.dir, id);
       this.index.delete(id);
       await this.emit({
         at: nowIso(),
@@ -399,6 +422,109 @@ export class Store {
       this.change({ kind: 'annotation', annotation: next });
     });
     return path;
+  }
+
+  /** Store a dropped file under `attachments/<id>/` and record it on the annotation. */
+  async addAttachment(
+    id: string,
+    bytes: Buffer,
+    rawName: string,
+    by: Actor = 'user',
+  ): Promise<{ annotation: Annotation; attachment: Attachment }> {
+    if (bytes.length === 0) throw badRequest('body: expected the file bytes');
+    if (bytes.length > ATTACHMENT_MAX_BYTES) {
+      throw tooLarge(`file larger than ${ATTACHMENT_MAX_BYTES} bytes`);
+    }
+    const name = cleanAttachmentName(rawName);
+    const type = sniffAttachmentType(bytes, name);
+    if (type === null) {
+      throw unsupportedMedia('unsupported file type', [
+        `accepted: ${ACCEPTED_ATTACHMENT_TYPES.join(', ')}`,
+      ]);
+    }
+
+    const route = await this.routeOf(id);
+    return this.withRoute(route, async () => {
+      const file = await this.mutableRoute(route);
+      const at = this.locate(file, id);
+      const previous = file.annotations[at] as Annotation;
+      const existing = previous.attachments ?? [];
+      if (existing.length >= ATTACHMENT_MAX_COUNT) {
+        throw conflict(`#${previous.number} already has ${ATTACHMENT_MAX_COUNT} attachments`);
+      }
+      const total = existing.reduce((n, a) => n + a.bytes, 0);
+      if (total + bytes.length > ATTACHMENT_TOTAL_MAX_BYTES) {
+        throw tooLarge(`#${previous.number} would exceed ${ATTACHMENT_TOTAL_MAX_BYTES} bytes of attachments`);
+      }
+
+      const now = nowIso();
+      const attachmentId = newId();
+      const path = await writeAttachment(
+        this.dir,
+        id,
+        attachmentId,
+        attachmentExtension(type),
+        bytes,
+      );
+      const attachment: Attachment = { id: attachmentId, name, type, bytes: bytes.length, path, at: now, by };
+      const next: Annotation = {
+        ...previous,
+        attachments: [...existing, attachment],
+        updatedAt: now,
+      };
+      file.annotations[at] = next;
+      await this.save(file);
+      await this.emit({
+        at: now,
+        type: 'annotation.updated',
+        by,
+        route: file.route,
+        annotationId: id,
+      });
+      this.change({ kind: 'annotation', annotation: next });
+      return { annotation: next, attachment };
+    });
+  }
+
+  async removeAttachment(id: string, attachmentId: string, by: Actor = 'user'): Promise<Annotation> {
+    const route = await this.routeOf(id);
+    return this.withRoute(route, async () => {
+      const file = await this.mutableRoute(route);
+      const at = this.locate(file, id);
+      const previous = file.annotations[at] as Annotation;
+      const found = (previous.attachments ?? []).find((a) => a.id === attachmentId);
+      if (!found) throw notFound(`attachment ${attachmentId} not found on #${previous.number}`);
+
+      const now = nowIso();
+      const next: Annotation = {
+        ...previous,
+        attachments: (previous.attachments ?? []).filter((a) => a.id !== attachmentId),
+        updatedAt: now,
+      };
+      file.annotations[at] = next;
+      await this.save(file);
+      await removeAttachment(this.dir, safeAttachmentPath(id, found));
+      await this.emit({
+        at: now,
+        type: 'annotation.updated',
+        by,
+        route: file.route,
+        annotationId: id,
+      });
+      this.change({ kind: 'annotation', annotation: next });
+      return next;
+    });
+  }
+
+  /** The stored file for one attachment, located from the record rather than from the URL. */
+  async attachment(
+    id: string,
+    attachmentId: string,
+  ): Promise<{ attachment: Attachment; file: string }> {
+    const annotation = await this.annotation(id);
+    const attachment = (annotation.attachments ?? []).find((a) => a.id === attachmentId);
+    if (!attachment) throw notFound(`attachment ${attachmentId} not found on ${id}`);
+    return { attachment, file: attachmentPath(this.dir, safeAttachmentPath(id, attachment)) };
   }
 
   async annotation(id: string): Promise<Annotation> {

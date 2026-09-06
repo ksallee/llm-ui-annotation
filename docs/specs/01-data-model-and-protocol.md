@@ -10,7 +10,7 @@ Give every other workstream a single vocabulary: what an annotation is, how it i
 
 - `id`: 26-char Crockford base32 ULID-like string generated client-side (10-char time prefix + 16 random). Provide `newId(now = Date.now())`. Sortable, no dependency; ids made in the same millisecond increment the random part so the order is strict. Also `isId`, `idTime`, `compareIds`, `nowIso`.
 - All timestamps ISO 8601 UTC strings (`2026-09-05T18:24:41.048Z`).
-- `protocolVersion: 2` (`PROTOCOL_VERSION`). Readers accept every version in `SUPPORTED_PROTOCOL_VERSIONS` — `[1, 2]` — so files written before multi-block highlights keep loading; a v1 text target simply has no `blocks`. `validateAnnotation` is the one place that decides.
+- `protocolVersion: 2` (`PROTOCOL_VERSION`). Readers accept every version in `SUPPORTED_PROTOCOL_VERSIONS` — `[1, 2]` — so files written before multi-block highlights keep loading; a v1 text target simply has no `blocks`. `validateAnnotation` is the one place that decides. `attachments` (spec 11 §1) did **not** bump it: the field is additive and optional, so a v2 reader that predates it sees an annotation without attachments, which is a state it already handles.
 
 ## Types (TypeScript, exported from `@llm-ui-annotation/core`)
 
@@ -83,6 +83,16 @@ export interface Message {
   at: string;
 }
 
+export interface Attachment {
+  id: string;                  // ulid, names the file on disk
+  name: string;                // original filename, basename only, trimmed to 120 chars
+  type: string;                // MIME, sniffed from the content, never the client's Content-Type
+  bytes: number;
+  path: string;                // relative to the dir: attachments/<annotationId>/<attachmentId>.<ext>
+  at: string;
+  by: Actor;
+}
+
 export interface Annotation {
   id: string;
   protocolVersion: 1 | 2;
@@ -102,6 +112,7 @@ export interface Annotation {
   resolvedAt: string | null;   // when status became review
   approvedAt: string | null;
   resolution: { kind: 'changed' | 'declined'; summary: string } | null;
+  attachments?: Attachment[];  // files dropped on the annotation, spec 11 §1
   anchorState?: 'exact' | 'moved' | 'lost';   // browser-only, not persisted
 }
 
@@ -149,15 +160,16 @@ Root: `<project>/.annotations/` (configurable via plugin option `dir`). Gitignor
   batches/<batchId>.json      Batch
   events.jsonl                append-only, one Event per line
   screenshots/<id>.png
+  attachments/<annotationId>/<attachmentId>.<ext>
 ```
 
 `slug(route)`: `/` and `''` → `index`; otherwise lowercase, `/` → `__`, remaining non `[a-z0-9_-]` → `-`, collapse runs of `-` to one and runs of `_` to `__`, strip leading and trailing `-`, `index` if nothing is left. Never longer than 120 chars: a longer slug is cut to 111 and given `-` plus an 8-char FNV-1a hash of the full route.
 
-Path helpers (`routeFile`, `batchFile`, `screenshotFile`) return paths relative to the annotations dir. `RouteFile` and `ServerInfo` are exported types.
+Path helpers (`routeFile`, `batchFile`, `screenshotFile`, `attachmentDir`, `attachmentFile`) return paths relative to the annotations dir. `RouteFile` and `ServerInfo` are exported types.
 
 Writes are atomic: write a sibling tmp file (`<file>.<pid>.<n>.tmp`) then rename. Readers tolerate a missing or unparseable file as empty.
 
-Node helpers, exported from `@llm-ui-annotation/core/node`: `readRoute`, `readRouteBySlug`, `writeRoute`, `listRouteSlugs`, `listRoutes`, `readAllAnnotations`, `readBatch`, `writeBatch`, `appendEvent`, `readEvents`, `lastEventSeq`, `readServerInfo`, `writeServerInfo`, `removeServerInfo`, `writeScreenshot`, `removeScreenshot`, `screenshotPath`, `eventsPath`, `routePath`, `initDir`, `findAnnotationsDir`, plus `writeFileAtomic`, `readJsonOrNull`, `readTextOrNull`, `writeJson`, `appendLine`, `ensureDir`, `isEnoent`.
+Node helpers, exported from `@llm-ui-annotation/core/node`: `readRoute`, `readRouteBySlug`, `writeRoute`, `listRouteSlugs`, `listRoutes`, `readAllAnnotations`, `readBatch`, `writeBatch`, `appendEvent`, `readEvents`, `lastEventSeq`, `readServerInfo`, `writeServerInfo`, `removeServerInfo`, `writeScreenshot`, `removeScreenshot`, `screenshotPath`, `writeAttachment`, `readAttachment`, `removeAttachment`, `removeAttachments`, `attachmentPath`, `attachmentDirPath`, `eventsPath`, `routePath`, `initDir`, `findAnnotationsDir`, plus `writeFileAtomic`, `readJsonOrNull`, `readTextOrNull`, `writeJson`, `appendLine`, `ensureDir`, `isEnoent`.
 
 ## Events
 
@@ -200,7 +212,15 @@ POST   /__annot/annotations/:id/transition      body { to: Status, by: Actor, me
 GET    /__annot/events?since=<seq>              → { events: Event[] }
 GET    /__annot/events/stream?since=<seq>       SSE, one Event per message, heartbeat every 15 s       (used by annot watch)
 POST   /__annot/screenshots/:id                 body image/png → { path }
+POST   /__annot/annotations/:id/attachments     body the file bytes, ?name=<encoded>&by=user|agent → Attachment
+DELETE /__annot/annotations/:id/attachments/:attachmentId       → { ok: true }
+GET    /__annot/attachments/:id/:attachmentId                   → the file
 ```
+
+Attachments: accepted types `image/png|jpeg|gif|webp|svg+xml`, `application/pdf`, `text/markdown|plain|csv`,
+`application/json`; 20 MB per file, 50 MB and 10 files per annotation. The type is sniffed from magic bytes
+and only then from the extension of `?name`, so the client's `Content-Type` never decides what is stored.
+Attaching and detaching emit `annotation.updated`; deleting a draft deletes its attachment directory.
 
 Websocket to the overlay reuses Vite's HMR socket with custom events `annot:annotation`, `annot:deleted`, `annot:route` (full route file after external change). See spec 05.
 
@@ -233,6 +253,14 @@ elements: h2 "Pricing" (main > h2), section.pricing (…), article "Free" (…)
 id: 01J8…
 
 Reply with: annot ack <id…> · annot ask <id> "…" · annot done <id> --summary "…" · annot decline <id> --reason "…"
+```
+
+An annotation with attachments carries one block before its comment, at every level, absolute so the agent
+can open the files with its own tools:
+
+```
+attachments:
+  /repo/.annotations/attachments/01J8…/01J9….png   mock-v2.png (image/png, 240 KB)
 ```
 
 `compact` drops styles/context/prefix/suffix; `detailed` adds the `fallbacks`, the full `attrs`, the status and every thread message. Every item ends with its full id so `annot done <id>` is copy-pasteable, and `dir` is joined onto the relative screenshot path so page items carry an absolute path. Core also exports `renderAnnotationMarkdown`, `renderAnswerMarkdown` and `renderReopenMarkdown` for the answer and reopen sections in spec 06, plus `AGENT_VERBS_FOOTER`.

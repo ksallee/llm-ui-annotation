@@ -1,6 +1,7 @@
 import { elementLabel } from '../model/summarize.js';
 import type {
   Annotation,
+  Attachment,
   Batch,
   ElementRef,
   Message,
@@ -8,6 +9,7 @@ import type {
   Rect,
   TextTarget,
 } from '../model/types.js';
+import { formatBytes } from './attachments.js';
 
 export type RenderLevel = 'compact' | 'standard' | 'detailed';
 
@@ -123,6 +125,16 @@ function headerLabel(a: Annotation): string {
   }
 }
 
+/** Absolute paths, because the agent opens them with its own file tools. */
+function attachmentLines(list: readonly Attachment[], dir: string): string[] {
+  return [
+    'attachments:',
+    ...list.map(
+      (a) => `  ${joinPath(dir, a.path)}   ${a.name} (${a.type}, ${formatBytes(a.bytes)})`,
+    ),
+  ];
+}
+
 function threadLines(thread: readonly Message[]): string[] {
   return ['thread:', ...thread.map((m) => `- ${m.role} ${m.kind} (${m.at}): ${oneLine(m.text)}`)];
 }
@@ -148,6 +160,10 @@ export function renderAnnotationMarkdown(a: Annotation, opts: RenderOptions): st
 
   if (opts.level === 'detailed') {
     lines.push(`status: ${a.status}${a.resolution ? ` (${a.resolution.kind})` : ''}`);
+  }
+
+  if (a.attachments && a.attachments.length > 0) {
+    lines.push(...attachmentLines(a.attachments, opts.dir));
   }
 
   lines.push(`> ${oneLine(a.comment)}`);

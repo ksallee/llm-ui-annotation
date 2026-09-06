@@ -8,6 +8,7 @@ import {
 } from '../src/index.js';
 import {
   ALL_ANNOTATIONS,
+  ATTACHED_ANNOTATION,
   BATCH,
   PAGE_ANNOTATION,
   TEXT_MULTI_ANNOTATION,
@@ -187,6 +188,28 @@ describe('renderReopenMarkdown', () => {
         'User: The gaps are still uneven on the middle card.',
         '',
       ].join('\n'),
+    );
+  });
+});
+
+describe('attachments', () => {
+  const BLOCK = [
+    'attachments:',
+    `  ${DIR}/attachments/01JBZZZZZZ0000000000000014/01JBZZZZZZ00000000000000A1.png   mock-v2.png (image/png, 240 KB)`,
+    `  ${DIR}/attachments/01JBZZZZZZ0000000000000014/01JBZZZZZZ00000000000000A2.pdf   brand-spec.pdf (application/pdf, 1.1 MB)`,
+  ].join('\n');
+
+  for (const level of LEVELS) {
+    it(`lists them with absolute paths at ${level}`, () => {
+      const md = renderAnnotationMarkdown(ATTACHED_ANNOTATION, { level, dir: DIR });
+      expect(md).toContain(BLOCK);
+      expect(md.indexOf(BLOCK)).toBeLessThan(md.indexOf('> Make it look like this.'));
+    });
+  }
+
+  it('says nothing when there are none', () => {
+    expect(renderAnnotationMarkdown(annotation(), { level: 'detailed', dir: DIR })).not.toContain(
+      'attachments:',
     );
   });
 });

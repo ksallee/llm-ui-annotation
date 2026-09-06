@@ -230,6 +230,27 @@ function checkMessage(p: Problems, v: unknown, path: string): void {
   p.iso(v['at'], `${path}.at`);
 }
 
+const ATTACHMENT_PATH = /^attachments\/[0-9A-HJKMNP-TV-Z]{26}\/[0-9A-HJKMNP-TV-Z]{26}\.[a-z0-9]{1,8}$/;
+
+function checkAttachment(p: Problems, v: unknown, annotationId: unknown, path: string): void {
+  if (!p.rec(v, path)) return;
+  const idOk = p.id(v['id'], `${path}.id`);
+  p.str(v['name'], `${path}.name`);
+  p.str(v['type'], `${path}.type`);
+  p.num(v['bytes'], `${path}.bytes`);
+  p.iso(v['at'], `${path}.at`);
+  p.oneOf(v['by'], ACTORS, `${path}.by`);
+  if (!p.str(v['path'], `${path}.path`)) return;
+  const value = v['path'] as string;
+  if (!ATTACHMENT_PATH.test(value)) {
+    p.add(`${path}.path: expected attachments/<annotationId>/<attachmentId>.<ext>`);
+    return;
+  }
+  if (idOk && isId(annotationId) && !value.startsWith(`attachments/${annotationId}/${v['id'] as string}.`)) {
+    p.add(`${path}.path: must name this annotation and this attachment`);
+  }
+}
+
 /** Every problem with `x` as an Annotation; empty when it is valid. */
 export function validateAnnotation(x: unknown): string[] {
   const p = new Problems();
@@ -278,6 +299,10 @@ export function validateAnnotation(x: unknown): string[] {
       p.oneOf(res['kind'], ['changed', 'declined'] as const, 'resolution.kind');
       p.str(res['summary'], 'resolution.summary');
     }
+  }
+
+  if (x['attachments'] !== undefined && p.arr(x['attachments'], 'attachments')) {
+    x['attachments'].forEach((a, i) => checkAttachment(p, a, x['id'], `attachments[${i}]`));
   }
 
   if (x['anchorState'] !== undefined) {

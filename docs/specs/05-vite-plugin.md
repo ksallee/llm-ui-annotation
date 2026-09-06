@@ -12,7 +12,7 @@ Options: `dir` (default: `process.env.ANNOT_DIR` when set, else `.annotations` a
 ## Responsibilities
 
 1. **Storage** — sole writer of `<dir>` while the dev server runs. Implements the file layout from spec 01: `routes/`, `batches/`, `events.jsonl`, `screenshots/`, `server.json`. Atomic writes. In-memory cache of route files with `mtime` check so external edits (the CLI in fallback mode, or a human) are noticed.
-2. **HTTP API** — every endpoint in spec 01 on `server.middlewares`. Body limit 20 MB for screenshots, 1 MB otherwise. Validate with `validateAnnotation` from core; reject with 400 and the problem list. Assign `number` from `nextNumber` per route. Emit events with `seq`.
+2. **HTTP API** — every endpoint in spec 01 on `server.middlewares`. Body limit 20 MB for screenshots and attachments, 1 MB otherwise. Validate with `validateAnnotation` from core; reject with 400 and the problem list. Assign `number` from `nextNumber` per route. Emit events with `seq`.
 3. **SSE** — `GET /__annot/events/stream?since=` keeps the connection open, replays events after `since`, then streams new ones; heartbeat comment every 15 s. Used by `annot watch`.
 4. **Push to the overlay** — on any change (own writes or detected external writes), `server.ws.send({ type: 'custom', event: 'annot:annotation', data: Annotation })`, `annot:deleted`, or `annot:route` when a whole file changed. Use `fs.watch` on `<dir>/routes` and `<dir>/events.jsonl` with 100 ms debounce (fall back to polling every 500 ms on platforms where `fs.watch` is unreliable, detect via option `watch: 'native' | 'poll'`).
 5. **Inject** — `transformIndexHtml` adds `<script type="module" src="/@id/__x00__virtual:annot-auto"></script>`; the virtual module imports `@llm-ui-annotation/svelte/auto` and passes options as `import.meta.env`-free JSON. Only when `command === 'serve'`. Never in build output.
@@ -33,6 +33,30 @@ The overlay sends `route` with every create; the plugin derives the slug and fil
 
 `POST /__annot/screenshots/:id` with `image/png` body → `<dir>/screenshots/<id>.png`, returns `{ path: 'screenshots/<id>.png' }`. Reject non-PNG. When an annotation is deleted (drafts only), delete its screenshot.
 
+## Attachments
+
+`POST /__annot/annotations/:id/attachments?name=<encoded>[&by=user|agent]` with the raw file bytes →
+`<dir>/attachments/<id>/<attachmentId>.<ext>`, returns the `Attachment`. `DELETE
+/__annot/annotations/:id/attachments/:attachmentId` → `{ ok: true }`. `GET
+/__annot/attachments/:id/:attachmentId` streams the file back. Both verbs emit `annotation.updated` and push
+the annotation to the overlay; deleting a draft deletes its attachment directory along with its screenshot.
+
+The type comes from the magic bytes, then from the extension of `?name`; the request's `Content-Type` is never
+believed. 20 MB per file (the read aborts mid-stream with 413), 50 MB and 10 files per annotation. The stored
+`path` is never joined with a request segment: every read rebuilds it from `isId`-checked ids plus the
+extension for the recorded type.
+
+### Why the write endpoints refuse ordinary content types
+
+An earlier `POST /screenshots/:id` accepted `text/plain`, which is a CORS-simple content type, so any page the
+developer had open could write files into the project. Every endpoint that takes a body now refuses
+`text/plain`, `multipart/form-data` and `application/x-www-form-urlencoded` with 415, and refuses a foreign
+`Origin` or `Sec-Fetch-Site` with 403. What is left needs a preflight, which this server does not answer.
+Callers send the real MIME or `application/octet-stream`.
+
+Attachments are served with `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src
+'none'; style-src 'unsafe-inline'; sandbox`, so an uploaded SVG cannot run script on the dev origin.
+
 ## Logging
 
 Prefix `[annot]`. One line on start with the dir, port, and route count. One line per batch sent (`[annot] batch 01J8… sent, 3 items on /pricing`). Errors with the request path. Nothing per event.
@@ -52,4 +76,5 @@ Prefix `[annot]`. One line on start with the dir, port, and route count. One lin
 
 - Vitest with a real Vite dev server on a random port against a temp dir: create draft, list route, send batch (assert `events.jsonl` has `batch.sent` with the full batch, statuses flipped), transition via HTTP by `agent`, SSE stream delivers the events in order with `since`, external edit of a route file triggers `annot:route` on a fake ws client, `server.json` appears and disappears, screenshot round-trip.
 - `transformIndexHtml` injects in serve and not in build (test both).
+- Attachments: a PNG round-trips through POST and GET; a ZIP is refused with 415 naming the accepted list; a 21 MB body is refused with 413; a traversing `:id` or `:attachmentId` is refused with 400; a CORS-simple content type and a foreign `Origin` are refused; deleting a draft removes `attachments/<id>/`.
 - Typecheck of options; README with the config snippet and the file layout.

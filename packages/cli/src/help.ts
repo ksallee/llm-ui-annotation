@@ -10,6 +10,7 @@ Usage: annot <command> [options]
   reply <id> "<text>"          add a comment without moving the status
   done <id…> --summary "…"     → review, resolution changed
   decline <id…> --reason "…"   → review, resolution declined
+  attach <id> <file…>          add a file to an annotation the user can see
   screenshot <id> [--open]     absolute path of a page-mode screenshot
   routes                       routes with counts by status
   init [--claude-md] [--gitignore]   gitignore, CLAUDE.md section, vite snippet

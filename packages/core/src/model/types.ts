@@ -129,6 +129,21 @@ export interface Resolution {
 
 export type AnchorState = 'exact' | 'moved' | 'lost';
 
+/** A file dropped on an annotation. */
+export interface Attachment {
+  /** Names the file on disk. */
+  id: string;
+  /** Original filename, trimmed to 120 chars. */
+  name: string;
+  /** MIME, sniffed from the content, never taken from the client. */
+  type: string;
+  bytes: number;
+  /** Relative to the annotations dir, e.g. `attachments/<annotationId>/<id>.png`. */
+  path: string;
+  at: string;
+  by: Actor;
+}
+
 export interface Annotation {
   id: string;
   protocolVersion: ProtocolVersion;
@@ -152,6 +167,7 @@ export interface Annotation {
   resolvedAt: string | null;
   approvedAt: string | null;
   resolution: Resolution | null;
+  attachments?: Attachment[];
   /** Browser-only, not persisted. */
   anchorState?: AnchorState;
 }

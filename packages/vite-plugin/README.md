@@ -40,6 +40,7 @@ worktrees never write over each other. An explicit `dir` wins over it.
   batches/<id>.json     Batch
   events.jsonl          append-only, one Event per line, `seq` read from the tail at startup
   screenshots/<id>.png
+  attachments/<annotationId>/<attachmentId>.<ext>
 ```
 
 ## HTTP API
@@ -59,12 +60,30 @@ Every path is relative to `basePath`. JSON in and out, same origin, errors `{ er
 | GET | `/events?since=` | | `{ events: Event[] }` |
 | GET | `/events/stream?since=` | | SSE, `id: <seq>` + one `Event` per frame, `: ping` every 15 s |
 | POST | `/screenshots/:id` | `image/png` (20 MB cap) | `{ path }`, 201 |
+| POST | `/annotations/:id/attachments?name=&by=` | the file bytes (20 MB cap) | `Attachment`, 201 |
+| DELETE | `/annotations/:id/attachments/:attachmentId` | | `{ ok: true }` |
+| GET | `/attachments/:id/:attachmentId` | | the file, `nosniff` + sandbox CSP |
 
-Bodies are capped at 1 MB except screenshots. An illegal transition is 409 with the allowed statuses
+Bodies are capped at 1 MB except screenshots and attachments. An illegal transition is 409 with the allowed statuses
 in `problems`. `resolution: { kind: 'changed' \| 'declined', summary }` is written as a `summary` or
 `decline` message on the thread; `message` wins when both are given. Reopening (`review|approved →
 sent` by the user) clears the resolution and creates a fresh batch, so a `batch.sent` follows the
 `status.changed`.
+
+## Attachments
+
+`attachments/<annotationId>/<attachmentId>.<ext>`, both ids `isId`-checked before anything touches the
+filesystem, the stored path rebuilt from them on every read. The MIME comes from the magic bytes and only
+then from the extension of `?name` — never from the request's `Content-Type`. Accepted: PNG, JPEG, GIF,
+WebP, SVG, PDF, Markdown, plain text, CSV, JSON; 20 MB per file, 50 MB and 10 files per annotation.
+Attaching and detaching emit `annotation.updated`; deleting a draft deletes its attachment directory. The
+list is server-owned — `POST /annotations` neither writes nor clears it — so a re-posted draft cannot drop
+files and a client cannot invent an entry.
+
+Every endpoint that takes a body refuses the CORS-simple content types (`text/plain`,
+`multipart/form-data`, `application/x-www-form-urlencoded`) with 415 and a foreign `Origin` or
+`Sec-Fetch-Site` with 403, so a page on another origin cannot write into the project the way the first
+version of `POST /screenshots/:id` allowed. Send the real MIME or `application/octet-stream`.
 
 ## Websocket
 

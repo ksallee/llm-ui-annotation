@@ -34,12 +34,23 @@ Accepted: `image/png|jpeg|gif|webp|svg+xml`, `application/pdf`, `text/markdown|p
 `<dir>/attachments/<annotationId>/<attachmentId>.<ext>`. Deleting a draft deletes its attachment directory.
 
 ```
-POST   /__annot/annotations/:id/attachments    body: the file, ?name=<encoded>  → Attachment
-DELETE /__annot/annotations/:id/attachments/:attachmentId                        → { ok }
+POST   /__annot/annotations/:id/attachments    body: the file, ?name=<encoded>[&by=user|agent] → Attachment
+DELETE /__annot/annotations/:id/attachments/:attachmentId                        → { ok: true }
 GET    /__annot/attachments/:id/:attachmentId                                    → the file
 ```
 
-`:id` and `:attachmentId` go through `isId` before touching the filesystem. Emit `annotation.updated`.
+`:id` and `:attachmentId` go through `isId` before touching the filesystem, and the file is located from the
+stored record rather than from the URL. Emit `annotation.updated` on attach and on detach. The list is
+server-owned: `POST /annotations` neither writes nor clears it, so re-posting an edited draft cannot drop the
+files and a client cannot invent an entry.
+
+Failures: 400 on a bad id or an empty body · 403 on a foreign `Origin`/`Sec-Fetch-Site` · 404 on an unknown
+annotation or attachment · 409 on the eleventh file · 413 over 20 MB per file or 50 MB per annotation ·
+**415** on an unsupported type, with the accepted list in `problems`, and on the CORS-simple content types
+(`text/plain`, `multipart/form-data`, `application/x-www-form-urlencoded`) that let the old screenshot
+endpoint be written to cross-origin. 415 rather than the 400 first written here: the status exists for
+exactly this, and the body still names the list. Callers send the real MIME or `application/octet-stream`.
+Attachments are served back with `nosniff` and a sandbox CSP so an uploaded SVG cannot run on the dev origin.
 
 ### What the agent sees
 
@@ -55,13 +66,55 @@ Absolute, because the agent reads them with its own file tools. `annot show` lis
 
 ## 2. A drawing is an object
 
-Strokes are painted after they are committed, but nothing can pick them up again. That is the gap — not visibility.
+Strokes are painted once committed, but nothing can pick them up again. That is the gap — not visibility.
 
-- **Select**: clicking a drawing's region selects it, in Draw mode or with no mode active. Its box and eight handles appear; `Esc` deselects. Only one drawing is selected at a time.
-- **Edit**: move, resize, restyle and delete, exactly as spec 10 §2 describes for pending strokes. Dragging the box moves the marks with it, as it already does for the pending drawing. `transformStrokes(strokes, from, to)` in `packages/core/src/dom/strokes.ts`, built on the existing `translateStrokes`.
-- **Editing something already sent** appends a `comment` message reading `drawing edited` and PATCHes the target. The status does not change: the agent finds out through the thread, which is the same way it learns about an edited comment. A `review` annotation whose drawing is edited goes back to `sent` — the agent's answer was about the old marks.
-- Adding strokes to a selected drawing extends it rather than starting a new one. Starting a stroke on empty canvas with nothing selected begins a new drawing, as now.
+**A drawing is strokes plus a capture box, and it is exactly one annotation.** A route accumulates
+as many as you like. One drawing per note is not negotiable: each needs its own status and thread, or
+you could not approve one and reopen another.
+
+### Two levels, like groups in a drawing tool
+
+Entering Draw shows a faint dashed box around every visible drawing on the route. That is the "what
+is on this page" view, and it is what makes the rest predictable.
+
+- **Click** a drawing with **Move** (`V`) selects the whole drawing: handles on its box, drag moves
+  marks and box together, handles scale everything inside it. `⌘`/`⇧`-click adds another drawing to
+  the selection.
+- **Double-click** steps *inside* that drawing. Now clicks select individual strokes — an arrow, a
+  caption, one brush stroke — and drag and handles transform only those. Double-clicking a caption
+  edits its text.
+- **`Esc` steps out one level** each time: inside → drawing selected → nothing selected → leave Draw.
+  The selected drawing's box stays solid while you are inside it, so the level you are on is visible.
+
+**Frame** (`F`) is a separate tool that adjusts a drawing's capture box *alone*, leaving the marks
+where they are — for widening what the screenshot catches. It supersedes the always-on region handles
+in spec 09 §6, which is edited in the same commit.
+
+Draw tools keep `1`–`6`. A stroke started inside a visible box joins that drawing; started outside
+every box, it begins a new one. The boxes are on screen while you draw, so this is a rule you can
+see rather than a guess.
+
+### Committing, and what happens after
+
+- **Leaving Draw commits every uncommitted drawing** as a draft note with an empty comment. Nothing
+  you drew is lost, and drawing three things in a row costs three strokes of work, not three dialogs.
+  A draft with an empty comment cannot be sent: the Send button says how many need one, and the panel
+  row prompts inline.
+- **Editing a drawing that was already sent** appends a `comment` message reading `drawing edited`
+  and PATCHes the target. A `review` annotation goes back to `sent` — the agent's answer was about
+  the old marks.
+- **Hiding is per drawing**, from the eye on its panel row. A hidden drawing is not rendered and not
+  selectable anywhere, Draw mode included: if you cannot see it, it cannot get in your way. The row
+  says it is hidden. The toolbar's Pins control still hides everything at once.
+- **Outside Draw a drawing is inert.** Strokes and marker are painted, nothing else — no box, no
+  handles, no click target beyond the existing hover card. A click landing on a drawing in Element or
+  Highlight reaches the host element or the text underneath. This is the whole reason selection lives
+  on a tool: a drawing can cover half a page.
 - Approved annotations are not selectable; reopen first.
+
+`transformStrokes(strokes, from: Rect, to: Rect): Stroke[]` in `packages/core/src/dom/strokes.ts`,
+built on the existing `translateStrokes`, does the geometry for both levels. Spec 10 §2 described
+stroke selection with its own `V`; it is superseded by this section and edited in the same commit.
 
 ## 3. The panel
 
@@ -79,9 +132,16 @@ Keep the list; tighten it. Every problem below is visible in the panel as it sta
 ## Acceptance criteria
 
 - A PNG dropped on the popup and a PDF dropped on a panel row both land in `attachments/<annotationId>/`, appear in the row, and show up in `annot pending` as absolute paths with name, type and size.
-- A rejected type returns 400 naming the accepted list; a 21 MB file is refused; a traversing `:attachmentId` is refused.
+- A rejected type returns 415 naming the accepted list; a 21 MB file is refused; a traversing `:attachmentId` is refused; a write with a CORS-simple content type or a foreign `Origin` is refused.
 - Deleting a draft removes its attachment directory.
-- Clicking a committed drawing selects it; dragging moves marks and box together; the stored `PageTarget` reflects the new geometry.
+- Entering Draw reveals a faint box around every visible drawing on the route; leaving hides them.
+- Move-click selects a whole drawing and dragging moves marks and box together; the stored `PageTarget` reflects the new geometry.
+- Double-click steps inside and selects one stroke; moving it changes that stroke and no other. `Esc` walks back out level by level.
+- Frame moves the capture box without moving the marks.
+- A stroke started inside a drawing's box joins it; one started outside every box makes a new drawing.
+- Leaving Draw with two uncommitted drawings creates two draft notes; neither can be sent until it has a comment.
+- A hidden drawing is not rendered and not selectable, including in Draw mode.
+- In Element and Highlight mode, a click landing inside a committed drawing reaches the host element or the text underneath it.
 - Editing a `review` drawing returns it to `sent` and appends a thread message.
 - Every panel row shows a status word and at least one action; a page annotation shows a thumbnail of what was drawn.
 - With three rows selected, the bulk bar is visible without scrolling.
