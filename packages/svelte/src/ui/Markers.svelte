@@ -26,7 +26,7 @@
         oncontextmenu={(e) => {
           if (a.status !== 'draft') return;
           e.preventDefault();
-          void annot.deleteDraft(a.id);
+          void annot.deleteNote(a.id);
         }}
       >
         {dots ? '' : a.number}

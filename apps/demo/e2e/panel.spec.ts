@@ -9,6 +9,7 @@ import {
   sendBatch,
   setMode,
   snapshot,
+  storedAnnotations,
 } from './overlay.js';
 
 const row = (page: Page, n: number) =>
@@ -150,8 +151,26 @@ test('a mixed selection acts on the rows that allow it and says how many', async
   const approve = bulk.getByRole('button', { name: /^Approve \(1 of 2\)/ });
   await expect(approve).toBeEnabled();
   await expect(bulk.getByRole('button', { name: /^Send \(1 of 2\)/ })).toBeEnabled();
-  await expect(bulk.getByRole('button', { name: /^Delete \(1 of 2\)/ })).toBeEnabled();
+  // Delete allows every status, so it acts on both.
+  await expect(bulk.getByRole('button', { name: /^Delete \(2\)/ })).toBeEnabled();
 
   await approve.click();
   await expect.poll(() => statuses(page)).toEqual(['approved', 'draft']);
+});
+
+test('a sent note is deleted from the row menu, no confirmation', async ({ page, site, annotDir }) => {
+  await page.goto(`${site}/`);
+  await setMode(page, 'Element');
+  await annotateElement(page, '[data-testid="signup"]', 'sent by mistake');
+  await sendBatch(page);
+  await expect.poll(() => statuses(page)).toEqual(['sent']);
+
+  await openPanel(page);
+  const first = row(page, 1);
+  await first.getByRole('button', { name: 'More actions on annotation 1' }).click();
+  await first.getByRole('button', { name: 'Delete' }).click();
+
+  await expect.poll(() => statuses(page)).toEqual([]);
+  await expect.poll(() => storedAnnotations(annotDir, '/').then((a) => a.length)).toBe(0);
+  await expect(overlay(page).locator('.toast', { hasText: 'Deleted #1' })).toHaveCount(1);
 });

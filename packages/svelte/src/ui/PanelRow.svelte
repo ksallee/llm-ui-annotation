@@ -267,14 +267,12 @@
                 menuOpen = false;
               }}><Icon name="edit" size={14} /> Edit</button
             >
-            {#if a.status === 'draft'}
-              <button
-                onclick={() => {
-                  menuOpen = false;
-                  void annot.deleteDraft(a.id);
-                }}><Icon name="trash" size={14} /> Delete</button
-              >
-            {/if}
+            <button
+              onclick={() => {
+                menuOpen = false;
+                void annot.deleteRow(a.id);
+              }}><Icon name="trash" size={14} /> Delete</button
+            >
             <button
               onclick={() => {
                 menuOpen = false;
