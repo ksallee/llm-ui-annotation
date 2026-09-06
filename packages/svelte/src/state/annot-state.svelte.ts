@@ -107,6 +107,9 @@ export interface AnnotStateOptions {
 const OPEN: Status[] = ['draft', 'sent', 'acknowledged'];
 const NEEDS_YOU: Status[] = ['question', 'review'];
 
+/** Keeps a drawing's pin inside its region instead of centred on the corner. */
+export const REGION_INSET = 14;
+
 /** Everything the overlay renders from. One instance per mounted overlay. */
 export class AnnotState {
   readonly annotations = new SvelteMap<string, Annotation>();
@@ -706,7 +709,7 @@ export class AnnotState {
     return this.anchors.get(id) ?? null;
   }
 
-  /** Top-right of the first rect, in document coordinates. */
+  /** Top-right of the first rect, in document coordinates; a drawing's pin sits inside its box. */
   markerPoint(id: string): { x: number; y: number } | null {
     const anchor = this.anchors.get(id);
     const a = this.annotations.get(id);
@@ -717,7 +720,8 @@ export class AnnotState {
     }
     if (a.mode === 'page') {
       const first = anchor.rects[0]!;
-      return { x: first.x, y: first.y };
+      const inset = Math.min(REGION_INSET, first.width / 2, first.height / 2);
+      return { x: first.x + inset, y: first.y + inset };
     }
     const first = anchor.rects[0]!;
     return { x: first.x + first.width, y: first.y };

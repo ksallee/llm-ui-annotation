@@ -74,7 +74,7 @@ After Add in batch mode: the pin appears with dashed `draft` styling, badge incr
 
 ## Pins and hover cards
 
-The pin at the top-right corner of the element rect (or end of the text range, or top-left of the page region), numbered, status-colored. Hover a pin or a highlight: a card shows the comment, status pill, and for `review` the agent's summary and an **Approve** button, for `question` the question and an **Answer** field. Click a pin: opens the panel scrolled to that row. Right-click or `⌫` on a focused draft pin: delete (draft only).
+The pin at the top-right corner of the element rect (or end of the text range, or inset into the top-left of the page region, so it lands on the drawing rather than on whatever sits outside it), numbered, status-colored. Hover a pin or a highlight: a card shows the comment, status pill, and for `review` the agent's summary and an **Approve** button, for `question` the question and an **Answer** field. Click a pin: opens the panel scrolled to that row. Right-click or `⌫` on a focused draft pin: delete (draft only).
 
 Anchor states: `moved` pins get a dotted ring and a tooltip "text moved, check the highlight"; `lost` annotations have no pin and are listed in the panel with a "lost" chip and a "locate" action that scrolls to the container if it still exists.
 

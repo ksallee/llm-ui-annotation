@@ -39,7 +39,7 @@ beforeEach(() => {
 });
 
 describe('marker placement', () => {
-  it('puts element markers at the top right, text markers at the end, page markers at the top left', () => {
+  it('puts element markers at the top right, text markers at the end, page markers inside the region', () => {
     const state = make();
     const element = annotation({ id: 'E', mode: 'element', number: 1 });
     const text = annotation({ id: 'T', mode: 'text', number: 2, target: textTarget() });
@@ -64,8 +64,22 @@ describe('marker placement', () => {
 
     expect(state.markerPoint('E')).toEqual({ x: 110, y: 20 });
     expect(state.markerPoint('T')).toEqual({ x: 80, y: 120 });
-    expect(state.markerPoint('P')).toEqual({ x: 5, y: 6 });
+    expect(state.markerPoint('P')).toEqual({ x: 19, y: 20 });
     expect(state.markerPoint('missing')).toBeNull();
+  });
+
+  it('never insets a page marker past the middle of a small region', () => {
+    const state = make();
+    state.applyLocal(
+      annotation({
+        id: 'S',
+        mode: 'page',
+        number: 1,
+        target: { kind: 'page', region: { x: 0, y: 0, width: 12, height: 60 }, strokes: [], screenshot: null, elements: [] },
+      }),
+    );
+    state.anchors.set('S', { rects: [{ x: 0, y: 0, width: 12, height: 60 }], state: 'exact', range: null });
+    expect(state.markerPoint('S')).toEqual({ x: 6, y: 6 });
   });
 });
 
