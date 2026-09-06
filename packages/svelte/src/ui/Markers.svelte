@@ -10,7 +10,7 @@
   {#each annot.visible as a (a.id)}
     {@const point = annot.markerPoint(a.id)}
     {@const anchor = annot.anchors.get(a.id)}
-    {#if point && anchor && anchor.state !== 'lost'}
+    {#if point && anchor && anchor.state !== 'lost' && !annot.hiddenDrawings.has(a.id)}
       <button
         class="marker {a.status}"
         class:dot={dots}

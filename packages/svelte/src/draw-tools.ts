@@ -18,3 +18,16 @@ export const DRAW_TOOLS: DrawToolEntry[] = [
 ];
 
 export const DRAW_WIDTHS = [2, 4, 7];
+
+export interface SelectToolEntry {
+  tool: 'move' | 'frame';
+  icon: IconName;
+  label: string;
+  key: string;
+}
+
+/** The two tools that act on what is already drawn, first in the bar. */
+export const SELECT_TOOLS: SelectToolEntry[] = [
+  { tool: 'move', icon: 'move', label: 'Move', key: 'V' },
+  { tool: 'frame', icon: 'frame', label: 'Frame', key: 'F' },
+];

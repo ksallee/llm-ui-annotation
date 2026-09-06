@@ -18,6 +18,12 @@ A cursor file (`<dir>/.cursor-<agent>`) proves an agent ran at some point, which
 
 ## 2. Select, move and resize what you drew
 
+**Superseded by spec 11 §2**, which settled the two-level model: `V` selects a whole drawing, a
+double-click steps inside it to reach one stroke, and `F` adjusts the capture box alone. What is
+below stands only where 11 §2 is silent — restyling a selection with the colour and width controls,
+`⌫` on a selection, marquee selection, arrow-key nudges and undo/redo over a transform, none of which
+are built yet.
+
 A stroke today is write-once: undo, or erase the whole thing. Any drawing that is nearly right has to be redone.
 
 - **Select**: in Draw, a Select tool (`V`, first in the bar) hit-tests strokes. Click selects, `⇧`-click extends, drag on empty canvas marquees. Selected strokes get a thin `--annot-accent-line` bounding box with handles.
@@ -40,10 +46,11 @@ Interaction with spec 09 §6: the drawing region and a stroke selection are diff
 
 - With no agent attached, sending shows the "no agent is watching" copy and names the command; starting `annot watch` flips the presence line within 2 s without a reload; stopping it flips back.
 - `annot doctor` reports the number of attached agents.
-- A brush stroke, an arrow, a rect and a caption can be selected together, moved, and scaled; every point ends where the bounding box says it should, asserted against `transformStrokes` in a unit test.
+- A brush stroke, an arrow, a rect and a caption can be selected together, moved, and scaled; every point ends where the bounding box says it should, asserted against `transformStrokes` in a unit test. **Done in 11 §2.**
 - Undo after a resize restores the previous geometry in one step.
 - Scaling a selection to a degenerate box is clamped, not allowed to produce NaN.
-- Region handles and stroke handles are never both on screen.
+- Region handles and stroke handles are never both on screen. **11 §2 replaces this: handles belong
+  to the selected level, and the Frame tool owns the capture box.**
 - `⌘A` in Draw selects every stroke; dragging then moves the whole drawing, and `⌫` removes it in one
   undoable step.
 - Moving the whole drawing updates `PageTarget.region` and the intersecting element list with it, so

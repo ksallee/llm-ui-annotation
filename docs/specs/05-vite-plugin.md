@@ -65,7 +65,7 @@ Prefix `[annot]`. One line on start with the dir, port, and route count. One lin
 
 - `POST /annotations` is an upsert: a new id is `201` and `annotation.created`, a known id is `200` and `annotation.updated` (the overlay re-posts a draft it edited). `number` and `createdAt` are kept from the stored copy.
 - `GET /routes/:slug` answers `200` with an empty `RouteFile` when the file does not exist, because a slug does not reverse to a route; `?route=` fills the `route` field. `GET /routes` returns `{ routes, summaries }`, the summaries carrying the per-status counts.
-- `PATCH /annotations/:id` emits one `thread.message` by `user` — the event `annot watch` wakes on.
+- `PATCH /annotations/:id` emits one `thread.message` by `user` — the event `annot watch` wakes on. A body carrying a `target` also emits `status.changed` when it returns a `review` drawing to `sent`.
 - `POST /batches` emits one `status.changed` per draft it moves, then `batch.sent` carrying the batch. A reopen (`review|approved → sent` by the user) creates the new batch server-side and emits `status.changed` then `batch.sent`, so nothing else has to call `assignBatch`.
 - An illegal transition is `409` with the allowed statuses in `problems`.
 - `resolution` on a transition becomes a `summary` or `decline` message; an explicit `message` wins over it.

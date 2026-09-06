@@ -64,6 +64,7 @@
     expanded ? ACTIONS[a.status].filter((x) => x.id === 'approve' || x.id === 'send') : ACTIONS[a.status],
   );
   const picked = $derived(annot.selected.has(a.id));
+  const hidden = $derived(annot.hiddenDrawings.has(a.id));
 
   function send(kind: 'answer' | 'reopen' | 'comment'): void {
     const text = reply.trim();
@@ -82,6 +83,10 @@
   /** Approve and Send land from the collapsed row; the rest need a reason first. */
   function run(action: ActionId): void {
     if (action === 'approve') void annot.approve(a.id);
+    else if (action === 'send' && !a.comment.trim()) {
+      draftComment = '';
+      editing = true;
+    }
     else if (action === 'send') void annot.sendOne(a.id);
     else focusReply();
   }
@@ -111,6 +116,7 @@
           <span class="meta">
             <span class="num">#{a.number}</span>
             <span class="status-pill" style="background: var(--annot-{a.status}-fill)">{a.status}</span>
+            {#if hidden}<span class="status-pill">hidden</span>{/if}
             {#if anchor?.state === 'lost'}<span class="status-pill">lost</span>{/if}
             {#if anchor?.state === 'moved'}<span class="status-pill">moved</span>{/if}
             <span class="when">{relativeTime(a.updatedAt)}</span>
@@ -135,8 +141,16 @@
         >
         <button class="btn small" onclick={() => (editing = false)}>Cancel</button>
       </div>
-    {:else}
+    {:else if a.comment.trim()}
       <div class="comment">{a.comment}</div>
+    {:else}
+      <button
+        class="comment needs-comment"
+        onclick={() => {
+          draftComment = '';
+          editing = true;
+        }}>Say what should change before sending this</button
+      >
     {/if}
 
     {#if !expanded && last && last.kind !== 'comment'}
@@ -210,6 +224,16 @@
           {action.label}
         </button>
       {/each}
+      {#if a.mode === 'page'}
+        <button
+          class="icon-btn tiny"
+          aria-label="{hidden ? 'Show' : 'Hide'} the drawing on annotation {a.number}"
+          aria-pressed={hidden}
+          onclick={() => annot.toggleHidden(a.id)}
+        >
+          <Icon name={hidden ? 'eye-off' : 'eye'} size={16} />
+        </button>
+      {/if}
       <span class="spacer"></span>
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div

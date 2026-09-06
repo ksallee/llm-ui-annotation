@@ -1,4 +1,4 @@
-import type { Stroke } from '@llm-ui-annotation/core';
+import type { Rect, Stroke } from '@llm-ui-annotation/core';
 import { findElementsInRect, strokeBounds } from '../dom/core-dom.js';
 import { rectFromPoints, sample } from '../dom/geometry.js';
 import type { AnnotState } from '../state/annot-state.svelte.js';
@@ -21,23 +21,99 @@ const near = (stroke: Stroke, x: number, y: number, slack = 8): boolean => {
   return x >= r.x - slack && x <= r.x + r.width + slack && y >= r.y - slack && y <= r.y + r.height + slack;
 };
 
+/** Index of the topmost stroke under the point, or -1. */
+function strokeAt(strokes: Stroke[], x: number, y: number): number {
+  for (let i = strokes.length - 1; i >= 0; i -= 1) {
+    if (near(strokes[i] as Stroke, x, y)) return i;
+  }
+  return -1;
+}
+
+/** Pointer capture is best-effort: a synthetic pointer has none to take. */
+function capture(layer: HTMLElement, id: number): void {
+  try {
+    layer.setPointerCapture?.(id);
+  } catch {
+    // the layer covers the viewport anyway
+  }
+}
+
+const inside = (rect: Rect, x: number, y: number): boolean =>
+  x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height;
+
 export function pageMode(state: AnnotState, layer: HTMLElement): () => void {
-  let drawing: Stroke | null = null;
+  let drawing: { id: string; index: number } | null = null;
   let origin: { x: number; y: number } | null = null;
+  let dragging: { from: Rect; at: { x: number; y: number }; ids: string[]; strokes: boolean } | null = null;
 
   const point = (event: PointerEvent): { x: number; y: number } => ({
     x: event.clientX + state.scroll.x,
     y: event.clientY + state.scroll.y,
   });
 
+  /** Move: a click picks a drawing or, inside one, a stroke; the drag carries what is picked. */
+  const onSelect = (event: PointerEvent, at: { x: number; y: number }): void => {
+    const additive = event.metaKey || event.ctrlKey || event.shiftKey;
+
+    if (state.insideDrawing) {
+      const ref = state.drawingRef(state.insideDrawing);
+      const index = ref ? strokeAt(ref.strokes, at.x, at.y) : -1;
+      if (index >= 0) {
+        if (!state.selectedStrokes.has(index)) state.pickStroke(index, additive);
+        const box = state.pickedStrokeBox;
+        if (box) dragging = { from: box, at, ids: [state.insideDrawing], strokes: true };
+        return;
+      }
+      if (ref && inside(ref.region, at.x, at.y)) {
+        state.selectedStrokes.clear();
+        return;
+      }
+      state.insideDrawing = null;
+      state.selectedStrokes.clear();
+    }
+
+    const hit = state.drawingAt(at.x, at.y);
+    if (!hit) {
+      state.clearDrawSelection();
+      return;
+    }
+    if (!state.selectedDrawings.has(hit.id)) state.pickDrawing(hit.id, additive);
+    const ids = [...state.selectedDrawings];
+    dragging = { from: hit.region, at, ids: ids.length > 0 ? ids : [hit.id], strokes: false };
+  };
+
+  /** Frame: the box alone, so the capture can be widened around marks that stay put. */
+  const onFrame = (at: { x: number; y: number }): void => {
+    const hit = state.drawingAt(at.x, at.y);
+    if (!hit) {
+      state.clearDrawSelection();
+      return;
+    }
+    state.pickDrawing(hit.id);
+    dragging = { from: hit.region, at, ids: [hit.id], strokes: false };
+  };
+
   const onDown = (event: PointerEvent): void => {
     if (event.button !== 0) return;
     const at = point(event);
     const color = state.drawColor || state.palette[0] || 'currentColor';
 
+    if (state.drawTool === 'move' || state.drawTool === 'frame') {
+      capture(layer, event.pointerId);
+      if (state.drawTool === 'move') onSelect(event, at);
+      else onFrame(at);
+      return;
+    }
+
+    const into = state.drawingForPoint(at.x, at.y);
+
     if (state.drawTool === 'eraser') {
-      const index = state.drawing.strokes.findIndex((stroke) => near(stroke, at.x, at.y));
-      if (index >= 0) state.eraseStrokeAt(index);
+      const index = strokeAt(state.strokesOf(into), at.x, at.y);
+      if (index >= 0) {
+        const committed = state.drawingRef(into)?.committed;
+        state.eraseStrokeOf(into, index);
+        if (committed) void state.saveDrawing(into);
+      }
       return;
     }
     if (state.drawTool === 'label') {
@@ -48,7 +124,7 @@ export function pageMode(state: AnnotState, layer: HTMLElement): () => void {
       return;
     }
 
-    layer.setPointerCapture?.(event.pointerId);
+    capture(layer, event.pointerId);
     origin = at;
     const started: Stroke =
       state.drawTool === 'brush'
@@ -61,62 +137,107 @@ export function pageMode(state: AnnotState, layer: HTMLElement): () => void {
               color,
               width: state.drawWidth,
             };
-    drawing = started;
-    state.pushStroke(started);
+    state.addStroke(into, started);
+    drawing = { id: into, index: state.strokesOf(into).length - 1 };
   };
 
   const onMove = (event: PointerEvent): void => {
-    if (!drawing || !origin) return;
     const at = point(event);
-    const strokes = [...state.drawing.strokes];
-    const last = strokes.at(-1);
+
+    if (dragging) {
+      const dx = at.x - dragging.at.x;
+      const dy = at.y - dragging.at.y;
+      const to = { ...dragging.from, x: dragging.from.x + dx, y: dragging.from.y + dy };
+      if (dragging.strokes) state.transformPickedStrokes(dragging.from, to);
+      else if (state.drawTool === 'frame') state.setDrawingRegion(dragging.ids[0] as string, to);
+      else for (const id of dragging.ids) state.moveDrawing(id, dx, dy);
+      dragging = { ...dragging, from: to, at };
+      return;
+    }
+
+    if (!drawing || !origin) return;
+    const last = state.strokesOf(drawing.id)[drawing.index];
     if (!last) return;
     if (last.tool === 'brush') {
       if (!sample(last.points, [at.x, at.y])) return;
-      strokes[strokes.length - 1] = { ...last, points: [...last.points, [at.x, at.y]] };
+      state.replaceStroke(drawing.id, drawing.index, { ...last, points: [...last.points, [at.x, at.y]] });
     } else if (last.tool === 'arrow') {
-      strokes[strokes.length - 1] = { ...last, to: [at.x, at.y] };
+      state.replaceStroke(drawing.id, drawing.index, { ...last, to: [at.x, at.y] });
     } else if (last.tool === 'rect' || last.tool === 'ellipse') {
-      strokes[strokes.length - 1] = { ...last, rect: rectFromPoints(origin, at) };
+      state.replaceStroke(drawing.id, drawing.index, { ...last, rect: rectFromPoints(origin, at) });
     }
-    state.drawing = { strokes, undone: [] };
   };
 
   const onUp = (): void => {
+    const touched = new Set<string>([...(dragging?.ids ?? []), ...(drawing ? [drawing.id] : [])]);
+    for (const id of touched) if (state.drawingRef(id)?.committed) void state.saveDrawing(id);
     drawing = null;
     origin = null;
+    dragging = null;
+  };
+
+  /** Double-click steps inside a drawing, or opens the caption under the cursor. */
+  const onDouble = (event: MouseEvent): void => {
+    if (state.drawTool !== 'move') return;
+    const at = { x: event.clientX + state.scroll.x, y: event.clientY + state.scroll.y };
+    const id = state.insideDrawing ?? state.drawingAt(at.x, at.y)?.id ?? null;
+    if (!id) return;
+    const strokes = state.strokesOf(id);
+    const index = strokeAt(strokes, at.x, at.y);
+    const stroke = index >= 0 ? strokes[index] : null;
+    if (state.insideDrawing === id && stroke && stroke.tool === 'label') {
+      state.labelDraft = { at: stroke.at, text: stroke.text, edit: { drawing: id, index } };
+      return;
+    }
+    state.enterDrawing(id);
+    if (index >= 0) state.pickStroke(index);
   };
 
   layer.addEventListener('pointerdown', onDown);
   layer.addEventListener('pointermove', onMove);
   layer.addEventListener('pointerup', onUp);
   layer.addEventListener('pointercancel', onUp);
+  layer.addEventListener('dblclick', onDouble);
   return () => {
     layer.removeEventListener('pointerdown', onDown);
     layer.removeEventListener('pointermove', onMove);
     layer.removeEventListener('pointerup', onUp);
     layer.removeEventListener('pointercancel', onUp);
+    layer.removeEventListener('dblclick', onDouble);
   };
 }
 
-/** Commit the inline label editor as a stroke. */
+/** Commit the inline caption editor as a stroke. */
 export function commitLabel(state: AnnotState): void {
   const draft = state.labelDraft;
   if (!draft) return;
   const text = draft.text.trim();
-  if (text) {
-    state.pushStroke({
-      tool: 'label',
-      at: draft.at,
-      text,
-      color: state.drawColor || state.palette[0] || 'currentColor',
-      size: 16,
-    });
-  }
+  const edit = draft.edit;
   state.labelDraft = null;
+
+  if (edit) {
+    const stroke = state.strokesOf(edit.drawing)[edit.index];
+    if (!stroke || stroke.tool !== 'label') return;
+    const committed = state.drawingRef(edit.drawing)?.committed;
+    if (text) state.replaceStroke(edit.drawing, edit.index, { ...stroke, text });
+    else state.eraseStrokeOf(edit.drawing, edit.index);
+    if (committed) void state.saveDrawing(edit.drawing);
+    return;
+  }
+
+  if (!text) return;
+  const into = state.drawingForPoint(draft.at[0], draft.at[1]);
+  state.addStroke(into, {
+    tool: 'label',
+    at: draft.at,
+    text,
+    color: state.drawColor || state.palette[0] || 'currentColor',
+    size: 16,
+  });
+  if (state.drawingRef(into)?.committed) void state.saveDrawing(into);
 }
 
-/** Open the popup for the pending drawing. */
+/** Open the popup for the active pending drawing. */
 export function openPagePopup(state: AnnotState): void {
   const strokes = state.drawing.strokes;
   if (strokes.length === 0) return;

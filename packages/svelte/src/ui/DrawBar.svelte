@@ -2,7 +2,7 @@
   import type { StrokeTool } from '@llm-ui-annotation/core';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import type { IconName } from '../icons.js';
-  import { DRAW_TOOLS, DRAW_WIDTHS } from '../draw-tools.js';
+  import { DRAW_TOOLS, DRAW_WIDTHS, SELECT_TOOLS } from '../draw-tools.js';
   import Icon from './Icon.svelte';
   import { drop } from './motion.js';
 
@@ -54,6 +54,20 @@
   out:drop={{ duration: 120 }}
 >
   <span class="grip" onpointerdown={startDrag} aria-hidden="true"><Icon name="grip" size={16} /></span>
+  {#each SELECT_TOOLS as item (item.tool)}
+    <button
+      class="icon-btn"
+      aria-pressed={annot.drawTool === item.tool}
+      aria-label={item.label}
+      onclick={() => (annot.drawTool = item.tool)}
+    >
+      <Icon name={item.icon} />
+      <span class="tooltip">{item.label}<kbd>{item.key}</kbd></span>
+    </button>
+  {/each}
+
+  <span class="divider"></span>
+
   {#each tools as item (item.tool)}
     <button
       class="icon-btn"

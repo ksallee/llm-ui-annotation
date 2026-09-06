@@ -1,8 +1,8 @@
-import { applyTransition } from '@llm-ui-annotation/core';
+import { applyTransition, type Stroke } from '@llm-ui-annotation/core';
 import { describe, expect, it } from 'vitest';
 import { AnnotState } from '../src/state/annot-state.svelte.js';
 import type { AnnotClient } from '../src/transport/client.js';
-import { annotation, elementTarget, fakeClient, routeFile } from './helpers.js';
+import { annotation, elementTarget, fakeClient, pageTarget, routeFile } from './helpers.js';
 
 const make = (): { state: AnnotState; client: ReturnType<typeof fakeClient> } => {
   const client = fakeClient();
@@ -212,5 +212,102 @@ describe('drawing stack', () => {
     state.pushStroke({ tool: 'rect', rect: { x: 0, y: 0, width: 1, height: 1 }, color: 'red', width: 2 });
     expect(state.drawing.undone).toHaveLength(0);
     expect(state.drawingRegion).not.toBeNull();
+  });
+});
+
+describe('drawings as objects', () => {
+  const rect = (x: number, y: number): Stroke => ({
+    tool: 'rect',
+    rect: { x, y, width: 40, height: 20 },
+    color: 'red',
+    width: 2,
+  });
+
+  it('starts a new drawing outside every box and joins the one it starts in', () => {
+    const { state } = make();
+    const first = state.drawingForPoint(1000, 1000);
+    state.addStroke(first, rect(1000, 1000));
+    const box = state.drawingRef(first)!.region;
+
+    expect(state.drawingForPoint(box.x + 5, box.y + 5)).toBe(first);
+    const second = state.drawingForPoint(5000, 5000);
+    expect(second).not.toBe(first);
+    expect(state.drawings).toHaveLength(2);
+  });
+
+  it('moves marks and box together, and one stroke on its own', () => {
+    const { state } = make();
+    const id = state.newDrawing([rect(100, 100), rect(300, 100)]);
+    const from = state.drawingRef(id)!.region;
+
+    state.transformDrawing(id, from, { ...from, x: from.x + 50 });
+    expect(state.drawingRef(id)!.region.x).toBe(from.x + 50);
+    expect(state.strokesOf(id).map((s) => (s.tool === 'rect' ? s.rect.x : 0))).toEqual([150, 350]);
+
+    state.enterDrawing(id);
+    state.pickStroke(0);
+    const box = state.pickedStrokeBox!;
+    state.transformPickedStrokes(box, { ...box, y: box.y + 10 });
+    expect(state.strokesOf(id).map((s) => (s.tool === 'rect' ? s.rect.y : 0))).toEqual([110, 100]);
+  });
+
+  it('walks out one level at a time', () => {
+    const { state } = make();
+    const id = state.newDrawing([rect(0, 0)]);
+    state.enterDrawing(id);
+    state.pickStroke(0);
+
+    expect(state.stepOutDraw()).toBe(true);
+    expect(state.insideDrawing).toBeNull();
+    expect([...state.selectedDrawings]).toEqual([id]);
+    expect(state.stepOutDraw()).toBe(true);
+    expect(state.selectedDrawings.size).toBe(0);
+    expect(state.stepOutDraw()).toBe(false);
+  });
+
+  it('leaving Draw keeps every uncommitted drawing as a draft that cannot be sent', async () => {
+    const { state, client } = make();
+    state.setMode('page');
+    state.newDrawing([rect(0, 0)]);
+    state.newDrawing([rect(400, 400)]);
+
+    state.setMode(null);
+    await Promise.resolve();
+    await new Promise((done) => setTimeout(done, 0));
+
+    expect(state.drafts).toHaveLength(2);
+    expect(state.drafts.every((a) => a.comment === '')).toBe(true);
+    expect(state.draftsNeedingComment).toHaveLength(2);
+    expect(state.bulk.send.count).toBe(0);
+
+    await state.sendOne(state.drafts[0]!.id);
+    expect(client.calls.filter((c) => c === 'batch')).toHaveLength(0);
+    expect(state.drafts[0]!.status).toBe('draft');
+  });
+
+  it('editing a reviewed drawing returns it to sent with a message', async () => {
+    const { state, client } = make();
+    const a = annotation({ id: 'A', mode: 'page', status: 'review', target: pageTarget() });
+    client.store.set('A', a);
+    state.applyLocal(a);
+
+    state.setDrawingRegion('A', { x: 50, y: 50, width: 200, height: 120 });
+    await state.saveDrawing('A');
+
+    expect(client.calls).toContain('patchTarget:A');
+    expect(state.annotations.get('A')!.status).toBe('sent');
+    expect(state.annotations.get('A')!.thread.at(-1)!.text).toBe('drawing edited');
+  });
+
+  it('a hidden drawing is not on the route and not selectable', () => {
+    const { state } = make();
+    const a = annotation({ id: 'A', mode: 'page', status: 'sent', target: pageTarget() });
+    state.applyLocal(a);
+    state.reanchor();
+    expect(state.routeDrawings.map((d) => d.id)).toEqual(['A']);
+
+    state.toggleHidden('A');
+    expect(state.routeDrawings).toHaveLength(0);
+    expect(state.drawingAt(60, 60)).toBeNull();
   });
 });

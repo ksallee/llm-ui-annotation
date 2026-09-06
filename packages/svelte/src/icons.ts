@@ -31,6 +31,8 @@ export const ICONS = {
   locate: '<path d="M10 17.5s5.5-5.6 5.5-9a5.5 5.5 0 0 0-11 0c0 3.4 5.5 9 5.5 9z"/><circle cx="10" cy="8.5" r="2"/>',
   search: '<circle cx="9" cy="9" r="5"/><path d="M12.8 12.8 17 17"/>',
   more: '<circle cx="4.5" cy="10" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="10" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.2" fill="currentColor" stroke="none"/>',
+  move: '<path d="M10 3.2v13.6M3.2 10h13.6"/><path d="m8 5.2 2-2 2 2M8 14.8l2 2 2-2M5.2 8l-2 2 2 2M14.8 8l2 2-2 2"/>',
+  frame: '<path d="M6 2.5V14h11.5"/><path d="M2.5 6H14v11.5"/>',
   fit: '<path d="M3.5 7V3.5H7M13 3.5h3.5V7M16.5 13v3.5H13M7 16.5H3.5V13"/><rect x="7" y="7" width="6" height="6" rx="1"/>',
   warn: '<path d="M10 4.5 17 16H3z"/><path d="M10 9v3M10 14h.01"/>',
 } as const;

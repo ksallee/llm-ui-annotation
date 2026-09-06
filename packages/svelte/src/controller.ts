@@ -79,8 +79,12 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
     if (!action) return;
 
     if (action.startsWith('tool:')) {
-      const tool = DRAW_TOOLS[Number(action.slice(5)) - 1];
-      if (tool) state.drawTool = tool.tool;
+      const name = action.slice(5);
+      if (name === 'move' || name === 'frame') state.drawTool = name;
+      else {
+        const tool = DRAW_TOOLS[Number(name) - 1];
+        if (tool) state.drawTool = tool.tool;
+      }
       event.preventDefault();
       return;
     }
@@ -97,6 +101,8 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
           state.sendOpen = false;
           state.settingsOpen = false;
           state.shortcutsOpen = false;
+        } else if (state.mode === 'page' && state.stepOutDraw()) {
+          // inside a drawing → that drawing selected → nothing selected → leave Draw
         } else if (state.prefs.panelOpen) state.togglePanel(false);
         else if (state.mode) state.setMode(null);
         else state.collapse();
@@ -236,7 +242,8 @@ export async function commitPopup(state: AnnotState): Promise<void> {
   state.reanchor();
 }
 
-async function capturePage(state: AnnotState, region: Rect, strokes: Stroke[]): Promise<Blob | null> {
+/** A PNG of the region with its marks drawn on, or null when the backend is missing. */
+export async function capturePage(state: AnnotState, region: Rect, strokes: Stroke[]): Promise<Blob | null> {
   const backend = await domToCanvas();
   if (!backend) return null;
   try {

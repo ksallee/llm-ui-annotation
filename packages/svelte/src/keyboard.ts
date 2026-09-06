@@ -13,7 +13,9 @@ export type KeyAction =
   | 'redo'
   | 'delete'
   | 'help'
-  | `tool:${number}`;
+  | `tool:${number}`
+  | 'tool:move'
+  | 'tool:frame';
 
 export interface KeyContext {
   mode: Mode | null;
@@ -103,8 +105,10 @@ export function keyAction(event: KeyboardEvent, ctx: KeyContext): KeyAction | nu
   const engaged = Boolean(ctx.mode) || ctx.expanded;
   if (ctx.popupOpen || ctx.dialogOpen || !engaged) return null;
 
-  if (ctx.mode === 'page' && event.key >= '1' && event.key <= '6') {
-    return `tool:${Number(event.key)}`;
+  if (ctx.mode === 'page') {
+    if (event.key >= '1' && event.key <= '6') return `tool:${Number(event.key)}`;
+    if (event.key === 'v' || event.key === 'V') return 'tool:move';
+    if (event.key === 'f' || event.key === 'F') return 'tool:frame';
   }
 
   switch (event.key) {
@@ -147,6 +151,8 @@ export const SHORTCUTS: ShortcutEntry[] = [
   { keys: '⌘↵', what: 'Add annotation, or send the batch', scope: 'in a mode' },
   { keys: 'I', what: 'Toggle the panel', scope: 'in a mode' },
   { keys: '⇧P', what: 'Pause animations', scope: 'in a mode' },
+  { keys: 'V', what: 'Move: select and transform a drawing', scope: 'in Draw' },
+  { keys: 'F', what: 'Frame: resize the capture box alone', scope: 'in Draw' },
   { keys: '1–6', what: 'Pick a drawing tool', scope: 'in Draw' },
   { keys: '⌘Z / ⇧⌘Z', what: 'Undo / redo a stroke', scope: 'in Draw' },
   { keys: '⌫', what: 'Delete the focused draft', scope: 'in a mode' },

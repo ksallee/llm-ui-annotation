@@ -205,7 +205,7 @@ GET    /__annot/health                          → { ok: true, protocolVersion,
 GET    /__annot/routes                          → { routes: string[] }
 GET    /__annot/routes/:slug                    → RouteFile
 POST   /__annot/annotations                     body Annotation (status draft|sent) → Annotation   (assigns number if 0)
-PATCH  /__annot/annotations/:id                 body { comment?: string }  → Annotation            (user edits, appends comment message)
+PATCH  /__annot/annotations/:id                 body { comment?: string, target?: Target }  → Annotation  (user edits, appends comment message; a target appends `drawing edited` and returns review to sent)
 DELETE /__annot/annotations/:id                 draft only → { ok }
 POST   /__annot/batches                         body { route, annotationIds, summary } → Batch      (moves drafts to sent, emits batch.sent)
 POST   /__annot/annotations/:id/transition      body { to: Status, by: Actor, message?: {kind,text,role} , resolution? } → Annotation

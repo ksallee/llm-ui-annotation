@@ -11,6 +11,7 @@
   let summary = $state('');
 
   const drafts = $derived(annot.drafts);
+  const sendable = $derived(drafts.length - annot.draftsNeedingComment.length);
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
@@ -43,6 +44,12 @@
       placeholder="Anything the agent should know about this batch?"
       aria-label="Batch summary"
     ></textarea>
+    {#if annot.draftsNeedingComment.length > 0}
+      <div class="muted">
+        {annot.draftsNeedingComment.length} draft{annot.draftsNeedingComment.length === 1 ? '' : 's'} still
+        {annot.draftsNeedingComment.length === 1 ? 'needs' : 'need'} a comment and will not be sent.
+      </div>
+    {/if}
     {#if annot.otherRouteDrafts > 0}
       <div class="muted">{annot.otherRouteDrafts} draft(s) on other routes are not included.</div>
     {/if}
@@ -50,10 +57,10 @@
       <button class="btn" onclick={() => (annot.sendOpen = false)}>Cancel</button>
       <button
         class="btn primary"
-        disabled={drafts.length === 0}
+        disabled={sendable === 0}
         onclick={() => void annot.sendDrafts(summary.trim() || null)}
       >
-        Send {drafts.length} annotation{drafts.length === 1 ? '' : 's'}
+        Send {sendable} annotation{sendable === 1 ? '' : 's'}
       </button>
     </div>
   </div>

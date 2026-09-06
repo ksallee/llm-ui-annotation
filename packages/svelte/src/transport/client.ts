@@ -9,6 +9,7 @@ import {
   type HealthResponse,
   type RouteFile,
   type RoutesResponse,
+  type Target,
   type TransitionRequest,
 } from '@llm-ui-annotation/core';
 
@@ -75,6 +76,13 @@ export class AnnotClient {
     return this.#json<Annotation>(`/annotations/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ comment }),
+    });
+  }
+
+  patchTarget(id: string, target: Target): Promise<Annotation> {
+    return this.#json<Annotation>(`/annotations/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ target }),
     });
   }
 

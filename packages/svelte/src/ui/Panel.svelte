@@ -11,6 +11,8 @@
     onlocate,
   }: { annot: AnnotState; onsend: () => void; onlocate: (id: string) => void } = $props();
 
+  const sendable = $derived(annot.drafts.length - annot.draftsNeedingComment.length);
+
   const FILTERS: { id: Filter; label: string }[] = [
     { id: 'needs-you', label: 'Needs you' },
     { id: 'open', label: 'Open' },
@@ -131,8 +133,11 @@
       <Icon name="check-all" size={14} /> Approve all ({annot.inReview.length})
     </button>
     {#if annot.sendMode === 'batch'}
-      <button class="btn primary small" disabled={annot.drafts.length === 0} onclick={onsend}>
-        <Icon name="send" size={14} /> Send drafts ({annot.drafts.length})
+      <button class="btn primary small" disabled={sendable === 0} onclick={onsend}>
+        <Icon name="send" size={14} />
+        {annot.draftsNeedingComment.length > 0
+          ? `Send drafts (${sendable}, ${annot.draftsNeedingComment.length} need a comment)`
+          : `Send drafts (${sendable})`}
       </button>
     {/if}
   </footer>

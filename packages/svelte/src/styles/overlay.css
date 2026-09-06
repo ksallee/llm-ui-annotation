@@ -1260,3 +1260,30 @@ kbd {
     transition: none !important;
   }
 }
+
+/* ------------------------------------------------ ws12: drawings as objects */
+
+.region.move .handle,
+.region.strokes .handle {
+  border-color: var(--annot-accent);
+}
+
+.region.strokes .handle {
+  width: 8px;
+  height: 8px;
+  margin: -4px;
+  border-radius: 50%;
+}
+
+.entry .comment.needs-comment {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--annot-ink-2);
+  font-style: italic;
+  text-decoration: underline dotted;
+}

@@ -3,6 +3,7 @@
   import {
     accentSuggestions,
     bindKeys,
+    capturePage,
     commitPopup,
     drawingPalette,
     freezeWhile,
@@ -134,6 +135,12 @@
 
   $effect(() => watchViewport(annot));
 
+  // The state commits drawings on its own when Draw closes, but it has no screenshot backend.
+  $effect(() => {
+    annot.captureFor = (region, strokes) => capturePage(annot, region, strokes);
+    return () => (annot.captureFor = null);
+  });
+
   $effect(() => bindKeys(annot, host, { commit: () => primaryAction(annot) }));
 
   $effect(() => freezeWhile(annot, annot.frozen));
@@ -213,18 +220,64 @@
       </button>
     {/if}
 
-    {#if annot.mode === 'page' && annot.drawingRegion && !annot.popup}
-      {@const region = annot.drawingRegion}
-      <Region {annot} {region} />
-      <button
-        class="chip"
-        style="left: {region.x + region.width - annot.scroll.x - 70}px; top: {region.y -
-          annot.scroll.y -
-          26}px"
-        onclick={() => openPagePopup(annot)}
-      >
-        Annotate
-      </button>
+    {#if annot.mode === 'page' && !annot.popup}
+      {#if annot.drawTool === 'frame'}
+        {#each [...annot.selectedDrawings] as id (id)}
+          {@const ref = annot.drawingRef(id)}
+          {#if ref}
+            <Region
+              {annot}
+              region={ref.region}
+              kind="frame"
+              fit={!ref.committed && annot.regionOverride !== null && id === annot.activeDrawingId}
+              onresize={(_, to) => annot.setDrawingRegion(id, to)}
+              oncommit={() => ref.committed && void annot.saveDrawing(id)}
+            />
+          {/if}
+        {/each}
+      {:else if annot.drawTool === 'move'}
+        {#if annot.insideDrawing}
+          {@const box = annot.pickedStrokeBox}
+          {#if box}
+            <Region
+              {annot}
+              region={box}
+              kind="strokes"
+              onresize={(from, to) => annot.transformPickedStrokes(from, to)}
+              oncommit={() => {
+                const id = annot.insideDrawing;
+                if (id && annot.drawingRef(id)?.committed) void annot.saveDrawing(id);
+              }}
+            />
+          {/if}
+        {:else}
+          {#each [...annot.selectedDrawings] as id (id)}
+            {@const ref = annot.drawingRef(id)}
+            {#if ref}
+              <Region
+                {annot}
+                region={ref.region}
+                kind="move"
+                onresize={(from, to) => annot.transformDrawing(id, from, to)}
+                oncommit={() => ref.committed && void annot.saveDrawing(id)}
+              />
+            {/if}
+          {/each}
+        {/if}
+      {/if}
+
+      {#if annot.drawingRegion && annot.drawing.strokes.length > 0}
+        {@const region = annot.drawingRegion}
+        <button
+          class="chip"
+          style="left: {region.x + region.width - annot.scroll.x - 70}px; top: {region.y -
+            annot.scroll.y -
+            26}px"
+          onclick={() => openPagePopup(annot)}
+        >
+          Annotate
+        </button>
+      {/if}
     {/if}
 
     {#if annot.labelDraft}

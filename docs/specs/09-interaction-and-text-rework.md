@@ -46,7 +46,7 @@ Not in the palette: Approve, Reopen, Send, Approve all. They mutate the loop and
 The single pill has grown to about twenty-six controls, which is why it stopped reading as one thing. Split it.
 
 - **Bottom right, always**: the pill. Grip · Palette · Element · Highlight · Draw · Pins · Pause · Send (count) · Panel (badge) · Settings · Close. The palette button is what §3's "or from the pill" needs. Draggable, snaps to a corner, position remembered.
-- **Top centre, only in Draw**: the drawing bar. Brush · Arrow · Rect · Ellipse · Caption · Eraser | five colors | three widths | Undo · Redo · Clear. Appears when Draw activates and leaves with it, 200 ms enter / 120 ms exit, `prefers-reduced-motion` respected. Top centre because the drawing happens under the cursor in the middle of the page and a bottom-right bar is where the hand already is.
+- **Top centre, only in Draw**: the drawing bar. Move · Frame | Brush · Arrow · Rect · Ellipse · Caption · Eraser | five colors | three widths | Undo · Redo · Clear. Move and Frame are spec 11 §2's; they take `V` and `F` and sit first, ahead of the numbered tools. Appears when Draw activates and leaves with it, 200 ms enter / 120 ms exit, `prefers-reduced-motion` respected. Top centre because the drawing happens under the cursor in the middle of the page and a bottom-right bar is where the hand already is.
 
 Tools carry number shortcuts `1`–`6` while Draw is active, shown in their tooltips.
 
@@ -80,6 +80,10 @@ export interface TextTarget {
 `summarizeTarget` and `renderBatchMarkdown` name the spanned blocks: `text "…quote…" across p.lede, p, blockquote`. Refuse only when the common ancestor would be `body` — a selection spanning the whole page is a mistake, and the message says so.
 
 ## 6. Draw region is resizable
+
+**Superseded by spec 11 §2**: the handles are no longer always on. They belong to the **Frame** tool
+(`F`), which adjusts one drawing's box and leaves the marks alone, while **Move** (`V`) carries marks
+and box together. Everything below still describes what a handle does; only "always on" is gone.
 
 The dashed bounding box around a drawing is currently derived from `strokeBounds` and fixed. It decides which elements are captured and what the screenshot crops to, so the user must be able to correct it.
 
@@ -151,6 +155,6 @@ palette's right-hand column.
 - Every row in the panel shows its primary action while collapsed, and it performs the transition without expanding the row.
 - Selecting three `review` rows and pressing Approve moves all three and offers one undo toast; a mixed selection disables the actions that would be illegal. The bar is on screen without scrolling.
 - Keycaps render at 12 px and are legible in both schemes.
-- Dragging a region handle changes `PageTarget.region` and the captured element list; **Fit to drawing** restores it.
-- Dragging the region grip moves the box, every stroke and every caption by the same delta.
+- With **Frame** selected, dragging a region handle changes `PageTarget.region` and the captured element list; **Fit to drawing** restores it.
+- With **Move** selected, dragging a drawing moves the box, every stroke and every caption by the same delta.
 - Every icon is recognisable at 20 px next to its label; no glyph is reused for two meanings.
