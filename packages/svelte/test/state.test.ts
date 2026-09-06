@@ -223,16 +223,25 @@ describe('drawings as objects', () => {
     width: 2,
   });
 
-  it('starts a new drawing outside every box and joins the one it starts in', () => {
+  it('keeps one Draw session on one drawing, however far apart the marks are', () => {
     const { state } = make();
     const first = state.drawingForPoint(1000, 1000);
     state.addStroke(first, rect(1000, 1000));
-    const box = state.drawingRef(first)!.region;
 
-    expect(state.drawingForPoint(box.x + 5, box.y + 5)).toBe(first);
-    const second = state.drawingForPoint(5000, 5000);
-    expect(second).not.toBe(first);
+    // The session is the unit, not the distance between marks: a mark across the page joins it.
+    expect(state.drawingForPoint(5000, 5000)).toBe(first);
+    expect(state.drawings).toHaveLength(1);
+  });
+
+  it('adds to the drawing being edited when one is open', () => {
+    const { state } = make();
+    const first = state.newDrawing([rect(1000, 1000)]);
+    const other = state.newDrawing([rect(4000, 4000)]);
+    state.insideDrawing = first;
+
+    expect(state.drawingForPoint(4100, 4100)).toBe(first);
     expect(state.drawings).toHaveLength(2);
+    expect(other).not.toBe(first);
   });
 
   it('moves marks and box together, and one stroke on its own', () => {
