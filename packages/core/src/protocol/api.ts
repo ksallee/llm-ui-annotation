@@ -3,6 +3,7 @@ import type { RouteFile } from './paths.js';
 import type {
   Actor,
   Annotation,
+  Attachment,
   Batch,
   MessageKind,
   ProtocolVersion,
@@ -58,6 +59,8 @@ export interface EventsResponse {
 export interface ScreenshotResponse {
   path: string;
 }
+
+export type AttachmentResponse = Attachment;
 
 export interface DeleteResponse {
   ok: true;

@@ -1,6 +1,7 @@
 import { PROTOCOL_VERSION } from '../src/index.js';
 import type {
   Annotation,
+  Attachment,
   Batch,
   ElementRef,
   Message,
@@ -201,3 +202,32 @@ export const BATCH: Batch = {
 };
 
 export const ALL_ANNOTATIONS = [ELEMENT_ANNOTATION, TEXT_ANNOTATION, PAGE_ANNOTATION];
+
+export const ATTACHMENTS: Attachment[] = [
+  {
+    id: '01JBZZZZZZ00000000000000A1',
+    name: 'mock-v2.png',
+    type: 'image/png',
+    bytes: 245760,
+    path: 'attachments/01JBZZZZZZ0000000000000014/01JBZZZZZZ00000000000000A1.png',
+    at: '2026-09-05T18:26:00.000Z',
+    by: 'user',
+  },
+  {
+    id: '01JBZZZZZZ00000000000000A2',
+    name: 'brand-spec.pdf',
+    type: 'application/pdf',
+    bytes: 1153434,
+    path: 'attachments/01JBZZZZZZ0000000000000014/01JBZZZZZZ00000000000000A2.pdf',
+    at: '2026-09-05T18:26:10.000Z',
+    by: 'user',
+  },
+];
+
+export const ATTACHED_ANNOTATION = annotation({
+  id: '01JBZZZZZZ0000000000000014',
+  number: 8,
+  comment: 'Make it look like this.',
+  thread: [message({ id: '01JBZZZZZZ0000000000000006', text: 'Make it look like this.' })],
+  attachments: ATTACHMENTS,
+});
