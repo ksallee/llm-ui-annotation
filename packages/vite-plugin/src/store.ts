@@ -175,12 +175,15 @@ export class Store {
 
       if (at >= 0) {
         const previous = file.annotations[at] as Annotation;
+        // Attachments are server-owned: a re-posted draft carries a stale list, or none at all.
         const next: Annotation = {
           ...incoming,
           number: previous.number,
           createdAt: previous.createdAt,
           updatedAt: now,
         };
+        delete next.attachments;
+        if (previous.attachments) next.attachments = previous.attachments;
         file.annotations[at] = next;
         await this.save(file);
         await this.emit({
@@ -206,6 +209,7 @@ export class Store {
         updatedAt: now,
         sentAt: incoming.status === 'sent' ? (incoming.sentAt ?? now) : incoming.sentAt,
       };
+      delete next.attachments;
       file.nextNumber = Math.max(file.nextNumber, number + 1);
       file.annotations.push(next);
       await this.save(file);

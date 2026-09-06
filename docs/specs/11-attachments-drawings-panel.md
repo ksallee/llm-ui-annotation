@@ -40,7 +40,9 @@ GET    /__annot/attachments/:id/:attachmentId                                   
 ```
 
 `:id` and `:attachmentId` go through `isId` before touching the filesystem, and the file is located from the
-stored record rather than from the URL. Emit `annotation.updated` on attach and on detach.
+stored record rather than from the URL. Emit `annotation.updated` on attach and on detach. The list is
+server-owned: `POST /annotations` neither writes nor clears it, so re-posting an edited draft cannot drop the
+files and a client cannot invent an entry.
 
 Failures: 400 on a bad id or an empty body · 403 on a foreign `Origin`/`Sec-Fetch-Site` · 404 on an unknown
 annotation or attachment · 409 on the eleventh file · 413 over 20 MB per file or 50 MB per annotation ·

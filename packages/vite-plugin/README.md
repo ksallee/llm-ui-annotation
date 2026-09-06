@@ -76,7 +76,9 @@ sent` by the user) clears the resolution and creates a fresh batch, so a `batch.
 filesystem, the stored path rebuilt from them on every read. The MIME comes from the magic bytes and only
 then from the extension of `?name` — never from the request's `Content-Type`. Accepted: PNG, JPEG, GIF,
 WebP, SVG, PDF, Markdown, plain text, CSV, JSON; 20 MB per file, 50 MB and 10 files per annotation.
-Attaching and detaching emit `annotation.updated`; deleting a draft deletes its attachment directory.
+Attaching and detaching emit `annotation.updated`; deleting a draft deletes its attachment directory. The
+list is server-owned — `POST /annotations` neither writes nor clears it — so a re-posted draft cannot drop
+files and a client cannot invent an entry.
 
 Every endpoint that takes a body refuses the CORS-simple content types (`text/plain`,
 `multipart/form-data`, `application/x-www-form-urlencoded`) with 415 and a foreign `Origin` or

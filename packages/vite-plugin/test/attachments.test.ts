@@ -164,6 +164,36 @@ describe('attachments', () => {
 
 const ESCAPE = encodeURIComponent('../../../pwned');
 
+describe('attachments are server-owned', () => {
+  it('survives a re-post of the annotation that does not carry them', async () => {
+    const h = await serve();
+    const a = await draft(h);
+    const attachment = await attached(h, a.id, PNG, 'mock.png');
+    const reposted = await draft(h, { id: a.id, comment: 'edited while attached' });
+    expect(reposted.attachments).toEqual([attachment]);
+  });
+
+  it('ignores a list the client invents', async () => {
+    const h = await serve();
+    const a = await draft(h);
+    const invented = await draft(h, {
+      id: a.id,
+      attachments: [
+        {
+          id: 'A'.repeat(26),
+          name: 'ghost.png',
+          type: 'image/png',
+          bytes: 1,
+          path: `attachments/${a.id}/${'A'.repeat(26)}.png`,
+          at: '2026-09-05T18:24:41.048Z',
+          by: 'user',
+        },
+      ],
+    });
+    expect(invented.attachments).toBeUndefined();
+  });
+});
+
 describe('attachment endpoint hardening', () => {
   it('refuses a traversing annotation id or attachment id', async () => {
     const h = await serve();
