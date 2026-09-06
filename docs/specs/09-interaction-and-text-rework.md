@@ -96,9 +96,14 @@ The dot beside Settings has a tooltip and nothing else, so it reads as decoratio
 A collapsed row shows the note but hides every action, so doing anything means expanding first. The
 common actions belong on the row.
 
-- Each row carries its primary action inline, chosen by status: `review` → **Approve**, `question` →
-  **Answer**, `draft` → **Send**, `approved` → **Reopen**. One button, always visible, never behind a
-  disclosure. A `⋯` menu holds the rest (Edit, Delete, Reopen, Locate).
+- Each row carries its actions inline, chosen by status: `review` → **Approve** with **Reopen**
+  beside it, `question` → **Answer**, `draft` → **Send**, `approved` → **Reopen**, `sent` and
+  `acknowledged` → **Comment**. No status offers nothing — a row with no action reads as dead. The
+  primary one is filled with the accent and sits on its own line under the comment, where there is
+  room for a real button rather than a ghost at the right edge. A `⋯` menu holds the rest (Edit,
+  Delete, Locate).
+- The row also names its status as a word (spec 11 §3); the colour bar alone never said which
+  button was missing and why.
 - Expanding still reveals the full thread and the secondary actions; it is no longer the only way to
   act.
 - Hovering a row highlights its target on the page, so the row can be acted on without expanding it
@@ -111,8 +116,9 @@ review" is too blunt for it.
 
 - A checkbox per row, appearing on hover and staying once anything is selected. `⇧`-click extends a
   range, `⌘`/`Ctrl`-click toggles one, `⌘A` selects everything the current filter shows.
-- With a selection, the panel footer becomes a bulk bar: **Approve** · **Reopen** · **Send** ·
-  **Delete**. Each acts on the selected notes that allow the transition and names them: `Approve (3)`
+- With a selection, a bulk bar appears at the top of the list — sticky, inside the scroller, next
+  to the rows being ticked rather than several hundred pixels below them at the foot of the drawer:
+  **Approve** · **Reopen** · **Send** · **Delete**. Each acts on the selected notes that allow the transition and names them: `Approve (3)`
   when every selected note qualifies, `Approve (1 of 3)` when only some do, and disabled at `(0 of 3)`
   when none do. Acting on the subset beats going dead — a bar reading "Approve (0)" with everything
   greyed reads as a broken panel, not as a rule, which is exactly how it was first reported.
@@ -143,7 +149,7 @@ palette's right-hand column.
 - The old one-paragraph refusal string appears nowhere in the tree, code, tests or docs.
 - A selection spanning the whole `body` is refused with a message.
 - Every row in the panel shows its primary action while collapsed, and it performs the transition without expanding the row.
-- Selecting three `review` rows and pressing Approve moves all three and offers one undo toast; a mixed selection disables the actions that would be illegal.
+- Selecting three `review` rows and pressing Approve moves all three and offers one undo toast; a mixed selection disables the actions that would be illegal. The bar is on screen without scrolling.
 - Keycaps render at 12 px and are legible in both schemes.
 - Dragging a region handle changes `PageTarget.region` and the captured element list; **Fit to drawing** restores it.
 - Dragging the region grip moves the box, every stroke and every caption by the same delta.

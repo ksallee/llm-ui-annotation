@@ -68,11 +68,11 @@ Strokes are painted after they are committed, but nothing can pick them up again
 Keep the list; tighten it. Every problem below is visible in the panel as it stands today.
 
 - **A row names its status.** `review`, `question`, `acknowledged` as a word, next to the number. The 3px colour bar stays but stops being the only signal.
-- **The primary action is a real button**, not a ghost at the right edge, chosen by status: `review` → Approve (with Reopen beside it), `question` → Answer, `draft` → Send, `approved` → Reopen. **`acknowledged` and `sent` get Reopen-style secondary actions rather than nothing** — today those rows have no action at all and read as dead.
-- **Drawings show a thumbnail.** A page annotation has a screenshot; render it at 44×44 in the row. This is the fastest possible answer to "which of these is a drawing", and it beats a monochrome glyph. Fall back to the mode icon when the capture failed.
-- **Stop truncating the identifying half.** `button "Choose Pro"` matters more than the selector prefix; truncate the selector, keep the name.
+- **The primary action is a real button**, not a ghost at the right edge, chosen by status: `review` → Approve (with Reopen beside it), `question` → Answer, `draft` → Send, `approved` → Reopen. **`acknowledged` and `sent` get Reopen-style secondary actions rather than nothing** — today those rows have no action at all and read as dead; they get **Comment**, which is the one thing there is to say to an agent that is already working. The actions sit on their own line under the comment, accent-filled for the primary, which is where a 360 px drawer has room for them.
+- **Drawings show a thumbnail.** A page annotation has a screenshot; render it at 44×44 in the row. This is the fastest possible answer to "which of these is a drawing", and it beats a monochrome glyph. When the screenshot cannot be had — the capture failed, or the plugin has no `GET /screenshots/:id` yet — draw the strokes themselves into the tile, scaled to their bounds; the marks are the recognisable part anyway. Element and text rows keep the mode icon on the same 44 px tile, so the rows stay aligned. One miss disables the fetch for the session rather than 404ing once per row.
+- **Stop truncating the identifying half.** `button "Choose Pro"` matters more than the selector prefix; truncate the selector, keep the name. The two are separate spans: the name in prose type at full length, the selector in mono after it, capped at 40% of the line and clipped from its head, which is the half that repeats.
 - **One chip row, not two.** Counts live on the filter chips: `Needs you 2 · Open 1 · Done 3 · All 6`. Drop the separate count row.
-- **The bulk bar follows the selection.** Pin it under the last selected row, or float it at the top of the list, rather than at the bottom of a 360px drawer several hundred pixels away. It must be reachable without scrolling.
+- **The bulk bar follows the selection.** It floats at the top of the list, sticky inside the scroller, rather than at the bottom of a 360px drawer several hundred pixels away. It is reachable without scrolling, and the footer keeps only Approve all and Send drafts.
 - **Attachments** appear as a row of chips under the comment; images as 32px thumbnails. Dropping a file on a row attaches it.
 - **Marker placement for page annotations** puts the marker at the region's top-left, which lands on unrelated content. Place it at the top-left *inset* into the region, over the drawing's own box.
 
@@ -83,6 +83,6 @@ Keep the list; tighten it. Every problem below is visible in the panel as it sta
 - Deleting a draft removes its attachment directory.
 - Clicking a committed drawing selects it; dragging moves marks and box together; the stored `PageTarget` reflects the new geometry.
 - Editing a `review` drawing returns it to `sent` and appends a thread message.
-- Every panel row shows a status word and at least one action; a page annotation shows its screenshot thumbnail.
+- Every panel row shows a status word and at least one action; a page annotation shows a thumbnail of what was drawn.
 - With three rows selected, the bulk bar is visible without scrolling.
 - axe reports no serious violations with attachments and thumbnails present.

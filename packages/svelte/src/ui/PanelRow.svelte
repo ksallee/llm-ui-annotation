@@ -1,8 +1,10 @@
 <script lang="ts">
-  import { summarizeTarget, type Annotation, type Status } from '@llm-ui-annotation/core';
+  import type { Annotation, Status } from '@llm-ui-annotation/core';
   import { relativeTime } from '../dom/geometry.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import Icon from './Icon.svelte';
+  import Thumb from './Thumb.svelte';
+  import { targetLine } from './target-line.js';
   import type { IconName } from '../icons.js';
 
   let {
@@ -19,14 +21,31 @@
     onlocate: () => void;
   } = $props();
 
-  const MODE_ICON: Record<string, IconName> = { element: 'element', text: 'text', page: 'page' };
+  type ActionId = 'approve' | 'answer' | 'send' | 'reopen' | 'comment';
 
-  /** The one action a collapsed row offers, by status. */
-  const PRIMARY: Partial<Record<Status, { label: string; icon: IconName }>> = {
-    review: { label: 'Approve', icon: 'check' },
-    question: { label: 'Answer', icon: 'chat' },
-    draft: { label: 'Send', icon: 'send' },
-    approved: { label: 'Reopen', icon: 'reopen' },
+  interface RowAction {
+    id: ActionId;
+    label: string;
+    icon: IconName;
+    primary: boolean;
+    /** Names the row, so no two rows offer a button with the same name. */
+    aria: (n: number) => string;
+  }
+
+  const APPROVE: RowAction = { id: 'approve', label: 'Approve', icon: 'check', primary: true, aria: (n) => `Approve annotation ${n}` };
+  const ANSWER: RowAction = { id: 'answer', label: 'Answer', icon: 'chat', primary: true, aria: (n) => `Answer annotation ${n}` };
+  const SEND: RowAction = { id: 'send', label: 'Send', icon: 'send', primary: true, aria: (n) => `Send annotation ${n}` };
+  const REOPEN: RowAction = { id: 'reopen', label: 'Reopen', icon: 'reopen', primary: false, aria: (n) => `Reopen annotation ${n}` };
+  const COMMENT: RowAction = { id: 'comment', label: 'Comment', icon: 'chat', primary: false, aria: (n) => `Comment on annotation ${n}` };
+
+  /** What a row offers while collapsed, by status. No status offers nothing. */
+  const ACTIONS: Record<Status, RowAction[]> = {
+    draft: [SEND],
+    sent: [COMMENT],
+    acknowledged: [COMMENT],
+    question: [ANSWER],
+    review: [APPROVE, REOPEN],
+    approved: [REOPEN],
   };
 
   let reply = $state('');
@@ -38,8 +57,12 @@
   const a = $derived(annotation);
   const anchor = $derived(annot.anchors.get(a.id));
   const last = $derived(a.thread.at(-1));
-  const agent = $derived(annot.lastAgentMessage(a));
-  const primary = $derived(PRIMARY[a.status] ?? null);
+  const line = $derived(targetLine(a.target));
+  // Expanding puts the answer/reopen/comment field on screen with its own button; the row-level
+  // twins of it would then say the same thing twice.
+  const actions = $derived(
+    expanded ? ACTIONS[a.status].filter((x) => x.id === 'approve' || x.id === 'send') : ACTIONS[a.status],
+  );
   const picked = $derived(annot.selected.has(a.id));
 
   function send(kind: 'answer' | 'reopen' | 'comment'): void {
@@ -56,10 +79,10 @@
     queueMicrotask(() => replyField?.focus());
   }
 
-  /** Approve and Send land from the collapsed row; the other two need a reason first. */
-  function runPrimary(): void {
-    if (a.status === 'review') void annot.approve(a.id);
-    else if (a.status === 'draft') void annot.sendOne(a.id);
+  /** Approve and Send land from the collapsed row; the rest need a reason first. */
+  function run(action: ActionId): void {
+    if (action === 'approve') void annot.approve(a.id);
+    else if (action === 'send') void annot.sendOne(a.id);
     else focusReply();
   }
 </script>
@@ -83,21 +106,111 @@
         onclick={(e) => annot.selectRow(a.id, e.shiftKey ? 'range' : 'toggle')}
       />
       <button class="head" onclick={ontoggle} aria-expanded={expanded}>
-        <span class="num">#{a.number}</span>
-        <Icon name={MODE_ICON[a.mode] ?? 'element'} size={14} />
-        <span class="target">{summarizeTarget(a.target)}</span>
-        {#if anchor?.state === 'lost'}<span class="status-pill">lost</span>{/if}
-        {#if anchor?.state === 'moved'}<span class="status-pill">moved</span>{/if}
-        <span class="when">{relativeTime(a.updatedAt)}</span>
+        <Thumb {annot} {annotation} />
+        <span class="lines">
+          <span class="meta">
+            <span class="num">#{a.number}</span>
+            <span class="status-pill" style="background: var(--annot-{a.status}-fill)">{a.status}</span>
+            {#if anchor?.state === 'lost'}<span class="status-pill">lost</span>{/if}
+            {#if anchor?.state === 'moved'}<span class="status-pill">moved</span>{/if}
+            <span class="when">{relativeTime(a.updatedAt)}</span>
+          </span>
+          <span class="target">
+            <span class="name">{line.name}</span>
+            {#if line.where}<span class="where">{line.where}</span>{/if}
+          </span>
+        </span>
       </button>
+    </div>
 
-      {#if primary}
-        <button class="btn small inline-action" onclick={runPrimary}>
-          <Icon name={primary.icon} size={14} />
-          {primary.label}
-        </button>
+    {#if editing}
+      <textarea class="field" bind:value={draftComment} rows="2" aria-label="Edit the comment"></textarea>
+      <div class="actions">
+        <button
+          class="btn primary small"
+          onclick={() => {
+            void annot.editComment(a.id, draftComment.trim());
+            editing = false;
+          }}>Save</button
+        >
+        <button class="btn small" onclick={() => (editing = false)}>Cancel</button>
+      </div>
+    {:else}
+      <div class="comment">{a.comment}</div>
+    {/if}
+
+    {#if !expanded && last && last.kind !== 'comment'}
+      <div class="muted" style="color: var(--annot-{last.role === 'agent' ? 'accent' : 'ink-2'})">
+        {last.role}: {last.text}
+      </div>
+    {/if}
+
+    {#if expanded}
+      <div class="thread">
+        {#each a.thread as message (message.id)}
+          <div class="msg {message.role}">
+            <div class="who">{message.role} · {message.kind}</div>
+            <div>{message.text}</div>
+          </div>
+        {/each}
+      </div>
+
+      {#if a.status === 'question'}
+        <textarea
+          class="field"
+          bind:this={replyField}
+          bind:value={reply}
+          rows="2"
+          placeholder="Answer the agent…"
+          aria-label="Answer the agent"
+        ></textarea>
+        <div class="actions">
+          <button class="btn primary small" disabled={!reply.trim()} onclick={() => send('answer')}>
+            Answer
+          </button>
+        </div>
+      {:else if a.status === 'review' || a.status === 'approved'}
+        <textarea
+          class="field"
+          bind:this={replyField}
+          bind:value={reply}
+          rows="2"
+          placeholder="Why reopen?"
+          aria-label="Why reopen?"
+        ></textarea>
+        <div class="actions">
+          <button class="btn small" disabled={!reply.trim()} onclick={() => send('reopen')}>
+            Reopen
+          </button>
+        </div>
+      {:else if a.status !== 'draft'}
+        <textarea
+          class="field"
+          bind:this={replyField}
+          bind:value={reply}
+          rows="2"
+          placeholder="Add a comment…"
+          aria-label="Add a comment"
+        ></textarea>
+        <div class="actions">
+          <button class="btn small" disabled={!reply.trim()} onclick={() => send('comment')}>Comment</button>
+        </div>
       {/if}
+    {/if}
 
+    <div class="row-actions">
+      {#each actions as action (action.id)}
+        <button
+          class="btn small inline-action"
+          class:primary={action.primary}
+          aria-label={action.aria(a.number)}
+          onclick={() => run(action.id)}
+        >
+          <Icon name={action.icon} size={14} />
+          {action.label}
+        </button>
+      {/each}
+      <span class="spacer"></span>
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="menu-wrap"
@@ -131,14 +244,6 @@
                 }}><Icon name="trash" size={14} /> Delete</button
               >
             {/if}
-            {#if a.status === 'review' || a.status === 'approved'}
-              <button
-                onclick={() => {
-                  menuOpen = false;
-                  focusReply();
-                }}><Icon name="reopen" size={14} /> Reopen</button
-              >
-            {/if}
             <button
               onclick={() => {
                 menuOpen = false;
@@ -149,114 +254,5 @@
         {/if}
       </div>
     </div>
-
-    {#if editing}
-      <textarea class="field" bind:value={draftComment} rows="2" aria-label="Edit the comment"></textarea>
-      <div class="actions">
-        <button
-          class="btn primary small"
-          onclick={() => {
-            void annot.editComment(a.id, draftComment.trim());
-            editing = false;
-          }}>Save</button
-        >
-        <button class="btn small" onclick={() => (editing = false)}>Cancel</button>
-      </div>
-    {:else}
-      <div>{a.comment}</div>
-    {/if}
-
-    {#if !expanded && last && last.kind !== 'comment'}
-      <div class="muted" style="color: var(--annot-{last.role === 'agent' ? 'accent' : 'ink-2'})">
-        {last.role}: {last.text}
-      </div>
-    {/if}
-
-    {#if expanded}
-      <div class="thread">
-        {#each a.thread as message (message.id)}
-          <div class="msg {message.role}">
-            <div class="who">{message.role} · {message.kind}</div>
-            <div>{message.text}</div>
-          </div>
-        {/each}
-      </div>
-
-      {#if a.status === 'question'}
-        <textarea
-          class="field"
-          bind:this={replyField}
-          bind:value={reply}
-          rows="2"
-          placeholder="Answer the agent…"
-          aria-label="Answer the agent"
-        ></textarea>
-        <div class="actions">
-          <button class="btn primary small" disabled={!reply.trim()} onclick={() => send('answer')}>
-            Answer
-          </button>
-        </div>
-      {:else if a.status === 'review'}
-        {#if agent}
-          <div class="muted">{agent.text}</div>
-        {/if}
-        <textarea
-          class="field"
-          bind:this={replyField}
-          bind:value={reply}
-          rows="2"
-          placeholder="Why reopen?"
-          aria-label="Why reopen?"
-        ></textarea>
-        <div class="actions">
-          <button class="btn primary small" onclick={() => void annot.approve(a.id)}>Approve</button>
-          <button class="btn small" disabled={!reply.trim()} onclick={() => send('reopen')}>
-            Reopen
-          </button>
-        </div>
-      {:else if a.status === 'draft'}
-        <div class="actions">
-          <button
-            class="btn small"
-            onclick={() => {
-              draftComment = a.comment;
-              editing = true;
-            }}><Icon name="edit" size={14} /> Edit</button
-          >
-          <button class="btn small" onclick={() => void annot.deleteDraft(a.id)}>
-            <Icon name="trash" size={14} /> Delete
-          </button>
-          <button class="btn primary small" onclick={() => void annot.sendOne(a.id)}>Send this one</button>
-        </div>
-      {:else if a.status === 'approved'}
-        <textarea
-          class="field"
-          bind:this={replyField}
-          bind:value={reply}
-          rows="2"
-          placeholder="Why reopen?"
-          aria-label="Why reopen?"
-        ></textarea>
-        <div class="actions">
-          <button class="btn small" disabled={!reply.trim()} onclick={() => send('reopen')}>Reopen</button>
-        </div>
-      {:else}
-        <textarea
-          class="field"
-          bind:this={replyField}
-          bind:value={reply}
-          rows="2"
-          placeholder="Add a comment…"
-          aria-label="Add a comment"
-        ></textarea>
-        <div class="actions">
-          <button class="btn small" disabled={!reply.trim()} onclick={() => send('comment')}>Comment</button>
-        </div>
-      {/if}
-
-      <div class="actions">
-        <button class="btn quiet small" onclick={onlocate}><Icon name="locate" size={14} /> Locate</button>
-      </div>
-    {/if}
   </div>
 </div>

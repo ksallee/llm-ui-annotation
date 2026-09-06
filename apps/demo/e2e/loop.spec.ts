@@ -60,7 +60,7 @@ test('the whole loop: send, ack, ask, decline, answer, approve all', async ({
   await expect(overlay(page).locator('.marker')).toHaveCount(0);
   await expect(overlay(page).locator('.layer.highlights .outline')).toHaveCount(0);
 
-  await panel(page).getByRole('button', { name: 'Done', exact: true }).click();
+  await panel(page).getByRole('button', { name: /^Done/ }).click();
   await expect(panel(page).locator('.entry')).toHaveCount(3);
 
   const stored = await storedAnnotations(annotDir, '/');

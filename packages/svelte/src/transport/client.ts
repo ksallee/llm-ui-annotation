@@ -97,6 +97,19 @@ export class AnnotClient {
     return this.#json<{ events: Event[] }>(`/events?since=${since}`);
   }
 
+  /** An object URL for a stored screenshot, or null when the server has none. */
+  async screenshotUrl(id: string): Promise<string | null> {
+    // TODO(ws-11 §1): the plugin has no `GET /screenshots/:id` yet; until it does this returns
+    // null and the panel falls back to drawing the strokes itself.
+    try {
+      const response = await this.#fetch(`${this.basePath}/screenshots/${id}`);
+      if (!response.ok) return null;
+      return URL.createObjectURL(await response.blob());
+    } catch {
+      return null;
+    }
+  }
+
   screenshot(id: string, png: Blob): Promise<{ path: string }> {
     return this.#json<{ path: string }>(`/screenshots/${id}`, {
       method: 'POST',

@@ -128,6 +128,19 @@ describe('AnnotState derivations', () => {
     expect(state.filtered).toHaveLength(3);
   });
 
+  it('counts each filter chip with the predicate that filter uses', () => {
+    const { state } = make();
+    state.hydrate(
+      routeFile([
+        annotation({ id: 'A', status: 'draft', number: 1 }),
+        annotation({ id: 'B', status: 'review', number: 2 }),
+        annotation({ id: 'C', status: 'question', number: 3 }),
+        annotation({ id: 'D', status: 'approved', number: 4 }),
+      ]),
+    );
+    expect(state.filterCounts).toEqual({ 'needs-you': 2, open: 1, done: 1, all: 4 });
+  });
+
   it('defaults the panel filter to what needs the user', () => {
     const { state } = make();
     state.hydrate(routeFile([annotation({ id: 'B', status: 'question', number: 1 })]));

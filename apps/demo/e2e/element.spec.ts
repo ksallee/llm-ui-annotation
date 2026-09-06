@@ -71,6 +71,7 @@ test('a draft can be deleted from the panel and never reaches the file', async (
   expect(before[0]!.status).toBe('draft');
 
   const row = await expandRow(page, 1);
+  await row.getByRole('button', { name: 'More actions on annotation 1' }).click();
   await row.getByRole('button', { name: 'Delete' }).click();
 
   await expect.poll(() => snapshot(page).then((s) => s.annotations.length)).toBe(0);

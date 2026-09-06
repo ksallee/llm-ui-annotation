@@ -84,17 +84,27 @@ Triggered by Send. Lists the drafts on this route as one-line rows (number, mode
 
 ## Panel (drawer)
 
-Header: route (mono), counts by status, "all routes" toggle, close.
-Filter chips: Needs you (question + review, default when non-empty) · Open (draft, sent, acknowledged) · Done (approved) · All.
-Row: a selection checkbox, number, mode glyph, status bar color, target one-liner (mono, truncated), the primary action for the status (spec 09 §8), a `⋯` menu, comment, thread preview (last message, role-colored), timestamp relative. Expand to show the full thread with role labels, an answer/comment field, and actions by status:
+Header: route (mono), "all routes" toggle, close. One chip row, not two: the counts live on the
+filter chips — Needs you (question + review, default when non-empty) · Open (draft, sent,
+acknowledged) · Done (approved) · All, each with its count (spec 11 §3).
 
-- `draft`: Edit, Delete, Send this one.
-- `sent` / `acknowledged`: Edit comment (appends a comment message), no delete.
+Row: a selection checkbox, a 44 px thumbnail, the number, **the status as a word**, the timestamp,
+then the target on its own line — the name at full length, the selector truncated after it — the
+comment, a thread preview (last message, role-colored) and the row's actions (spec 09 §8) with a
+`⋯` menu holding Edit, Delete and Locate. The 3 px status bar stays but is no longer the only
+signal. Expand to show the full thread with role labels and the field the status calls for:
+
+- `draft`: the thread. Send is on the row, Edit and Delete are in the `⋯` menu.
+- `sent` / `acknowledged`: a comment field (appends a comment message), no delete.
 - `question`: Answer field, **Answer** (→ acknowledged).
-- `review`: agent summary or decline reason, **Approve**, **Reopen** with a required comment.
-- `approved`: muted, **Reopen**.
+- `review`: **Reopen** with a required comment; Approve stays on the row.
+- `approved`: muted comment, **Reopen** with a comment.
 
-Footer: **Approve all in review** (count) with an undo toast for 6 s, and **Send drafts** (batch mode). With rows selected it becomes the bulk bar of spec 09 §9.
+The row actions that only open a field are dropped while the row is expanded, since the field is
+already there with its own button.
+
+Footer: **Approve all in review** (count) with an undo toast for 6 s, and **Send drafts** (batch
+mode). The bulk bar of spec 09 §9 is not here; it floats at the top of the list.
 
 Clicking a row scrolls the page so the target is centered and flashes the highlight once.
 

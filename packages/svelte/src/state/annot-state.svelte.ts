@@ -107,6 +107,14 @@ export interface AnnotStateOptions {
 const OPEN: Status[] = ['draft', 'sent', 'acknowledged'];
 const NEEDS_YOU: Status[] = ['question', 'review'];
 
+/** What each panel filter keeps. The chips count with the predicate they filter by. */
+export const FILTER_MATCHES: Record<Filter, (a: Annotation) => boolean> = {
+  'needs-you': (a) => NEEDS_YOU.includes(a.status),
+  open: (a) => OPEN.includes(a.status),
+  done: (a) => a.status === 'approved',
+  all: () => true,
+};
+
 /** Keeps a drawing's pin inside its region instead of centred on the corner. */
 export const REGION_INSET = 14;
 
@@ -157,6 +165,10 @@ export class AnnotState {
   /** Settings is listening for the next chord; the controller must not act on it. */
   capturingKey = $state(false);
   readonly selected = new SvelteSet<string>();
+  /** Object URLs for panel thumbnails, by annotation id. */
+  readonly thumbnails = new SvelteMap<string, string>();
+  #thumbnailsAsked = new Set<string>();
+  #screenshotsServed: boolean | null = null;
   previewId = $state<string | null>(null);
   expandedId = $state<string | null>(null);
   #selectionAnchor: string | null = null;
@@ -208,18 +220,19 @@ export class AnnotState {
       : this.needsYou.length,
   );
 
-  readonly filtered = $derived.by(() => {
-    const rows = this.allRoutes ? this.list : this.onRoute;
-    switch (this.panelFilter) {
-      case 'needs-you':
-        return rows.filter((a) => NEEDS_YOU.includes(a.status));
-      case 'open':
-        return rows.filter((a) => OPEN.includes(a.status));
-      case 'done':
-        return rows.filter((a) => a.status === 'approved');
-      default:
-        return rows;
-    }
+  readonly inScope = $derived.by(() => (this.allRoutes ? this.list : this.onRoute));
+
+  readonly filtered = $derived.by(() => this.inScope.filter(FILTER_MATCHES[this.panelFilter]));
+
+  /** What each filter chip shows beside its label. */
+  readonly filterCounts = $derived.by((): Record<Filter, number> => {
+    const rows = this.inScope;
+    return {
+      'needs-you': rows.filter(FILTER_MATCHES['needs-you']).length,
+      open: rows.filter(FILTER_MATCHES.open).length,
+      done: rows.filter(FILTER_MATCHES.done).length,
+      all: rows.length,
+    };
   });
 
   readonly lost = $derived.by(() =>
@@ -707,6 +720,18 @@ export class AnnotState {
 
   anchorOf(id: string): Anchor | null {
     return this.anchors.get(id) ?? null;
+  }
+
+  /** Fetch a drawing's screenshot once, for the panel thumbnail. */
+  async loadThumbnail(id: string): Promise<void> {
+    if (this.#thumbnailsAsked.has(id) || this.#screenshotsServed === false) return;
+    this.#thumbnailsAsked.add(id);
+    const target = this.annotations.get(id)?.target;
+    if (target?.kind !== 'page' || !target.screenshot) return;
+    const url = await this.client.screenshotUrl(id);
+    // A first miss means the server does not serve them; asking again per row only fills the console.
+    this.#screenshotsServed = url !== null;
+    if (url) this.thumbnails.set(id, url);
   }
 
   /** Top-right of the first rect, in document coordinates; a drawing's pin sits inside its box. */
