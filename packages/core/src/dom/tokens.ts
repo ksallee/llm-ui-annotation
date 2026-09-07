@@ -28,6 +28,25 @@ const ABSOLUTE: Record<string, number> = {
 
 const round = (n: number): number => Math.round(n * 1000) / 1000;
 
+/**
+ * One shadow, lengths then colour, trailing zero lengths dropped. A page writes
+ * `0 1px 2px rgba(…)` and the browser computes `rgba(…) 0px 1px 2px 0px`; both land here.
+ */
+function normalizeShadow(parts: string[], rootPx: number): string | null {
+  const lengths: string[] = [];
+  const rest: string[] = [];
+  let colour: string | null = null;
+  for (const part of parts) {
+    const one = normalizeValue(part, rootPx);
+    if (NUMBER.test(part)) lengths.push(one);
+    else if (colour === null && parseColor(part)) colour = one;
+    else rest.push(one);
+  }
+  if (colour === null || lengths.length < 2) return null;
+  while (lengths.length > 2 && lengths[lengths.length - 1] === '0px') lengths.pop();
+  return [...lengths, colour, ...rest].join(' ');
+}
+
 /** Compare-ready form of a declared or computed value: colors in oklch, absolute lengths in px. */
 export function normalizeValue(value: string, rootPx = DEFAULT_ROOT_PX): string {
   let raw = value.trim();
@@ -38,6 +57,12 @@ export function normalizeValue(value: string, rootPx = DEFAULT_ROOT_PX): string 
 
   const color = parseColor(raw);
   if (color) return formatOklch(color);
+
+  const parts = splitParts(raw);
+  if (parts.length > 2) {
+    const shadow = normalizeShadow(parts, rootPx);
+    if (shadow !== null) return shadow;
+  }
 
   const text = raw.toLowerCase().replace(/\s*,\s*/g, ',').replace(/\s+/g, ' ');
   const m = NUMBER.exec(text);
@@ -261,8 +286,11 @@ export function tokenMap(doc: Document, el?: Element): TokenMap {
 export function declaredTokens(doc: Document, el?: Element): Map<string, string> {
   const { best } = collect(doc, el);
   const rootPx = rootFontSize(doc);
+  // Winning order — closest ancestor, then shortest name — so a consumer keeping the first entry
+  // for a value keeps the one the cascade favours.
+  const ranked = [...best.values()].sort((a, b) => (preferred(a, b) ? -1 : 1));
   const out = new Map<string, string>();
-  for (const d of best.values()) {
+  for (const d of ranked) {
     const value = normalizeValue(deref(best, d), rootPx);
     if (value !== '') out.set(d.name, value);
   }
@@ -307,8 +335,77 @@ export function resolveTokens(
 ): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [prop, value] of Object.entries(styles)) {
-    const name = matchValue(value, map) ?? matchRelative(prop, value, map, fontPx);
+    // The relative form first: a 24px line-height on a 15px font is the `1.6` the page wrote, and
+    // only coincidentally the value of a spacing token.
+    const name = matchRelative(prop, value, map, fontPx) ?? matchValue(value, map);
     if (name !== undefined) out[prop] = name;
+  }
+  return out;
+}
+
+/**
+ * How a design system names the tokens of a property. Values collide across families — a 8px pad and
+ * an 8px radius are the same string — so the name is the only thing that says which one produced it.
+ */
+export const TOKEN_FAMILIES: Readonly<Record<string, RegExp>> = {
+  padding: /space|spacing|gap|pad|size/,
+  margin: /space|spacing|gap|margin|size/,
+  gap: /space|spacing|gap|size/,
+  color: /ink|text|fg|foreground|color|colour/,
+  'background-color': /bg|background|surface|ground|fill/,
+  'border-color': /line|border|stroke|divider/,
+  'font-family': /font|family|sans|serif|mono/,
+  'font-size': /text|font|size/,
+  'font-weight': /weight|bold|font/,
+  'line-height': /leading|line/,
+  'letter-spacing': /tracking|letter/,
+  'border-radius': /radius|rounded|corner/,
+  'border-width': /border|line|width/,
+  'box-shadow': /shadow|elevation/,
+  opacity: /opacity|alpha/,
+};
+
+const FAMILIES = [...new Set(Object.values(TOKEN_FAMILIES))];
+
+/**
+ * Whether a name may stand for this property: its own family, or no family at all — `--brand` says
+ * nothing about which property it is for, while `--space-2` says it is not a radius.
+ */
+function suits(name: string, family: RegExp | undefined): boolean {
+  if (family?.test(name)) return true;
+  return !FAMILIES.some((other) => other !== family && other.test(name));
+}
+
+/** Value to name, the first suitable name per value. `declared` is already in winning order. */
+function familyMap(declared: ReadonlyMap<string, string>, family: RegExp | undefined): TokenMap {
+  const out = new Map<string, string>();
+  for (const [name, value] of declared) {
+    if (suits(name, family) && !out.has(value)) out.set(value, name);
+  }
+  return Object.assign(out, { skipped: 0 });
+}
+
+/**
+ * Property to the token that produced it, resolved against every declared name rather than one name
+ * per value: a property only ever matches a token from its own family, so an 8px radius is reported
+ * as the radius token and not as the spacing token that happens to share the value.
+ *
+ * @param declared every custom property in scope, by name, from `declaredTokens`.
+ * @param fontPx the element's font size, the basis for its em and unitless values.
+ */
+export function resolveDeclared(
+  styles: Record<string, string>,
+  declared: ReadonlyMap<string, string>,
+  fontPx = 0,
+): Record<string, string> {
+  const maps = new Map<RegExp | undefined, TokenMap>();
+  const out: Record<string, string> = {};
+  for (const [prop, value] of Object.entries(styles)) {
+    const family = TOKEN_FAMILIES[prop];
+    let map = maps.get(family);
+    if (!map) maps.set(family, (map = familyMap(declared, family)));
+    const found = resolveTokens({ [prop]: value }, map, fontPx)[prop];
+    if (found !== undefined) out[prop] = found;
   }
   return out;
 }

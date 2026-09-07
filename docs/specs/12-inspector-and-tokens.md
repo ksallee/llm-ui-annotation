@@ -90,11 +90,31 @@ If a page defines `--color-primary-600` and the button computes to that colour, 
   retries. Without it those two properties resolve to nothing, which is what they did before.
 - Where two tokens share a value, prefer the one declared on the closest ancestor, then the shortest
   name, then alphabetical. Report one, never a list.
+- A shadow reads the same whichever end its colour is written at: `0 1px 2px rgba(…)` as declared and
+  `rgba(…) 0px 1px 2px 0px` as Chrome computes it normalise to one form — lengths, then colour, with
+  a zero spread dropped.
 
 `declaredTokens(doc, el?): Map<string, string>` is the other half: every custom property in scope,
-keyed by **name**, nothing dropped for sharing a value. `tokenMap`'s one-name-per-value rule is right
-for reading a value back to its source and wrong for offering a designer their own scale — a page
-where `--space-3` and `--text-xs` are both `12px` must still offer both in the type editor (spec 13).
+keyed by **name**, in winning order, nothing dropped for sharing a value. `tokenMap`'s
+one-name-per-value rule is right for reading a value back to its source and wrong for offering a
+designer their own scale — a page where `--space-3` and `--text-xs` are both `12px` must still offer
+both in the type editor (spec 13).
+
+### Which name, when a value has several
+
+`TOKEN_FAMILIES` maps a property to how a design system names its tokens: `/space|gap|pad/` for
+padding, `/radius|rounded|corner/` for border-radius, `/leading|line/` for line-height. A name may
+stand for a property when it is in that property's family, **or in no family at all** — `--brand`
+says nothing about which property it is for, while `--space-2` says it is not a radius. A name from
+another family is refused, and the value is reported without a token.
+
+That rule is what makes an 8px border-radius resolve to `--radius-md` on a page where `--space-2` is
+also 8px, and it is why a system named `--c1`, `--sp2` still resolves (those names are in no family)
+while one that reuses `--space-2` for its corners does not.
+
+`resolveDeclared(styles, declared, fontPx?)` applies it, and is what `describeElement` uses for the
+payload and the overlay uses for its readings. `resolveTokens(styles, map, fontPx?)` is the lower
+level, taking a value-keyed map and no family rule.
 
 `resolveTokens(styles, map, fontPx?): Record<string, string>` maps a property to the token that produced it.
 It matches the whole value first, then, for a value of several parts (parentheses respected, so

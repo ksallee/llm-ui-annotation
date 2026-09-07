@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { resolveTokens, tokenMap } from '../dom/core-dom.js';
+  import { declaredTokens, resolveDeclared } from '../dom/core-dom.js';
   import { hexOf, inspectElement, type Reading } from '../dom/inspect.js';
   import { namedToken } from '../dom/style-edit.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
@@ -16,8 +16,8 @@
   const styles = $derived(seen?.styles ?? null);
   const entries = $derived(Object.entries(styles ?? {}));
   // The same call `describeElement` makes, so this is what the annotation carries.
-  const map = $derived(el ? tokenMap(annot.doc, el) : null);
-  const tokens = $derived(map && styles ? resolveTokens(styles, map, seen?.fontPx ?? 0) : {});
+  const map = $derived(el ? declaredTokens(annot.doc, el) : null);
+  const tokens = $derived(map && styles ? resolveDeclared(styles, map, seen?.fontPx ?? 0) : {});
   const others = $derived(annot.selection.length - 1);
 
   const size = $derived(

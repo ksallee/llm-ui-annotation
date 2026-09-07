@@ -6,7 +6,7 @@ import { area, intersect, rectOf } from './rect.js';
 import { roleOf } from './roles.js';
 import { describeSelector } from './selector.js';
 import { computedStyles } from './styles.js';
-import { resolveTokens, tokenMap, type TokenMap } from './tokens.js';
+import { declaredTokens, resolveDeclared } from './tokens.js';
 
 const DEFAULT_MAX_TEXT = 200;
 const ATTR_MAX = 100;
@@ -30,8 +30,8 @@ export interface DescribeOptions {
   overlayTag?: string;
   /** Cap on `text`. Default 200. */
   maxText?: number;
-  /** A map to reuse across several elements, instead of one built per call. */
-  tokens?: TokenMap;
+  /** Declared tokens to reuse across several elements, instead of one map built per call. */
+  declared?: ReadonlyMap<string, string>;
 }
 
 function ignorable(el: Element, overlayTag: string): boolean {
@@ -106,7 +106,8 @@ export function describeElement(el: Element, opts: DescribeOptions = {}): Elemen
     const styles = computedStyles(el);
     ref.styles = styles;
     const fontPx = Number.parseFloat(fontSizeOf(el)) || 0;
-    const tokens = resolveTokens(styles, opts.tokens ?? tokenMap(el.ownerDocument, el), fontPx);
+    const declared = opts.declared ?? declaredTokens(el.ownerDocument, el);
+    const tokens = resolveDeclared(styles, declared, fontPx);
     if (Object.keys(tokens).length > 0) ref.tokens = tokens;
   }
   if (opts.context !== false) ref.context = contextOf(el, overlayTag);

@@ -206,7 +206,7 @@ export function hexOf(css: string): string {
 }
 
 /** What devtools puts in the tooltip over the element it is highlighting. */
-export function elementCard(el: Element, tokens?: ReadonlyMap<string, string>): ElementCard | null {
+export function elementCard(el: Element, declared?: ReadonlyMap<string, string>): ElementCard | null {
   const view = el.ownerDocument.defaultView;
   const box = boxModel(el);
   if (!view || !box) return null;
@@ -214,7 +214,7 @@ export function elementCard(el: Element, tokens?: ReadonlyMap<string, string>): 
   const read = (prop: string): string => style.getPropertyValue(prop).trim();
   const fontPx = Number.parseFloat(read('font-size')) || 0;
   const named = (prop: string, value: string): string | null =>
-    tokens ? namedToken(prop, value, tokens, fontPx) : null;
+    declared ? namedToken(prop, value, declared, fontPx) : null;
 
   const colour = read('color');
   const family = read('font-family').split(',')[0]?.replace(/["']/g, '').trim() ?? '';

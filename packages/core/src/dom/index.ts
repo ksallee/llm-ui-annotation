@@ -16,7 +16,15 @@ export {
   union,
 } from './rect.js';
 export { computedStyles, formatStyleValue } from './styles.js';
-export { declaredTokens, normalizeValue, resolveTokens, tokenMap, type TokenMap } from './tokens.js';
+export {
+  declaredTokens,
+  normalizeValue,
+  resolveDeclared,
+  resolveTokens,
+  tokenMap,
+  TOKEN_FAMILIES,
+  type TokenMap,
+} from './tokens.js';
 export {
   anchorText,
   blockContainer,

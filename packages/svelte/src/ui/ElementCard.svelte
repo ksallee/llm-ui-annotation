@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Rect } from '@llm-ui-annotation/core';
-  import { tokenMap } from '../dom/core-dom.js';
+  import { declaredTokens } from '../dom/core-dom.js';
   import { elementCard } from '../dom/inspect.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import NodeTitle from './NodeTitle.svelte';
@@ -14,7 +14,7 @@
   let width = $state(0);
 
   // Keyed on the element alone: the map walks every stylesheet, and scrolling must not redo it.
-  const tokens = $derived(tokenMap(annot.doc, el));
+  const tokens = $derived(declaredTokens(annot.doc, el));
 
   const card = $derived.by(() => {
     void rect;

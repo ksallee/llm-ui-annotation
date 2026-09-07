@@ -41,16 +41,16 @@ describe('the devtools card', () => {
   });
 
   it('names the token behind a value, and only from that property\u2019s own family', () => {
-    const tokens = new Map([['12px', '--radius-md']]);
-    expect(namedToken('border-radius', '12px', tokens)).toBe('--radius-md');
+    const declared = new Map([['--radius-md', '12px']]);
+    expect(namedToken('border-radius', '12px', declared)).toBe('--radius-md');
     // The same value, the wrong family: a coincidence, not the source.
-    expect(namedToken('padding', '12px', tokens)).toBeNull();
+    expect(namedToken('padding', '12px', declared)).toBeNull();
   });
 
   it('reads a computed line-height back to the ratio its token is written as', () => {
-    const tokens = new Map([['1.15', '--leading-tight']]);
-    expect(namedToken('line-height', '41.4px', tokens)).toBeNull();
-    expect(namedToken('line-height', '41.4px', tokens, 36)).toBe('--leading-tight');
+    const declared = new Map([['--leading-tight', '1.15']]);
+    expect(namedToken('line-height', '41.4px', declared)).toBeNull();
+    expect(namedToken('line-height', '41.4px', declared, 36)).toBe('--leading-tight');
   });
 
   it('titles the node the way devtools does and reads the box off it', () => {

@@ -1,7 +1,13 @@
 /** @vitest-environment happy-dom */
 import { describe, expect, it } from 'vitest';
 import { describeElement } from '../../src/dom/describe.js';
-import { declaredTokens, normalizeValue, resolveTokens, tokenMap } from '../../src/dom/tokens.js';
+import {
+  declaredTokens,
+  normalizeValue,
+  resolveDeclared,
+  resolveTokens,
+  tokenMap,
+} from '../../src/dom/tokens.js';
 import { renderAnnotationMarkdown } from '../../src/protocol/markdown.js';
 import type { Annotation, ElementRef } from '../../src/model/types.js';
 import { annotation } from '../fixtures.js';
@@ -161,6 +167,60 @@ describe('values a page writes against its own font size', () => {
 
   it('leaves a length whose basis it does not know', () => {
     expect(resolveTokens({ padding: '41.4px' }, MAP, 36)).toEqual({});
+  });
+
+  it('prefers the ratio over a spacing token that happens to share the computed px', () => {
+    const map = new Map([
+      ['1.6', '--leading-body'],
+      ['24px', '--space-5'],
+    ]);
+    expect(resolveTokens({ 'line-height': '24px' }, map, 15)).toEqual({
+      'line-height': '--leading-body',
+    });
+    expect(resolveTokens({ 'line-height': '24px' }, map)).toEqual({ 'line-height': '--space-5' });
+  });
+});
+
+describe('resolveDeclared', () => {
+  const DECLARED = new Map([
+    ['--space-2', '8px'],
+    ['--radius-md', '8px'],
+    ['--brand', normalizeValue('#2c8a85')],
+  ]);
+
+  it('takes the name from the property’s own family when a value is shared', () => {
+    expect(resolveDeclared({ 'border-radius': '8px' }, DECLARED)).toEqual({
+      'border-radius': '--radius-md',
+    });
+    expect(resolveDeclared({ padding: '8px' }, DECLARED)).toEqual({ padding: '--space-2' });
+  });
+
+  it('refuses a name that belongs to another family, and keeps one that belongs to none', () => {
+    const spacingOnly = new Map([['--space-2', '8px']]);
+    expect(resolveDeclared({ 'border-radius': '8px' }, spacingOnly)).toEqual({});
+    expect(resolveDeclared({ 'background-color': '#2c8a85' }, DECLARED)).toEqual({
+      'background-color': '--brand',
+    });
+  });
+});
+
+describe('shadows', () => {
+  it('reads the same whichever end the colour is written at', () => {
+    const declared = normalizeValue('0 1px 2px rgba(16, 18, 21, 0.06)');
+    const computed = normalizeValue('rgba(16, 18, 21, 0.06) 0px 1px 2px 0px');
+    expect(computed).toBe(declared);
+    expect(resolveTokens({ 'box-shadow': computed }, new Map([[declared, '--shadow-sm']]))).toEqual({
+      'box-shadow': '--shadow-sm',
+    });
+  });
+
+  it('keeps a spread that is not zero, and an inset', () => {
+    expect(normalizeValue('rgb(0, 0, 0) 0px 1px 2px 3px')).toContain('3px');
+    expect(normalizeValue('rgb(0, 0, 0) 0px 1px 2px 0px inset')).toContain('inset');
+  });
+
+  it('leaves a border alone, which is one length and a colour', () => {
+    expect(normalizeValue('1px solid rgb(229, 228, 224)')).toBe('1px solid rgb(229,228,224)');
   });
 });
 

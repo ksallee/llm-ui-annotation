@@ -57,19 +57,18 @@ both `12px` must offer both here.
 
 Two filters decide what a row shows. `kindOf` classifies each token's value as `color`, `length`,
 `shadow`, `family` or `free`, and a row offers only its own kind — a colour row never offers a
-spacing token. Then the row's `family` pattern (`/space|gap|pad/` for padding, `/tracking|letter/`
-for letter-spacing, and so on) puts the tokens named for that property first and the rest under an
-`other tokens` group. A designer looking for their type scale should not have to read past the
-spacing scale to find it.
+spacing token. Then `TOKEN_FAMILIES` (spec 12 §4) puts the tokens named for that property first and
+the rest under an `other tokens` group. A designer looking for their type scale should not have to
+read past the spacing scale to find it.
 
-The same `family` patterns decide what the **readings** claim. `namedToken(property, value, tokens,
-fontPx)` reports a token only when its name belongs to that property: a `10px` radius and a `10px`
-pad are the same string, and telling someone their padding is `--radius-lg` is worse than telling
-them nothing. A design system whose names carry no family (`--c1`, `--sp2`) therefore shows values
-without a token in the readings; the payload the agent gets is unfiltered.
+**The select shows the value's current token**, not an empty prompt: `namedToken` resolves what the
+element already computes, so the row says `--demo-radius-md` before anything is changed. Seeing that
+a value is *not* on the system is half of what the panel is for. A value of several parts names
+several tokens, which no select can hold, so that case prints under the row instead:
+`--demo-space-2 --demo-space-4`.
 
 Picking a token writes `to: var(--name)` and `token: --name`; typing writes the raw value and
-`token: null`.
+`token: null`. Colour rows carry a swatch and show their value as hex.
 
 ## The preview
 

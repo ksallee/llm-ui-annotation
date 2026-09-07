@@ -1059,15 +1059,23 @@ kbd {
 
 .editor {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
 }
 
+/* Under the row it belongs to: several tokens for one value do not fit the select. */
+.editor .token.spans {
+  flex: 1 0 100%;
+  margin-left: calc(6.5em + 4px);
+}
+
 .editor .prop {
-  flex: 0 0 7.5em;
+  flex: 0 0 6.5em;
   font-family: var(--annot-font-mono);
   font-size: var(--annot-text-xs);
   color: var(--annot-ink-2);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -1085,12 +1093,14 @@ kbd {
 }
 
 .editor .field.mini {
-  flex: 1 1 auto;
+  flex: 1 1 4em;
   min-width: 0;
 }
 
+/* Without this a select is as wide as its widest option, and the row wraps. */
 .editor select.tokens {
-  flex: 0 1 7em;
+  flex: 1 1 7em;
+  min-width: 0;
 }
 
 .editor .btn {

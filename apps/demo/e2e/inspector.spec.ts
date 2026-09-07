@@ -137,6 +137,14 @@ test('a value changed in the panel previews on the page and rides with the note'
   await openPanel(page);
   await pick(page, '[data-testid="signup"]');
 
+  // The current value's own token, so you can see whether it is on the system before changing it.
+  await expect(panel(page).locator('select[aria-label="border-radius token"]')).toHaveValue(
+    '--demo-radius-md',
+  );
+  await expect(panel(page).locator('.editor .token.spans')).toContainText(
+    '--demo-space-2 --demo-space-4',
+  );
+
   const padding = panel(page).locator('input[aria-label="padding"]');
   await padding.fill('24px 40px');
   await padding.blur();
