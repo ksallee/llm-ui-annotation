@@ -60,6 +60,13 @@ describe('watch', () => {
     expect((await readFile(join(dir, '.cursor-agent'), 'utf8')).trim()).toBe('1');
   });
 
+  it('refuses an agent name that would name a file elsewhere', async () => {
+    const { dir } = await makeFixture();
+    const res = await annot(dir, 'watch', '--agent', '../../escape', '--timeout', '5');
+    expect(res.code).toBe(1);
+    expect(res.err).toContain('--agent');
+  });
+
   it('never re-delivers what the cursor already covers', async () => {
     const { dir } = await makeFixture();
     await annot(dir, 'watch', '--timeout', '5');

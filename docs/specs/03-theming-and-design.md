@@ -48,6 +48,10 @@ Neutrals are *tinted*: hue `H`, chroma `0.008` (light) or `0.012` (dark), so a w
 | `--annot-scrim` | `oklch(0.2 0.02 H / 0.35)` | `oklch(0 0 0 / 0.55)` |
 | `--annot-color-scheme` | `light` | `dark` |
 
+Four tokens sit outside this system by design: `--annot-box-content`, `--annot-box-padding`,
+`--annot-box-border` and `--annot-box-margin` are Chrome devtools' box model colours, fixed in both
+schemes. Spec 12 §2 says why. Nothing else in the overlay hard-codes a colour.
+
 `--annot-ink` carries `neutralChroma + 0.002`, a touch more tint than the other neutrals, which is
 where the light `0.01` and the dark `0.014` come from.
 
@@ -102,7 +106,7 @@ Export `computeTheme(input, prefersDark, prefersReducedMotion?): Record<TokenNam
 ## Visual language (borrowed from agentation, adapted)
 
 - One floating pill bottom-right, 44 px tall, icon buttons 36 px, 1 px dividers between groups, tooltip above with label and shortcut in a smaller muted key cap. Draggable by its grip; position remembered per origin in localStorage.
-- Popups are cards, `--annot-surface`, 1 px `--annot-line`, `--annot-shadow`, 12 px padding, max width 360, anchored to the target with an 8 px offset and flipped when out of viewport. First line is a breadcrumb in mono: `› button "Save"`.
+- Popups are cards, `--annot-surface`, 1 px `--annot-line`, `--annot-shadow`, 12 px padding, max width 360, anchored to the target with an 8 px offset and flipped when out of viewport. The breadcrumb `› button "Save"` is mono, inside the details pane (spec 04).
 - Pins (markers) are 22 px circles with the number, `--annot-<status>` background, `--annot-<status>-ink` text, 2 px `--annot-surface` ring; multi-select markers show a small stacked-squares glyph instead of the number when hovered.
 - Panel is a right drawer, 360 px, same surface, header with route and counts, filter chips, list of rows with a 3 px left bar in the status color. Nothing bounces.
 - Icons: a small inline SVG set drawn on a 20 px grid, 1.5 px stroke, round caps. Names: logo, element, text (highlighter), page (scribble), brush, arrow, rect, ellipse, caption, eraser, undo, redo, pause, play, eye, eye-off, send, inbox, check, check-all, reopen, chat, gear, grip, close, chevron, search, more, fit, locate (map pin), edit, trash, warn. No glyph carries two meanings: the pencil is `edit` only, the speech bubble is `chat` only. No icon library dependency.

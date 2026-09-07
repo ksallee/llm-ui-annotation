@@ -3,6 +3,7 @@
   import { comboOf, formatCombo } from '../keyboard.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import { trapFocus } from './focus.js';
+  import Switch from './Switch.svelte';
   import type { Density, DetailLevel, MarkerVisibility, SchemeOption, SendMode } from '../options.js';
 
   let { annot, version }: { annot: AnnotState; version: string } = $props();
@@ -34,29 +35,22 @@
   }
 </script>
 
-<div class="card popover" {style} role="dialog" aria-label="Overlay settings" use:trapFocus>
+{#snippet segment(title: string, options: readonly string[], current: string, pick: (value: string) => void)}
   <div class="setting">
-    <span class="title">Send mode</span>
+    <span class="title">{title}</span>
     <div class="segment">
-      {#each SEND as mode (mode)}
-        <button aria-pressed={annot.prefs.sendMode === mode} onclick={() => annot.setPref('sendMode', mode)}>
-          {mode}
-        </button>
+      {#each options as option (option)}
+        <button aria-pressed={current === option} onclick={() => pick(option)}>{option}</button>
       {/each}
     </div>
   </div>
+{/snippet}
 
-  <div class="setting">
-    <span class="title">Scheme</span>
-    <div class="segment">
-      {#each SCHEMES as scheme (scheme)}
-        <button
-          aria-pressed={(annot.prefs.scheme ?? 'auto') === scheme}
-          onclick={() => annot.setPref('scheme', scheme)}>{scheme}</button
-        >
-      {/each}
-    </div>
-  </div>
+<div class="card popover" {style} role="dialog" aria-label="Overlay settings" use:trapFocus>
+  {@render segment('Send mode', SEND, annot.prefs.sendMode, (v) => annot.setPref('sendMode', v as SendMode))}
+  {@render segment('Scheme', SCHEMES, annot.prefs.scheme ?? 'auto', (v) =>
+    annot.setPref('scheme', v as SchemeOption),
+  )}
 
   <div class="setting">
     <span class="title">Accent</span>
@@ -79,38 +73,15 @@
     </div>
   </div>
 
-  <div class="setting">
-    <span class="title">Detail for the agent</span>
-    <div class="segment">
-      {#each DETAIL as level (level)}
-        <button aria-pressed={annot.prefs.detail === level} onclick={() => annot.setPref('detail', level)}>
-          {level}
-        </button>
-      {/each}
-    </div>
-  </div>
-
-  <div class="setting">
-    <span class="title">Pins</span>
-    <div class="segment">
-      {#each MARKERS as markers (markers)}
-        <button aria-pressed={annot.prefs.markers === markers} onclick={() => annot.setPref('markers', markers)}>
-          {markers}
-        </button>
-      {/each}
-    </div>
-  </div>
-
-  <div class="setting">
-    <span class="title">Density</span>
-    <div class="segment">
-      {#each DENSITY as density (density)}
-        <button aria-pressed={annot.prefs.density === density} onclick={() => annot.setPref('density', density)}>
-          {density}
-        </button>
-      {/each}
-    </div>
-  </div>
+  {@render segment('Detail for the agent', DETAIL, annot.prefs.detail, (v) =>
+    annot.setPref('detail', v as DetailLevel),
+  )}
+  {@render segment('Pins', MARKERS, annot.prefs.markers, (v) =>
+    annot.setPref('markers', v as MarkerVisibility),
+  )}
+  {@render segment('Density', DENSITY, annot.prefs.density, (v) =>
+    annot.setPref('density', v as Density),
+  )}
 
   <div class="setting">
     <span class="title">Command palette</span>
@@ -131,14 +102,23 @@
     </button>
   </div>
 
-  <label class="row">
-    <input
-      type="checkbox"
-      checked={annot.prefs.blockInteractions}
-      onchange={(e) => annot.setPref('blockInteractions', (e.currentTarget as HTMLInputElement).checked)}
+  <div class="setting toggle">
+    <span class="title">CSS Details</span>
+    <Switch
+      checked={annot.prefs.cssDetails}
+      label="CSS details"
+      onchange={(next) => annot.setPref('cssDetails', next)}
     />
-    <span>Block page interactions while a mode is active</span>
-  </label>
+  </div>
+
+  <div class="setting toggle">
+    <span class="title">Block Page Interactions</span>
+    <Switch
+      checked={annot.prefs.blockInteractions}
+      label="Block page interactions"
+      onchange={(next) => annot.setPref('blockInteractions', next)}
+    />
+  </div>
 
   <div class="row">
     <button class="btn quiet small" onclick={() => annot.setPref('corner', 'br')}>Reset pill position</button>

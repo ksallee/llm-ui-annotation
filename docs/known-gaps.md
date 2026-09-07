@@ -23,9 +23,9 @@ spec asks for it, nobody built it) or **non-goal** (deliberate, recorded so nobo
 - Six response types in `src/protocol/api.ts` (`CreateAnnotationRequest`, `AnnotationResponse`,
   `BatchResponse`, `RouteResponse`, `EventsResponse`, `DeleteResponse`) have no importer anywhere.
   **non-goal** — they document the wire shapes; keep or delete deliberately, do not let them rot.
-- `@llm-ui-annotation/core/dom` pulls `./theme` in transitively (`dom/oklch.ts` re-exports from
-  `theme/color.ts`, which carries the 148-colour name table), so the four-entry split is three in
-  practice. **non-goal** — `toOklch` in the style subset is the reason; nothing tests otherwise.
+- `@llm-ui-annotation/core/dom` pulls `./theme` in transitively (`dom/styles.ts` and `dom/tokens.ts`
+  import `theme/color.ts`, which carries the 148-colour name table), so the four-entry split is three
+  in practice. **non-goal** — `toOklch` in the style subset is the reason; nothing tests otherwise.
 - `test/entries.test.ts` enforces the browser/node split by grepping import statements, and only
   imports `.` and `./model` at runtime. It would not catch `await import('node:fs')` or a
   transitive builtin reaching `./dom` or `./theme`. **unimplemented** — there are no violations

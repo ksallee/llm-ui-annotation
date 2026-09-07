@@ -1,3 +1,5 @@
+// The command palette: what it offers, and how a query ranks it.
+
 import { DRAW_TOOLS } from './draw-tools.js';
 import { formatCombo } from './keyboard.js';
 import type { AnnotState, Filter } from './state/annot-state.svelte.js';
@@ -91,7 +93,10 @@ export function paletteEntries(state: AnnotState, locate: (id: string) => void):
     entry('setting:send-mode', 'setting', 'Send mode: batch or immediate', state.prefs.sendMode, () =>
       state.setPref('sendMode', state.prefs.sendMode === 'batch' ? 'immediate' : 'batch'),
     ),
-    entry('setting:block', 'setting', 'Block page interactions in a mode', String(state.prefs.blockInteractions), () =>
+    entry('setting:css', 'setting', 'CSS details on the canvas', String(state.prefs.cssDetails), () =>
+      state.setPref('cssDetails', !state.prefs.cssDetails),
+    ),
+    entry('setting:block', 'setting', 'Block page interactions', String(state.prefs.blockInteractions), () =>
       state.setPref('blockInteractions', !state.prefs.blockInteractions),
     ),
     entry('setting:settings', 'setting', 'Open settings', formatCombo(state.prefs.paletteKey), () => {

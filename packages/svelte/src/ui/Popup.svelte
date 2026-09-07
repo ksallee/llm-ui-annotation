@@ -1,4 +1,5 @@
 <script lang="ts">
+  // The note composer, anchored to whatever was just selected.
   import type { ElementRef } from '@llm-ui-annotation/core';
   import { place } from '../dom/geometry.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
@@ -10,17 +11,13 @@
   let {
     annot,
     oncommit,
-  }: { annot: AnnotState; oncommit: (comment: string) => void } = $props();
+  }: { annot: AnnotState; oncommit: (send: boolean) => void } = $props();
 
   let card = $state<HTMLElement | null>(null);
   let area = $state<HTMLTextAreaElement | null>(null);
   let height = $state(220);
 
   const popup = $derived(annot.popup!);
-  const primary = $derived(
-    popup.editing ? 'Save' : annot.sendMode === 'immediate' ? 'Send' : 'Add',
-  );
-
   const attachedTo = $derived(popup.editing ?? popup.draftId);
   const attachments = $derived(
     attachedTo ? (annot.annotations.get(attachedTo)?.attachments ?? []) : [],
@@ -72,9 +69,9 @@
     el.style.height = `${Math.min(8 * 20 + 16, Math.max(2 * 20 + 16, el.scrollHeight))}px`;
   }
 
-  function commit(): void {
+  function commit(send: boolean): void {
     if (!popup.comment.trim()) return;
-    oncommit(popup.comment.trim());
+    oncommit(send);
   }
 </script>
 
@@ -100,16 +97,10 @@
     }
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.stopPropagation();
-      commit();
+      commit(e.shiftKey);
     }
   }}
 >
-  <div class="breadcrumb"><span>›</span><span>{annot.breadcrumb(popup.target)}</span></div>
-
-  {#if quote}
-    <div class="quote">“{quote}”</div>
-  {/if}
-
   <textarea
     class="field"
     bind:this={area}
@@ -119,6 +110,12 @@
     placeholder="What should change?"
     aria-label="What should change?"
   ></textarea>
+
+  {#if annot.styleEdits.length > 0}
+    <span class="muted"
+      >carries {annot.styleEdits.length} style change{annot.styleEdits.length === 1 ? '' : 's'}</span
+    >
+  {/if}
 
   {#if attachedTo}
     <Attachments {annot} id={attachedTo} items={attachments} />
@@ -130,17 +127,44 @@
     <button
       class="btn quiet small"
       aria-expanded={popup.detail}
-      onclick={() => (popup.detail = !popup.detail)}>detail {popup.detail ? '▴' : '▾'}</button
+      onclick={() => (popup.detail = !popup.detail)}>details {popup.detail ? '▴' : '▾'}</button
     >
     <span class="spacer"></span>
-    <button class="btn small" onclick={() => annot.closePopup()}>Cancel</button>
-    <button class="btn primary small" disabled={!popup.comment.trim()} onclick={commit}>
-      {primary}<kbd>⌘↵</kbd>
-    </button>
+    {#if popup.editing}
+      <button class="btn primary small" disabled={!popup.comment.trim()} onclick={() => commit(false)}>
+        Save<kbd>⌘↵</kbd>
+      </button>
+    {:else}
+      {#if annot.sendMode === 'batch'}
+        <button class="btn primary small" disabled={!popup.comment.trim()} onclick={() => commit(false)}>
+          Add<kbd>⌘↵</kbd>
+        </button>
+      {/if}
+      <button
+        class="btn small"
+        class:primary={annot.sendMode === 'immediate'}
+        disabled={!popup.comment.trim()}
+        onclick={() => commit(true)}
+      >
+        Send<kbd>{annot.sendMode === 'batch' ? '⇧⌘↵' : '⌘↵'}</kbd>
+      </button>
+    {/if}
   </div>
 
   {#if popup.detail}
     <div class="detail">
+      <div class="breadcrumb"><span>›</span><span>{annot.breadcrumb(popup.target)}</span></div>
+      {#if quote}
+        <div class="quote">“{quote}”</div>
+      {/if}
+      {#if annot.styleEdits.length > 0}
+        <dl class="edits">
+          {#each annot.styleEdits as edit (edit.selector + edit.property)}
+            <dt>{edit.property}</dt>
+            <dd>{edit.from} → {edit.to}</dd>
+          {/each}
+        </dl>
+      {/if}
       <dl>
         {#each refs as ref, i (i)}
           <dt>selector</dt>

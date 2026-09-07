@@ -34,26 +34,31 @@ export type StrokeContext = Pick<
   | 'textBaseline'
 >;
 
-/** Every stroke shifted by `dx`/`dy`, as new objects. */
-export function translateStrokes(strokes: Stroke[], dx: number, dy: number): Stroke[] {
-  if (dx === 0 && dy === 0) return strokes;
-  const shift = (r: Rect): Rect => ({ ...r, x: r.x + dx, y: r.y + dy });
+type PointMap = (x: number, y: number) => [number, number];
+
+function mapStrokes(strokes: Stroke[], at: PointMap, box: (r: Rect) => Rect): Stroke[] {
   return strokes.map((stroke): Stroke => {
     switch (stroke.tool) {
       case 'brush':
-        return { ...stroke, points: stroke.points.map(([x, y]) => [x + dx, y + dy]) };
+        return { ...stroke, points: stroke.points.map(([x, y]) => at(x, y)) };
       case 'arrow':
-        return {
-          ...stroke,
-          from: [stroke.from[0] + dx, stroke.from[1] + dy],
-          to: [stroke.to[0] + dx, stroke.to[1] + dy],
-        };
+        return { ...stroke, from: at(...stroke.from), to: at(...stroke.to) };
       case 'label':
-        return { ...stroke, at: [stroke.at[0] + dx, stroke.at[1] + dy] };
+        return { ...stroke, at: at(...stroke.at) };
       default:
-        return { ...stroke, rect: shift(stroke.rect) };
+        return { ...stroke, rect: box(stroke.rect) };
     }
   });
+}
+
+/** Every stroke shifted by `dx`/`dy`, as new objects. */
+export function translateStrokes(strokes: Stroke[], dx: number, dy: number): Stroke[] {
+  if (dx === 0 && dy === 0) return strokes;
+  return mapStrokes(
+    strokes,
+    (x, y) => [x + dx, y + dy],
+    (r) => ({ ...r, x: r.x + dx, y: r.y + dy }),
+  );
 }
 
 /** Every stroke mapped from the `from` box onto the `to` box, as new objects. */
@@ -64,33 +69,10 @@ export function transformStrokes(strokes: Stroke[], from: Rect, to: Rect): Strok
   const sy = ratio(from.height, to.height);
   if (sx === 1 && sy === 1) return translateStrokes(strokes, to.x - from.x, to.y - from.y);
 
-  const fx = (x: number): number => to.x + (x - from.x) * sx;
-  const fy = (y: number): number => to.y + (y - from.y) * sy;
-
-  return strokes.map((stroke): Stroke => {
-    switch (stroke.tool) {
-      case 'brush':
-        return { ...stroke, points: stroke.points.map(([x, y]) => [fx(x), fy(y)]) };
-      case 'arrow':
-        return {
-          ...stroke,
-          from: [fx(stroke.from[0]), fy(stroke.from[1])],
-          to: [fx(stroke.to[0]), fy(stroke.to[1])],
-        };
-      case 'label':
-        return { ...stroke, at: [fx(stroke.at[0]), fy(stroke.at[1])] };
-      default:
-        return {
-          ...stroke,
-          rect: {
-            ...stroke.rect,
-            x: fx(stroke.rect.x),
-            y: fy(stroke.rect.y),
-            width: stroke.rect.width * sx,
-            height: stroke.rect.height * sy,
-          },
-        };
-    }
+  const at: PointMap = (x, y) => [to.x + (x - from.x) * sx, to.y + (y - from.y) * sy];
+  return mapStrokes(strokes, at, (r) => {
+    const [x, y] = at(r.x, r.y);
+    return { ...r, x, y, width: r.width * sx, height: r.height * sy };
   });
 }
 

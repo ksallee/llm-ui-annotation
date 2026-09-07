@@ -1,4 +1,4 @@
-import { isParsableColor, toOklch } from './oklch.js';
+import { parseColor, toOklch } from '../theme/color.js';
 
 const MAX_ENTRIES = 20;
 
@@ -68,7 +68,7 @@ function roundNumbers(value: string): string {
 
 /** Colors as `oklch(...)`, keeping a hex or named original in parentheses. */
 export function formatStyleValue(prop: string, value: string): string {
-  if (!COLOR_PROPS.has(prop) || !isParsableColor(value)) return roundNumbers(value);
+  if (!COLOR_PROPS.has(prop) || !parseColor(value)) return roundNumbers(value);
   const oklch = toOklch(value);
   const original = /^#|^[a-z]+$/i.test(value.trim()) ? ` (${value.trim()})` : '';
   return `${oklch}${original}`;

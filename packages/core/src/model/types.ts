@@ -1,6 +1,6 @@
-export const PROTOCOL_VERSION = 2;
-/** Versions a reader accepts; v1 files have no `TextTarget.blocks`. */
-export const SUPPORTED_PROTOCOL_VERSIONS = [1, 2] as const;
+export const PROTOCOL_VERSION = 3;
+/** Versions a reader accepts; v1 files have no `TextTarget.blocks`, v2 no `Annotation.styleEdits`. */
+export const SUPPORTED_PROTOCOL_VERSIONS = [1, 2, 3] as const;
 export type ProtocolVersion = (typeof SUPPORTED_PROTOCOL_VERSIONS)[number];
 
 export type Mode = 'element' | 'text' | 'page';
@@ -146,6 +146,18 @@ export interface Attachment {
   by: Actor;
 }
 
+/** A value the user changed in the inspector. Proposed, never applied to the source by the overlay. */
+export interface StyleEdit {
+  /** The element it applies to, as an `ElementRef.selector` of the same annotation. */
+  selector: string;
+  property: string;
+  /** The computed value before the edit. */
+  from: string;
+  to: string;
+  /** The custom property `to` came from, when it was picked from the page's tokens. */
+  token: string | null;
+}
+
 export interface Annotation {
   id: string;
   protocolVersion: ProtocolVersion;
@@ -170,6 +182,8 @@ export interface Annotation {
   approvedAt: string | null;
   resolution: Resolution | null;
   attachments?: Attachment[];
+  /** Values the user changed in the inspector, for the agent to put in the source. */
+  styleEdits?: StyleEdit[];
   /** Browser-only, not persisted. */
   anchorState?: AnchorState;
 }

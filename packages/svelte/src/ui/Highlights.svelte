@@ -1,6 +1,7 @@
 <script lang="ts">
+  // The SVG layer: annotation highlights, the selection, the hover box and every drawing.
   import type { AnnotState } from '../state/annot-state.svelte.js';
-  import { boxDrawable, boxModel } from '../dom/inspect.js';
+  import { boxModel } from '../dom/inspect.js';
   import BoxModel from './BoxModel.svelte';
   import Strokes from './Strokes.svelte';
 
@@ -13,10 +14,9 @@
 
   // Recomputed whenever the hovered element changes; the bands are read off the live element.
   const box = $derived.by(() => {
-    if (annot.mode !== 'element' || !annot.hover.el) return null;
+    if (annot.mode !== 'element' || !annot.prefs.cssDetails || !annot.hover.el) return null;
     void annot.hover.rect;
-    const model = boxModel(annot.hover.el);
-    return model && boxDrawable(model) ? model : null;
+    return boxModel(annot.hover.el);
   });
 </script>
 

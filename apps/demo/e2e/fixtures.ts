@@ -20,6 +20,18 @@ export interface Fixtures {
   agent: Agent;
 }
 
+/** A write that landed after the server closed leaves the directory non-empty; take the second pass. */
+async function removeDir(dir: string, tries = 5): Promise<void> {
+  for (let i = 0; i < tries; i++) {
+    try {
+      await rm(dir, { recursive: true, force: true });
+      return;
+    } catch {
+      await new Promise((done) => setTimeout(done, 50));
+    }
+  }
+}
+
 export const test = base.extend<Fixtures>({
   // ANNOT_E2E_NOISE=1 prints what the browser complained about, which is how a broken module graph
   // shows up: the overlay simply never mounts.
@@ -38,7 +50,7 @@ export const test = base.extend<Fixtures>({
   annotDir: async ({}, use) => {
     const dir = await mkdtemp(join(tmpdir(), 'annot-e2e-'));
     await use(dir);
-    await rm(dir, { recursive: true, force: true });
+    await removeDir(dir);
   },
 
   site: async ({ annotDir }, use) => {

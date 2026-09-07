@@ -31,9 +31,11 @@ docs/research         what we learned from agentation, agent-ui-annotation, and 
 ## Style
 
 Declarative. Very sparse comments: only where something is genuinely obscure, never restating the
-code. A doc comment says what the function does and stops — no context, no rationale, no examples.
-Params are typed, with at most one very short sentence each. No long descriptions anywhere unless
-really, really required.
+code, never code history or session context. A doc comment says what the function does and stops —
+no context, no rationale, no examples. Params are typed, with at most one very short sentence each.
+No long descriptions anywhere unless really, really required. One line at the top of a file saying
+what it is, when the filename does not. A class earns its place by owning state with invariants;
+anything else is a function. `docs/conventions.md` §Code style is the long version.
 
 ## Looking at the UI
 

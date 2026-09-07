@@ -2,7 +2,7 @@
   import type { Mode } from '@llm-ui-annotation/core';
   import { cornerStyle, nearestCorner } from '../dom/geometry.js';
   import type { AnnotState, Connection } from '../state/annot-state.svelte.js';
-  import { formatCombo } from '../keyboard.js';
+  import { dragBox } from './drag.js';
   import Icon from './Icon.svelte';
   import type { IconName } from '../icons.js';
 
@@ -41,23 +41,19 @@
     const pill = (event.currentTarget as HTMLElement).closest('.pill') as HTMLElement | null;
     const view = annot.doc.defaultView;
     if (!pill || !view) return;
-    const box = pill.getBoundingClientRect();
-    const offsetX = event.clientX - box.left;
-    const offsetY = event.clientY - box.top;
-    const move = (e: PointerEvent): void => {
-      dragging = { x: e.clientX - offsetX, y: e.clientY - offsetY };
-    };
-    const up = (e: PointerEvent): void => {
-      view.removeEventListener('pointermove', move);
-      view.removeEventListener('pointerup', up);
-      annot.setPref(
-        'corner',
-        nearestCorner({ x: e.clientX, y: e.clientY }, { width: view.innerWidth, height: view.innerHeight }),
-      );
-      dragging = null;
-    };
-    view.addEventListener('pointermove', move);
-    view.addEventListener('pointerup', up);
+    dragBox(
+      view,
+      event,
+      pill.getBoundingClientRect(),
+      (at) => (dragging = at),
+      (_, e) => {
+        annot.setPref(
+          'corner',
+          nearestCorner({ x: e.clientX, y: e.clientY }, { width: view.innerWidth, height: view.innerHeight }),
+        );
+        dragging = null;
+      },
+    );
   }
 </script>
 
@@ -74,16 +70,6 @@
   {:else}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <span class="grip" onpointerdown={startDrag} aria-hidden="true"><Icon name="grip" size={16} /></span>
-
-    <button
-      class="icon-btn"
-      aria-pressed={annot.paletteOpen}
-      aria-label="Open the command palette"
-      onclick={() => annot.togglePalette()}
-    >
-      <Icon name="search" />
-      <span class="tooltip">Commands<kbd>{formatCombo(annot.prefs.paletteKey)}</kbd></span>
-    </button>
 
     {#each MODES as item (item.mode)}
       <button

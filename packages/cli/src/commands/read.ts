@@ -4,29 +4,20 @@ import {
   renderAnnotationMarkdown,
   STATUSES,
   type Annotation,
-  type RenderLevel,
+  type RouteSummary,
   type Status,
 } from '@llm-ui-annotation/core';
 import { spawn } from 'node:child_process';
-import { join } from 'node:path';
-import { flagBool, flagString, type Args } from '../args.js';
+import { join, relative, sep } from 'node:path';
+import { flagBool, renderLevel, type Args } from '../args.js';
 import type { Context } from '../context.js';
 import { readCursor, cursorPath } from '../cursor.js';
 import { CliError, EXIT_OK } from '../errors.js';
 import { json, type Io } from '../output.js';
 import { resolveMany, resolveOne } from '../resolve.js';
+import { countByStatus } from '../store.js';
 
-const LEVELS: readonly RenderLevel[] = ['compact', 'standard', 'detailed'];
 export const PENDING_STATUSES: readonly Status[] = ['sent', 'acknowledged', 'question'];
-
-export function renderLevel(args: Args, fallback: RenderLevel = 'standard'): RenderLevel {
-  const value = flagString(args, 'level');
-  if (value === undefined) return fallback;
-  if (!(LEVELS as readonly string[]).includes(value)) {
-    throw new CliError(`--level must be one of ${LEVELS.join(', ')}`);
-  }
-  return value as RenderLevel;
-}
 
 function byNumber(a: Annotation, b: Annotation): number {
   return a.number - b.number;
@@ -44,9 +35,10 @@ function groupByRoute(annotations: readonly Annotation[]): [string, Annotation[]
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
-function tally(annotations: readonly Annotation[]): string {
-  return STATUSES.filter((s) => annotations.some((a) => a.status === s))
-    .map((s) => `${annotations.filter((a) => a.status === s).length} ${s}`)
+/** `2 sent, 1 review`, over the statuses actually present. */
+function tally(counts: RouteSummary['counts']): string {
+  return STATUSES.filter((s) => counts[s] > 0)
+    .map((s) => `${counts[s]} ${s}`)
     .join(', ');
 }
 
@@ -67,7 +59,9 @@ export async function pending(ctx: Context, args: Args, io: Io): Promise<number>
   const opts = { level: renderLevel(args), dir: ctx.dir };
   const blocks: string[] = [];
   for (const [route, list] of groupByRoute(items)) {
-    blocks.push(`## ${route}  ·  ${list.length} item${list.length === 1 ? '' : 's'}  ·  ${tally(list)}`);
+    blocks.push(
+      `## ${route}  ·  ${list.length} item${list.length === 1 ? '' : 's'}  ·  ${tally(countByStatus(list))}`,
+    );
     for (const a of list) blocks.push(renderAnnotationMarkdown(a, opts));
   }
   blocks.push(AGENT_VERBS_FOOTER);
@@ -102,8 +96,8 @@ export async function routes(ctx: Context, _args: Args, io: Io): Promise<number>
     summaries
       .map((s) => {
         const total = STATUSES.reduce((n, k) => n + s.counts[k], 0);
-        const parts = STATUSES.filter((k) => s.counts[k] > 0).map((k) => `${s.counts[k]} ${k}`);
-        return `${s.route.padEnd(width)}  ${total} item${total === 1 ? '' : 's'}${parts.length > 0 ? `  ·  ${parts.join(', ')}` : ''}`;
+        const parts = tally(s.counts);
+        return `${s.route.padEnd(width)}  ${total} item${total === 1 ? '' : 's'}${parts === '' ? '' : `  ·  ${parts}`}`;
       })
       .join('\n'),
   );
@@ -118,6 +112,9 @@ export async function screenshot(ctx: Context, args: Args, io: Io): Promise<numb
   const rel = a.target.kind === 'page' ? a.target.screenshot : null;
   if (rel === null) throw new CliError(`#${a.number} has no screenshot`);
   const path = join(ctx.dir, rel);
+  if (relative(ctx.dir, path).startsWith(`..${sep}`)) {
+    throw new CliError(`#${a.number} names a screenshot outside ${ctx.dir}`);
+  }
   if (ctx.json) json(io, { id: a.id, number: a.number, path });
   else io.out(path);
   if (flagBool(args, 'open')) {

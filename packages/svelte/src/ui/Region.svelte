@@ -1,4 +1,5 @@
 <script lang="ts">
+  // The resize frame around a drawing region, a whole drawing, or a stroke selection.
   import type { Rect } from '@llm-ui-annotation/core';
   import { findElementsInRect } from '../dom/core-dom.js';
   import { resizeRect, type Edge } from '../dom/geometry.js';

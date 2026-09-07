@@ -1,4 +1,4 @@
-import type { Annotation, Event, RouteFile } from '@llm-ui-annotation/core';
+import type { Annotation, RouteFile } from '@llm-ui-annotation/core';
 import type { HotLike } from '../options.js';
 import type { AnnotState } from '../state/annot-state.svelte.js';
 import type { AnnotClient } from './client.js';
@@ -75,7 +75,7 @@ export function connectLive(
       if (stopped) return;
       try {
         const { events } = await client.events(state.seq);
-        for (const event of events as Event[]) state.receiveEvent(event);
+        for (const event of events) state.receiveEvent(event);
         if (events.length > 0) state.reanchor();
         state.connection = 'polling';
       } catch {

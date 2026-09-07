@@ -1,4 +1,5 @@
-import { defineOverlay, OVERLAY_TAG, type AnnotOverlayElement } from './element.js';
+import { OVERLAY_TAG } from './dom/core-dom.js';
+import { defineOverlay, type AnnotOverlayElement } from './element.js';
 import type { OverlayOptions } from './options.js';
 import type { AnnotState } from './state/annot-state.svelte.js';
 

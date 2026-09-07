@@ -62,6 +62,15 @@ describe('renderDoc', () => {
   });
 });
 
+describe('raw HTML in the document', () => {
+  it('is shown, not run', () => {
+    const model = renderDoc('# T\n\n## S\n\ntext <img src=x onerror=alert(1)> more\n');
+    const html = model.sections[0]!.html;
+    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(html).not.toContain('<img');
+  });
+});
+
 describe('sectionKey', () => {
   it('slugs and deduplicates', () => {
     const taken = new Set<string>();

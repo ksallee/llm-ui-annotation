@@ -1,4 +1,7 @@
+/** The host page's own custom properties, matched back onto computed values. */
+
 import { formatOklch, parseColor } from '../theme/color.js';
+import { ancestorChain } from './ancestors.js';
 
 /** Normalized custom property value to property name, plus the stylesheets that could not be read. */
 export interface TokenMap extends Map<string, string> {
@@ -76,17 +79,6 @@ interface Declaration {
 interface Collected {
   decls: Declaration[];
   skipped: number;
-}
-
-function ancestorChain(el: Element): Element[] {
-  const out: Element[] = [];
-  let current: Element | null = el;
-  while (current) {
-    out.push(current);
-    const root = current.getRootNode();
-    current = current.parentElement ?? (root.nodeType === 11 ? (root as ShadowRoot).host : null);
-  }
-  return out;
 }
 
 function depthOf(selector: string, chain: Element[] | null): number {

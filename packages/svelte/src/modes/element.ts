@@ -1,6 +1,6 @@
 import type { Rect } from '@llm-ui-annotation/core';
 import { describeElement, docRect, elementLabelOf, isOverlay } from '../dom/core-dom.js';
-import { coverage, rectFromPoints, unionRects } from '../dom/geometry.js';
+import { coverage, docPoint, rectFromPoints, unionRects } from '../dom/geometry.js';
 import type { AnnotState } from '../state/annot-state.svelte.js';
 
 const IGNORED = new Set(['HTML', 'BODY']);
@@ -16,7 +16,7 @@ function pierce(el: Element, x: number, y: number, depth = 0): Element {
 }
 
 /** Topmost host element under a viewport point, skipping the overlay. */
-export function elementUnder(state: AnnotState, x: number, y: number): Element | null {
+function elementUnder(state: AnnotState, x: number, y: number): Element | null {
   for (const el of state.doc.elementsFromPoint(x, y)) {
     if (isOverlay(el) || IGNORED.has(el.tagName)) continue;
     return pierce(el, x, y);
@@ -31,7 +31,7 @@ const boxArea = (rect: Rect): number => Math.max(0, rect.width) * Math.max(0, re
  * as long as a single container is tiled by children that fill it. A box round a card grid gives
  * the cards; a box round one card gives the card.
  */
-export function marqueeSelection(state: AnnotState, box: Rect): Element[] {
+function marqueeSelection(state: AnnotState, box: Rect): Element[] {
   const inside = [...(state.doc.body?.querySelectorAll('*') ?? [])].filter((el) => {
     if (isOverlay(el) || IGNORED.has(el.tagName)) return false;
     const rect = docRect(el);
@@ -56,14 +56,9 @@ export function marqueeSelection(state: AnnotState, box: Rect): Element[] {
 export function elementMode(state: AnnotState, layer: HTMLElement): () => void {
   let start: { x: number; y: number } | null = null;
 
-  const point = (event: PointerEvent): { x: number; y: number } => ({
-    x: event.clientX + state.scroll.x,
-    y: event.clientY + state.scroll.y,
-  });
-
   const onMove = (event: PointerEvent): void => {
     if (start) {
-      state.marquee = rectFromPoints(start, point(event));
+      state.marquee = rectFromPoints(start, docPoint(event, state.scroll));
       return;
     }
     const el = elementUnder(state, event.clientX, event.clientY);
@@ -74,13 +69,13 @@ export function elementMode(state: AnnotState, layer: HTMLElement): () => void {
 
   const onDown = (event: PointerEvent): void => {
     if (event.button !== 0) return;
-    start = point(event);
+    start = docPoint(event, state.scroll);
     layer.setPointerCapture?.(event.pointerId);
   };
 
   const onUp = (event: PointerEvent): void => {
     if (!start) return;
-    const box = rectFromPoints(start, point(event));
+    const box = rectFromPoints(start, docPoint(event, state.scroll));
     const dragged = box.width > 6 || box.height > 6;
     start = null;
     state.marquee = null;

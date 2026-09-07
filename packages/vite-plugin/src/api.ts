@@ -8,7 +8,6 @@ import {
   isId,
   isSlug,
   PROTOCOL_VERSION,
-  type Attachment,
   type CreateBatchRequest,
   type Event,
   type PatchAnnotationRequest,
@@ -64,23 +63,25 @@ function match(route: Route, method: string, segments: string[]): Record<string,
 }
 
 /** A path param that is about to become a filename. Anything else is a traversal attempt. */
-function safeId(params: Record<string, string>): string {
-  const id = params['id'] as string;
-  if (!isId(id)) throw badRequest('id: expected an annotation id');
-  return id;
-}
-
-function safeAttachmentId(params: Record<string, string>): string {
-  const id = params['attachmentId'] as string;
-  if (!isId(id)) throw badRequest('attachmentId: expected an attachment id');
-  return id;
-}
-
-function safeSlug(params: Record<string, string>): string {
-  const value = params['slug'] as string;
-  if (!isSlug(value)) throw badRequest('slug: expected a route slug');
+function safe(
+  params: Record<string, string>,
+  key: string,
+  shape: (value: unknown) => boolean,
+  what: string,
+): string {
+  const value = params[key] as string;
+  if (!shape(value)) throw badRequest(`${key}: expected ${what}`);
   return value;
 }
+
+const safeId = (params: Record<string, string>): string =>
+  safe(params, 'id', isId, 'an annotation id');
+
+const safeAttachmentId = (params: Record<string, string>): string =>
+  safe(params, 'attachmentId', isId, 'an attachment id');
+
+const safeSlug = (params: Record<string, string>): string =>
+  safe(params, 'slug', isSlug, 'a route slug');
 
 function since(url: URL): number {
   const raw = url.searchParams.get('since');
@@ -165,14 +166,12 @@ export function createApi(
   });
 
   on('POST', '/screenshots/:id', async (req, res, params) => {
-    assertSameOrigin(req);
     const body = await readBody(req, PNG_LIMIT);
     if (!isPng(body)) throw badRequest('body: expected a PNG image');
     sendJson(res, 201, { path: await store.saveScreenshot(safeId(params), body) });
   });
 
   on('POST', '/annotations/:id/attachments', async (req, res, params, url) => {
-    assertSameOrigin(req);
     const id = safeId(params);
     const name = cleanAttachmentName(url.searchParams.get('name') ?? '');
     const by = url.searchParams.get('by') === 'agent' ? 'agent' : 'user';
@@ -181,15 +180,14 @@ export function createApi(
     sendJson(res, 201, attachment);
   });
 
-  on('DELETE', '/annotations/:id/attachments/:attachmentId', async (req, res, params) => {
-    assertSameOrigin(req);
+  on('DELETE', '/annotations/:id/attachments/:attachmentId', async (_req, res, params) => {
     await store.removeAttachment(safeId(params), safeAttachmentId(params));
     sendJson(res, 200, { ok: true });
   });
 
   on('GET', '/attachments/:id/:attachmentId', async (_req, res, params) => {
     const { attachment, file } = await store.attachment(safeId(params), safeAttachmentId(params));
-    await sendAttachment(res, attachment, file);
+    await sendFileInert(res, file, attachment.type, attachment.name);
   });
 
   on('GET', '/screenshots/:id', async (_req, res, params) => {
@@ -214,7 +212,10 @@ export function createApi(
       const params = match(route, method, segments);
       if (!params) continue;
       void ready()
-        .then(() => route.handler(req, res, params, url))
+        .then(() => {
+          if (route.method !== 'GET') assertSameOrigin(req);
+          return route.handler(req, res, params, url);
+        })
         .catch((err: unknown) => {
           if (!(err instanceof ApiError) || err.status >= 500) {
             logger.error(`[annot] ${method} ${url.pathname}: ${err instanceof Error ? err.message : String(err)}`);
@@ -225,7 +226,7 @@ export function createApi(
       return;
     }
 
-    sendError(res, notFound(`no route for ${method} ${url.pathname}`));
+    sendError(res, notFound(`no route for ${method} ${url.pathname.slice(0, 200)}`));
   };
 }
 
@@ -276,10 +277,6 @@ async function streamEvents(
     replaying = false;
     for (const event of pending) write(event);
   }
-}
-
-async function sendAttachment(res: ServerResponse, attachment: Attachment, file: string): Promise<void> {
-  await sendFileInert(res, file, attachment.type, attachment.name);
 }
 
 /** Served inert: sniffing off, scripts off, so an SVG cannot run on the dev origin. */

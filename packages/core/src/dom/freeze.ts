@@ -1,7 +1,9 @@
+import { DEFAULT_OVERLAY_TAG } from './ancestors.js';
+
 const MARKER = 'data-annot-freeze';
 
 /** Pause animations, transitions and videos everywhere but the overlay. Returns the undo. */
-export function freezeAnimations(doc: Document, overlayTag = 'annot-overlay'): () => void {
+export function freezeAnimations(doc: Document, overlayTag = DEFAULT_OVERLAY_TAG): () => void {
   const style = doc.createElement('style');
   style.setAttribute(MARKER, '');
   style.textContent = `*:not(${overlayTag}):not(${overlayTag} *) {

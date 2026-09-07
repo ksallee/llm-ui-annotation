@@ -1,3 +1,5 @@
+/** CSS identifier escaping and the class-name heuristics the selector ladder trusts. */
+
 const GENERATED_ID_PREFIX = /^(svelte-|radix-|headlessui-|:r|_|__)/;
 const HEX_RUN = /[0-9a-fA-F]{6,}/;
 const NUMERIC_ID = /^[0-9]/;

@@ -1,5 +1,5 @@
 import type { Rect, Stroke } from '../model/types.js';
-import { isOverlay } from './describe.js';
+import { DEFAULT_OVERLAY_TAG, isOverlay } from './ancestors.js';
 import { area, inflate, intersect, rectOf, scrollOffset } from './rect.js';
 import { renderStrokes, type StrokeContext } from './strokes.js';
 
@@ -54,7 +54,7 @@ export async function captureRegion(
   strokes: Stroke[],
   opts: CaptureOptions,
 ): Promise<Blob | null> {
-  const overlayTag = opts.overlayTag ?? 'annot-overlay';
+  const overlayTag = opts.overlayTag ?? DEFAULT_OVERLAY_TAG;
   const host = doc.querySelector<HTMLElement>(overlayTag);
   const hidden = host?.style.visibility ?? null;
   if (host) host.style.visibility = 'hidden';

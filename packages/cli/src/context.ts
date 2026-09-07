@@ -5,6 +5,7 @@ import { dirname, resolve } from 'node:path';
 import type { Args } from './args.js';
 import { flagBool, flagString } from './args.js';
 import { CliError } from './errors.js';
+import { isAgentName } from './cursor.js';
 import { FileStore, HttpStore, type Store } from './store.js';
 
 export const HEALTH_TIMEOUT_MS = 500;
@@ -62,6 +63,15 @@ export async function locateDir(args: Args): Promise<string | null> {
   return findAnnotationsDir(process.cwd(), DEFAULT_DIR);
 }
 
+/** The agent name for the cursor file: a flag, the environment, else `agent`. */
+function agentName(args: Args): string {
+  const name = flagString(args, 'agent') ?? process.env['ANNOT_AGENT'] ?? 'agent';
+  if (!isAgentName(name)) {
+    throw new CliError(`--agent: expected letters, digits, dot, dash or underscore, got ${JSON.stringify(name)}`);
+  }
+  return name;
+}
+
 export async function openContext(args: Args, warn: (line: string) => void): Promise<Context> {
   const dir = await locateDir(args);
   if (dir === null) {
@@ -78,7 +88,7 @@ export async function openContext(args: Args, warn: (line: string) => void): Pro
     store: server ? new HttpStore(dir, server.base) : new FileStore(dir),
     server,
     json: flagBool(args, 'json'),
-    agent: flagString(args, 'agent') ?? process.env['ANNOT_AGENT'] ?? 'agent',
+    agent: agentName(args),
     route: flagString(args, 'route'),
   };
 }

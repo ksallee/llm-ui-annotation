@@ -19,6 +19,16 @@ const search = (page: Page) =>
 const rows = (page: Page) =>
   overlay(page).locator('.palette-row .palette-label');
 
+test('the pill has no palette button; the shortcut opens it', async ({ page, site }) => {
+  await page.goto(`${site}/`);
+  await openToolbar(page);
+  const pill = overlay(page).locator('[aria-label="Annotation toolbar"]');
+  await expect(pill.locator('[aria-label="Open the command palette"]')).toHaveCount(0);
+
+  await page.keyboard.press('Alt+a');
+  await expect(palette(page)).toBeVisible();
+});
+
 test('the palette filters by comment text and jumps to the annotation', async ({ page, site }) => {
   await page.goto(`${site}/`);
   await setMode(page, 'Element');

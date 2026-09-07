@@ -19,7 +19,7 @@ The demo mounts the overlay through the Vite plugin (auto-inject), with an accen
 
 ## Playwright suites (`apps/demo/e2e/`)
 
-1. **element**: activate, hover shows label chip, click opens popup with breadcrumb, add draft, send batch, route file contains `ElementTarget` with a selector that `document.querySelector` resolves to the same element; marker turns solid.
+1. **element**: activate, hover shows label chip, click opens the popup, whose details pane carries the breadcrumb, add draft, send batch, route file contains `ElementTarget` with a selector that `document.querySelector` resolves to the same element; marker turns solid.
 2. **multi-select**: marquee over the three cards → one annotation with 3 elements.
 3. **text**: select a phrase that appears twice on `/prose`, annotate the second; the target's prefix/suffix disambiguate; reload → highlight on the second occurrence.
 4. **page**: draw a rect + arrow + label, annotate; screenshot file exists, is a valid PNG with the expected size cap, `elements` non-empty. Needs the optional `modern-screenshot` peer, which `apps/demo` installs.
@@ -33,7 +33,9 @@ The demo mounts the overlay through the Vite plugin (auto-inject), with an accen
 12. **a11y**: axe-core scan of the overlay with the popup and panel open: no serious violations.
 13. **inspector** (spec 12 §1–§3): a selection switches an open drawer to Inspect and deselecting
     switches it back, a closed drawer stays closed, the toggle holds until the selection changes;
-    the box model draws over a padded element and draws nothing under 24×24; "what the agent will
+    the box model draws devtools' bands at any size and puts the numbers in the card; a value
+    changed in the drawer previews on the page, rides with the note into the route file, and is
+    reverted once the note is sent (spec 13); "what the agent will
     see" matches the `styles` stored on the annotation, key for key.
 
 ## Harness

@@ -3,6 +3,8 @@
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import type { IconName } from '../icons.js';
   import { DRAW_TOOLS, DRAW_WIDTHS, SELECT_TOOLS } from '../draw-tools.js';
+  import { dragBox } from './drag.js';
+  import type { Point } from '../dom/geometry.js';
   import Icon from './Icon.svelte';
   import { drop } from './motion.js';
 
@@ -23,23 +25,20 @@
     const view = annot.doc.defaultView;
     if (!bar || !view) return;
     const box = bar.getBoundingClientRect();
-    const offsetX = event.clientX - box.left;
-    const offsetY = event.clientY - box.top;
-    const clamp = (x: number, y: number): { x: number; y: number } => ({
+    const clamp = ({ x, y }: Point): Point => ({
       x: Math.min(Math.max(x, 8), view.innerWidth - box.width - 8),
       y: Math.min(Math.max(y, 8), view.innerHeight - box.height - 8),
     });
-    const move = (e: PointerEvent): void => {
-      dragging = clamp(e.clientX - offsetX, e.clientY - offsetY);
-    };
-    const up = (e: PointerEvent): void => {
-      view.removeEventListener('pointermove', move);
-      view.removeEventListener('pointerup', up);
-      annot.setPref('drawBar', clamp(e.clientX - offsetX, e.clientY - offsetY));
-      dragging = null;
-    };
-    view.addEventListener('pointermove', move);
-    view.addEventListener('pointerup', up);
+    dragBox(
+      view,
+      event,
+      box,
+      (at) => (dragging = clamp(at)),
+      (at) => {
+        annot.setPref('drawBar', clamp(at));
+        dragging = null;
+      },
+    );
   }
 </script>
 

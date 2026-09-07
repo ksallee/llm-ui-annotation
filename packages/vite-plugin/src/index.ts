@@ -10,8 +10,6 @@ import { Store } from './store.js';
 import { startWatching } from './watch.js';
 
 export type { AnnotationsOptions, ResolvedOptions, Scheme, WatchMode } from './options.js';
-export type { Change } from './store.js';
-export { Store } from './store.js';
 export { GLOBAL_CAPTURE, GLOBAL_HOT, GLOBAL_OPTIONS, VIRTUAL_ID, type OverlayOptions } from './inject.js';
 
 /** Dev-server side of llm-ui-annotation: storage, HTTP API, SSE, websocket push and overlay injection. */
@@ -21,6 +19,7 @@ export function annotations(options: AnnotationsOptions = {}): Plugin {
   let root = process.cwd();
   let serve = false;
   let closeServer: (() => void) | null = null;
+  let openStore: Store | null = null;
 
   return {
     name: 'llm-ui-annotation',
@@ -61,6 +60,9 @@ export function annotations(options: AnnotationsOptions = {}): Plugin {
     configureServer(server) {
       const logger = server.config.logger;
       const store = new Store(resolved.dir);
+      openStore = store;
+      const fail = (what: string) => (err: unknown): void =>
+        logger.error(`[annot] ${what}: ${err instanceof Error ? err.message : String(err)}`);
       const ready = store.start();
 
       server.middlewares.use(createApi(store, resolved, () => ready, logger));
@@ -103,10 +105,8 @@ export function annotations(options: AnnotationsOptions = {}): Plugin {
 
       void ready.then(() => {
         if (closed) return;
-        stopWatching = startWatching(store, resolved.watch, (err) =>
-          logger.error(`[annot] watcher: ${err instanceof Error ? err.message : String(err)}`),
-        );
-      });
+        stopWatching = startWatching(store, resolved.watch, fail('watcher'));
+      }, fail('storage'));
 
       const httpServer = server.httpServer;
       const announce = async (): Promise<void> => {
@@ -128,15 +128,18 @@ export function annotations(options: AnnotationsOptions = {}): Plugin {
       };
 
       if (httpServer) {
-        if (httpServer.listening) void announce();
-        else httpServer.once('listening', () => void announce());
+        if (httpServer.listening) void announce().catch(fail('startup'));
+        else httpServer.once('listening', () => void announce().catch(fail('startup')));
         httpServer.once('close', close);
       }
     },
 
-    closeBundle() {
+    async closeBundle() {
       closeServer?.();
       closeServer = null;
+      // The dev server is gone but a write may still be in flight; the directory has to be whole.
+      await openStore?.settle();
+      openStore = null;
     },
   };
 }

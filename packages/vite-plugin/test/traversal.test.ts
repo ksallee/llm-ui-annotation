@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { PNG, startHarness, type Harness } from './helpers.js';
+import type { Annotation, PageTarget } from '@llm-ui-annotation/core';
+import { pageAnnotation, PNG, startHarness, type Harness } from './helpers.js';
 
 let harnesses: Harness[] = [];
 
@@ -52,5 +53,35 @@ describe('path traversal', () => {
       });
       expect(res.status, `${method} ${path}`).toBe(400);
     }
+  });
+});
+
+describe('server-owned paths', () => {
+  /** A page annotation whose target claims `screenshot`. */
+  const claiming = (screenshot: string, over: Partial<Annotation> = {}): Annotation => {
+    const a = pageAnnotation(over);
+    return { ...a, target: { ...(a.target as PageTarget), screenshot } };
+  };
+
+  it('refuses a screenshot path the server never issued', async () => {
+    const h = await serve();
+    const created = await h.raw('/__annot/annotations', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(claiming('../../../etc/passwd')),
+    });
+    expect(created.status).toBe(400);
+
+    const stored = await h.api<Annotation>('/__annot/annotations', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(pageAnnotation()),
+    });
+    const patched = await h.raw(`/__annot/annotations/${stored.id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ target: claiming('../../../etc/passwd').target }),
+    });
+    expect(patched.status).toBe(400);
   });
 });

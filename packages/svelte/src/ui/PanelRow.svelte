@@ -30,15 +30,15 @@
     label: string;
     icon: IconName;
     primary: boolean;
-    /** Names the row, so no two rows offer a button with the same name. */
-    aria: (n: number) => string;
+    /** Reads `<verb> annotation 3`, so no two rows offer a button with the same name. */
+    verb: string;
   }
 
-  const APPROVE: RowAction = { id: 'approve', label: 'Approve', icon: 'check', primary: true, aria: (n) => `Approve annotation ${n}` };
-  const ANSWER: RowAction = { id: 'answer', label: 'Answer', icon: 'chat', primary: true, aria: (n) => `Answer annotation ${n}` };
-  const SEND: RowAction = { id: 'send', label: 'Send', icon: 'send', primary: true, aria: (n) => `Send annotation ${n}` };
-  const REOPEN: RowAction = { id: 'reopen', label: 'Reopen', icon: 'reopen', primary: false, aria: (n) => `Reopen annotation ${n}` };
-  const COMMENT: RowAction = { id: 'comment', label: 'Comment', icon: 'chat', primary: false, aria: (n) => `Comment on annotation ${n}` };
+  const APPROVE: RowAction = { id: 'approve', label: 'Approve', icon: 'check', primary: true, verb: 'Approve' };
+  const ANSWER: RowAction = { id: 'answer', label: 'Answer', icon: 'chat', primary: true, verb: 'Answer' };
+  const SEND: RowAction = { id: 'send', label: 'Send', icon: 'send', primary: true, verb: 'Send' };
+  const REOPEN: RowAction = { id: 'reopen', label: 'Reopen', icon: 'reopen', primary: false, verb: 'Reopen' };
+  const COMMENT: RowAction = { id: 'comment', label: 'Comment', icon: 'chat', primary: false, verb: 'Comment on' };
 
   /** What a row offers while collapsed, by status. No status offers nothing. */
   const ACTIONS: Record<Status, RowAction[]> = {
@@ -48,6 +48,20 @@
     question: [ANSWER],
     review: [APPROVE, REOPEN],
     approved: [REOPEN],
+  };
+
+  interface ReplyForm {
+    kind: 'answer' | 'reopen' | 'comment';
+    label: string;
+    placeholder: string;
+    aria: string;
+    primary: boolean;
+  }
+
+  const REPLIES: Record<ReplyForm['kind'], ReplyForm> = {
+    answer: { kind: 'answer', label: 'Answer', placeholder: 'Answer the agent…', aria: 'Answer the agent', primary: true },
+    reopen: { kind: 'reopen', label: 'Reopen', placeholder: 'Why reopen?', aria: 'Why reopen?', primary: false },
+    comment: { kind: 'comment', label: 'Comment', placeholder: 'Add a comment…', aria: 'Add a comment', primary: false },
   };
 
   let reply = $state('');
@@ -68,6 +82,12 @@
   const picked = $derived(annot.selected.has(a.id));
   const hidden = $derived(annot.hiddenDrawings.has(a.id));
   const attachments = $derived(a.attachments ?? []);
+  /** The field an expanded row offers, by status. A draft has nothing to reply to. */
+  const form = $derived.by((): ReplyForm | null => {
+    if (a.status === 'question') return REPLIES.answer;
+    if (a.status === 'review' || a.status === 'approved') return REPLIES.reopen;
+    return a.status === 'draft' ? null : REPLIES.comment;
+  });
 
   function send(kind: 'answer' | 'reopen' | 'comment'): void {
     const text = reply.trim();
@@ -176,45 +196,22 @@
         {/each}
       </div>
 
-      {#if a.status === 'question'}
+      {#if form}
         <textarea
           class="field"
           bind:this={replyField}
           bind:value={reply}
           rows="2"
-          placeholder="Answer the agent…"
-          aria-label="Answer the agent"
+          placeholder={form.placeholder}
+          aria-label={form.aria}
         ></textarea>
         <div class="actions">
-          <button class="btn primary small" disabled={!reply.trim()} onclick={() => send('answer')}>
-            Answer
-          </button>
-        </div>
-      {:else if a.status === 'review' || a.status === 'approved'}
-        <textarea
-          class="field"
-          bind:this={replyField}
-          bind:value={reply}
-          rows="2"
-          placeholder="Why reopen?"
-          aria-label="Why reopen?"
-        ></textarea>
-        <div class="actions">
-          <button class="btn small" disabled={!reply.trim()} onclick={() => send('reopen')}>
-            Reopen
-          </button>
-        </div>
-      {:else if a.status !== 'draft'}
-        <textarea
-          class="field"
-          bind:this={replyField}
-          bind:value={reply}
-          rows="2"
-          placeholder="Add a comment…"
-          aria-label="Add a comment"
-        ></textarea>
-        <div class="actions">
-          <button class="btn small" disabled={!reply.trim()} onclick={() => send('comment')}>Comment</button>
+          <button
+            class="btn small"
+            class:primary={form.primary}
+            disabled={!reply.trim()}
+            onclick={() => send(form.kind)}>{form.label}</button
+          >
         </div>
       {/if}
     {/if}
@@ -224,7 +221,7 @@
         <button
           class="btn small inline-action"
           class:primary={action.primary}
-          aria-label={action.aria(a.number)}
+          aria-label="{action.verb} annotation {a.number}"
           onclick={() => run(action.id)}
         >
           <Icon name={action.icon} size={14} />

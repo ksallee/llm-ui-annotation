@@ -1,4 +1,4 @@
-import type { TextTarget } from '@llm-ui-annotation/core';
+import { PROTOCOL_VERSION, type TextTarget } from '@llm-ui-annotation/core';
 import { expect, test } from './fixtures.js';
 import {
   anchorOf,
@@ -88,7 +88,7 @@ test('a selection crossing two blocks is one annotation naming both', async ({
 
   const stored = await storedAnnotations(annotDir, '/prose/');
   expect(stored).toHaveLength(1);
-  expect(stored[0]!.protocolVersion).toBe(2);
+  expect(stored[0]!.protocolVersion).toBe(PROTOCOL_VERSION);
   const target = stored[0]!.target as TextTarget;
   expect(target.blocks?.map((b) => b.tag)).toEqual(['p', 'blockquote']);
   expect(target.container.selector).not.toBe('#once');

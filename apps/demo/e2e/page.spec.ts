@@ -290,7 +290,8 @@ test('leaving Draw keeps the drawings as drafts and lets a click reach what is u
 
   await clickHost(page, 'article[data-plan="Pro"] button');
   await expect(popup(page)).toBeVisible();
-  await expect(popup(page)).toContainText('Choose Pro');
+  await popup(page).getByRole('button', { name: /details/ }).click();
+  await expect(popup(page).locator('.detail')).toContainText('Choose Pro');
 });
 
 test('one Draw session is one drawing, wherever the marks land', async ({ page, site }) => {

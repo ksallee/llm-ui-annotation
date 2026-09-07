@@ -20,10 +20,12 @@ function registry(doc: Document): HighlightRegistry | null {
   return css?.highlights ?? null;
 }
 
+const highlightCtor = (doc: Document): HighlightCtor | null =>
+  (doc.defaultView as unknown as { Highlight?: HighlightCtor } | null)?.Highlight ?? null;
+
 /** True when the browser can paint ranges without touching the DOM. */
 export function supportsHighlights(doc: Document): boolean {
-  const view = doc.defaultView as unknown as { Highlight?: HighlightCtor } | null;
-  return Boolean(registry(doc) && view?.Highlight);
+  return Boolean(registry(doc) && highlightCtor(doc));
 }
 
 /**
@@ -52,7 +54,7 @@ export function ensureHighlightStyle(doc: Document, tokens: ThemeTokens): () => 
 /** Hand the live ranges to the browser, one highlight per status. */
 export function paintHighlights(doc: Document, ranges: Map<Status, Range[]>): void {
   const store = registry(doc);
-  const Ctor = (doc.defaultView as unknown as { Highlight?: HighlightCtor })?.Highlight;
+  const Ctor = highlightCtor(doc);
   if (!store || !Ctor) return;
   for (const status of PAINTED) {
     const list = ranges.get(status) ?? [];

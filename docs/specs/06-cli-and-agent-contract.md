@@ -34,6 +34,8 @@ annot init [--claude-md] [--gitignore]          adds .annotations/ to .gitignore
 annot doctor                                    checks dir, server, cursor, protocol version
 ```
 
+`annot screenshot` prints the path recorded on the annotation, and refuses one that resolves outside the annotations dir rather than printing it or handing it to `--open`.
+
 `<id>` accepts full ids, unique prefixes, or `#<number>` (with `--route` when ambiguous). All mutating commands print the resulting status line, e.g. `#4 → review (changed)`; `reply` prints `#4 → acknowledged (comment)`. Exit 2 on illegal transition with the allowed moves listed, 124 on `watch` timeout, 1 on anything else.
 
 ## Markdown the agent reads
@@ -44,6 +46,16 @@ Exactly `renderBatchMarkdown` from spec 01. For page-mode items the screenshot l
 attachments:
   /repo/.annotations/attachments/01J8…/01J9….png   mock-v2.png (image/png, 240 KB)
   /repo/.annotations/attachments/01J8…/01JA….pdf   brand-spec.pdf (application/pdf, 1.1 MB)
+```
+
+An item whose user changed a value in the inspector carries a diff block, above the comment, at
+every level (spec 13):
+
+```diff
+  [data-testid="signup"] {
+-   padding: 8px 16px;
++   padding: var(--space-5);   /* --space-5 */
+  }
 ```
 
 `annot attach` goes through the dev server when it is up (`?by=agent`, so the file is not credited to the user) and writes files otherwise; the type sniffing and the caps of spec 11 §1 apply on both paths, and an unsupported type exits 1 with the accepted list. Each item ends with its full id so `annot done <id>` can be copy-pasted. The footer reminds the verbs.
@@ -74,6 +86,7 @@ This project uses llm-ui-annotation. The user annotates the running UI in the br
 - For each item: `annot ack <id>`, locate the code with the selector / quote / screenshot, make the change, then `annot done <id> --summary "<one or two sentences: what changed, where>"`. If you will not do it, `annot decline <id> --reason "..."`.
 - An item may carry an `attachments:` block of absolute paths — a mock, a PDF, notes the user dropped on it. Read them before changing anything; `annot attach <id> <file…>` hands a file back the other way.
 A `styles:` line may name a token after a value, as `background-color oklch(0.55 0.15 250) var(--color-primary-600)`. Change or reuse the token; do not paste the literal value.
+- An item may carry a `style edits proposed by the user` diff. Those are exact values the user set in the browser, so apply them rather than guessing: put each one in the rule that governs the element, and when the line names a token (`/* --space-5 */`) use the token, not the literal.
 - If the request is ambiguous, `annot ask <id> "<one precise question>"` and move on to other items; the answer arrives through `annot watch`.
 - Keep summaries concrete (file and what changed). The user reads them in the browser before approving.
 - Do not edit files under `.annotations/` by hand.

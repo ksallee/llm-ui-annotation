@@ -1,4 +1,5 @@
 <script lang="ts">
+  // The command palette: search and run any overlay action.
   import { filterEntries, paletteEntries } from '../palette.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import { trapFocus } from './focus.js';

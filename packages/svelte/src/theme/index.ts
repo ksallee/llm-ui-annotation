@@ -1,5 +1,6 @@
 import {
   computeTheme,
+  formatOklch,
   parseColor,
   TOKEN_NAMES,
   type ResolvedScheme,
@@ -56,6 +57,28 @@ export function readSchemeHint(doc: Document): ResolvedScheme | null {
   if (value === 'dark') return 'dark';
   if (value === 'light') return 'light';
   return null;
+}
+
+/** The five drawing colours the theme derives from the accent. */
+export function drawingPalette(tokens: ThemeTokens): string[] {
+  return [
+    tokens['--annot-stroke-1'],
+    tokens['--annot-stroke-2'],
+    tokens['--annot-stroke-3'],
+    tokens['--annot-stroke-4'],
+    tokens['--annot-stroke-5'],
+  ];
+}
+
+/** Six accents around the colour wheel, at the current accent's lightness and chroma. */
+export function accentSuggestions(tokens: ThemeTokens): string[] {
+  const accent = parseColor(tokens['--annot-accent']);
+  const l = accent?.l ?? 0.62;
+  const c = Math.max(0.08, accent?.c ?? 0.16);
+  const base = accent?.h ?? 250;
+  return [0, 60, 120, 180, 240, 300].map((step) =>
+    formatOklch({ l, c, h: (base + step) % 360, alpha: 1 }),
+  );
 }
 
 /** Write tokens onto an element as custom properties. */

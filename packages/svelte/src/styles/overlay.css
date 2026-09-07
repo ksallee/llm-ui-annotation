@@ -47,13 +47,11 @@
   cursor: crosshair;
 }
 
-.layer.capture.passthrough,
-.layer.capture.text {
+.layer.capture.passthrough {
   pointer-events: none;
 }
 
 .layer.capture.draw {
-  cursor: crosshair;
   touch-action: none;
 }
 
@@ -162,9 +160,10 @@
   white-space: nowrap;
 }
 
-/* -------------------------------------------------------------------- pill */
+/* --------------------------------------------------- pill and drawing bar */
 
-.pill {
+.pill,
+.draw-bar {
   position: fixed;
   display: flex;
   align-items: center;
@@ -178,6 +177,13 @@
   user-select: none;
 }
 
+.draw-bar {
+  top: var(--annot-space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
 .grip {
   cursor: grab;
   opacity: 0.5;
@@ -188,7 +194,8 @@
   cursor: grabbing;
 }
 
-.pill .divider {
+.pill .divider,
+.draw-bar .divider {
   width: 1px;
   height: 22px;
   background: currentColor;
@@ -296,7 +303,6 @@
   transition: opacity var(--annot-motion-fast);
 }
 
-/* A cap inside a tooltip annotates the label; it must not tower over it. */
 .tooltip kbd {
   font-size: var(--annot-text-sm);
   padding: 1px 5px;
@@ -372,12 +378,21 @@ kbd {
 }
 
 .swatch {
+  display: inline-block;
   width: 18px;
   height: 18px;
-  border: 2px solid transparent;
+  padding: 0;
+  border: 1px solid var(--annot-line);
   border-radius: var(--annot-radius-pill);
   cursor: pointer;
-  padding: 0;
+}
+
+/* Beside a value rather than a control to press: the colour a declaration resolves to. */
+.swatch.inline {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  cursor: default;
 }
 
 .swatch[aria-pressed='true'] {
@@ -461,6 +476,18 @@ kbd {
 .region .handle.sw { left: 0; top: 100%; cursor: nesw-resize; }
 .region .handle.w { left: 0; top: 50%; cursor: ew-resize; }
 
+.region.move .handle,
+.region.strokes .handle {
+  border-color: var(--annot-accent);
+}
+
+.region.strokes .handle {
+  width: 8px;
+  height: 8px;
+  margin: -4px;
+  border-radius: 50%;
+}
+
 .region-bar {
   position: absolute;
   left: 0;
@@ -480,41 +507,8 @@ kbd {
 }
 
 .region-bar .grip {
-  cursor: grab;
   display: inline-flex;
   opacity: 0.6;
-}
-
-.region-bar .grip:active {
-  cursor: grabbing;
-}
-
-/* -------------------------------------------------------------- drawing bar */
-
-.draw-bar {
-  position: fixed;
-  top: var(--annot-space-4);
-  left: 50%;
-  transform: translateX(-50%);
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  gap: var(--annot-space-1);
-  height: var(--annot-pill-h);
-  padding: 0 calc(var(--annot-space-1) * 1.5);
-  border-radius: var(--annot-radius-pill);
-  background: var(--annot-pill);
-  color: var(--annot-pill-ink);
-  box-shadow: var(--annot-shadow);
-  user-select: none;
-}
-
-.draw-bar .divider {
-  width: 1px;
-  height: 22px;
-  background: currentColor;
-  opacity: 0.18;
-  margin: 0 calc(var(--annot-space-1) * 0.5);
 }
 
 /* ----------------------------------------------------------------- palette */
@@ -529,8 +523,6 @@ kbd {
   max-width: 100%;
   max-height: 60vh;
   padding: var(--annot-space-2);
-  display: flex;
-  flex-direction: column;
   gap: var(--annot-space-2);
   overflow: hidden;
 }
@@ -583,7 +575,11 @@ kbd {
 
 /* ------------------------------------------------------------------- card */
 
+/* Every card in the overlay is a vertical stack: the popup, the dialogs, the popover, the
+   palette, the hover card and the row menu. */
 .card {
+  display: flex;
+  flex-direction: column;
   background: var(--annot-surface);
   border: 1px solid var(--annot-line);
   border-radius: var(--annot-radius);
@@ -596,8 +592,6 @@ kbd {
   width: var(--annot-popup-w);
   max-width: calc(100vw - 24px);
   padding: var(--annot-space-3);
-  display: flex;
-  flex-direction: column;
   gap: var(--annot-space-2);
   animation: annot-in var(--annot-motion-enter) var(--annot-ease);
 }
@@ -653,21 +647,40 @@ kbd {
   overflow: auto;
 }
 
-.detail dl {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 2px var(--annot-space-2);
+.detail > .breadcrumb,
+.detail > .quote {
+  margin-bottom: var(--annot-space-1);
+}
+
+/* Name/value pairs, shared by the popup detail, the element card and the inspector readings. */
+.detail dl,
+.element-card dl,
+.decls {
   margin: 0;
+  display: grid;
+  column-gap: var(--annot-space-2);
+}
+
+.detail dt,
+.element-card dt,
+.decls dt {
+  color: var(--annot-ink-3);
+}
+
+.detail dd,
+.element-card dd,
+.decls dd {
+  margin: 0;
+}
+
+.detail dl {
+  grid-template-columns: auto 1fr;
+  row-gap: 2px;
   font-family: var(--annot-font-mono);
   font-size: var(--annot-text-mono);
 }
 
-.detail dt {
-  color: var(--annot-ink-3);
-}
-
 .detail dd {
-  margin: 0;
   word-break: break-all;
   color: var(--annot-ink-2);
 }
@@ -731,6 +744,85 @@ kbd {
   cursor: pointer;
 }
 
+/* The devtools element tooltip: node title, the reading, then the accessibility block. */
+.element-card {
+  position: absolute;
+  width: max-content;
+  max-width: 300px;
+  padding: 6px 8px;
+  border-radius: var(--annot-radius-sm);
+  background: var(--annot-surface);
+  border: 1px solid var(--annot-line);
+  box-shadow: var(--annot-shadow);
+  color: var(--annot-ink);
+  font-size: var(--annot-text-xs);
+  pointer-events: none;
+}
+
+.node {
+  display: flex;
+  align-items: baseline;
+  gap: var(--annot-space-2);
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--annot-line);
+  font-family: var(--annot-font-mono);
+  font-size: var(--annot-text-mono);
+  white-space: nowrap;
+}
+
+.node .names {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.node .tag {
+  color: var(--annot-element);
+  font-weight: 600;
+}
+
+.node .id {
+  color: var(--annot-ink);
+}
+
+.node .cls {
+  color: var(--annot-ink-3);
+}
+
+.node .size {
+  flex: none;
+  margin-left: auto;
+  color: var(--annot-ink-3);
+}
+
+.element-card dl {
+  grid-template-columns: auto 1fr;
+  row-gap: 1px;
+}
+
+.element-card dd {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--annot-font-mono);
+  font-size: var(--annot-text-mono);
+  color: var(--annot-ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.element-card .section {
+  margin: 6px 0 2px;
+  padding-top: 4px;
+  border-top: 1px solid var(--annot-line);
+  color: var(--annot-ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .chip.label-chip {
   background: var(--annot-element);
   color: var(--annot-element-ink);
@@ -749,8 +841,6 @@ kbd {
   position: absolute;
   width: 280px;
   padding: calc(var(--annot-space-1) * 2.5);
-  display: flex;
-  flex-direction: column;
   gap: calc(var(--annot-space-1) * 1.5);
   pointer-events: auto;
 }
@@ -923,10 +1013,6 @@ kbd {
   font-size: var(--annot-text-xs);
 }
 
-.inspect .ident {
-  font-size: var(--annot-text-md);
-}
-
 .inspect .sel,
 .inspect .chain {
   font-size: var(--annot-text-xs);
@@ -941,41 +1027,145 @@ kbd {
   color: var(--annot-ink-3);
 }
 
-.pairs {
-  margin: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 8.5em) minmax(0, 1fr);
-  gap: 3px var(--annot-space-2);
-  font-size: var(--annot-text-sm);
-}
-
-.pairs dt {
+/* Declarations read the way devtools writes them: mono on both sides, the value carrying the swatch. */
+.decls {
+  grid-template-columns: minmax(0, 10.5em) minmax(0, 1fr);
+  row-gap: 3px;
   font-family: var(--annot-font-mono);
   font-size: var(--annot-text-xs);
+}
+
+.decls dt,
+.decls dd {
+  overflow-wrap: anywhere;
+}
+
+.decls dd {
+  color: var(--annot-ink);
+}
+
+/* Propose a change: the design set, each row a value and the tokens the page already has for it. */
+.editors .editor-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--annot-space-1);
+}
+
+.editors .group-name {
+  font-size: var(--annot-text-xs);
   color: var(--annot-ink-3);
-  overflow-wrap: anywhere;
 }
 
-.pairs dd {
-  margin: 0;
-  overflow-wrap: anywhere;
+.editor {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.pairs .nums {
+.editor .prop {
+  flex: 0 0 7.5em;
+  font-family: var(--annot-font-mono);
+  font-size: var(--annot-text-xs);
+  color: var(--annot-ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor.edited .prop {
+  color: var(--annot-accent);
+  font-weight: 600;
+}
+
+.field.mini {
+  height: 22px;
+  padding: 0 6px;
+  font-family: var(--annot-font-mono);
+  font-size: var(--annot-text-xs);
+}
+
+.editor .field.mini {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.editor select.tokens {
+  flex: 0 1 7em;
+}
+
+.editor .btn {
+  flex: none;
+  padding: 0 4px;
+}
+
+/* The devtools box diagram: one band per layer, the numbers on the edges they belong to. */
+.box-diagram {
+  --band-pad: 20px;
+  font-family: var(--annot-font-mono);
+  font-size: var(--annot-text-xs);
+  color: var(--annot-box-ink);
+  text-align: center;
+}
+
+.box-diagram .band {
+  position: relative;
+  padding: var(--band-pad);
+  border-radius: 3px;
+}
+
+.box-diagram .band.margin {
+  background: var(--annot-box-margin);
+}
+
+.box-diagram .band.border {
+  background: var(--annot-box-border);
+}
+
+.box-diagram .band.padding {
+  background: var(--annot-box-padding);
+}
+
+.box-diagram .band.content {
+  padding: 12px 8px;
+  background: var(--annot-box-content);
+}
+
+.box-diagram .name {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+
+.box-diagram .side {
+  position: absolute;
   font-variant-numeric: tabular-nums;
 }
 
-.pairs.payload dd {
-  font-family: var(--annot-font-mono);
-  font-size: var(--annot-text-xs);
+.box-diagram .side.top {
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-.swatch {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  border: 1px solid var(--annot-line);
+.box-diagram .side.bottom {
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.box-diagram .side.left {
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.box-diagram .side.right {
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .token {
@@ -996,23 +1186,6 @@ kbd {
   background: var(--annot-question-fill);
   color: var(--annot-ink);
   font-size: var(--annot-text-xs);
-}
-
-/* Readable over any page: the ink is stroked with the surface colour before it is filled. */
-.box-num {
-  font-family: var(--annot-font-mono);
-  font-size: var(--annot-text-xs);
-  fill: var(--annot-ink);
-  stroke: var(--annot-surface);
-  stroke-width: 3px;
-  stroke-linejoin: round;
-  paint-order: stroke;
-  text-anchor: middle;
-  dominant-baseline: central;
-}
-
-.box-num.size {
-  font-size: var(--annot-text-sm);
 }
 
 /* Floats at the top of the list rather than sitting under it: the rows it acts on are right here. */
@@ -1071,7 +1244,6 @@ kbd {
   min-width: 0;
 }
 
-/* A drawing shows its own marks, so a glance tells it apart from an element note. */
 .thumb {
   flex: none;
   display: grid;
@@ -1145,6 +1317,19 @@ kbd {
   white-space: nowrap;
 }
 
+.entry .comment.needs-comment {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--annot-ink-2);
+  font-style: italic;
+  text-decoration: underline dotted;
+}
+
 .entry .row-actions {
   display: flex;
   align-items: center;
@@ -1200,8 +1385,6 @@ kbd {
   z-index: 2;
   min-width: 140px;
   padding: var(--annot-space-1);
-  display: flex;
-  flex-direction: column;
 }
 
 .menu button {
@@ -1277,8 +1460,6 @@ kbd {
   max-height: 80vh;
   overflow: auto;
   padding: var(--annot-space-4);
-  display: flex;
-  flex-direction: column;
   gap: var(--annot-space-3);
 }
 
@@ -1311,8 +1492,6 @@ kbd {
   position: fixed;
   width: 300px;
   padding: var(--annot-space-3);
-  display: flex;
-  flex-direction: column;
   gap: calc(var(--annot-space-1) * 2.5);
   max-height: 70vh;
   overflow: auto;
@@ -1352,6 +1531,45 @@ kbd {
 .segment button[aria-pressed='true'] {
   background: var(--annot-accent-soft);
   color: var(--annot-ink);
+}
+
+.setting.toggle {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--annot-space-2);
+}
+
+.switch {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  width: 34px;
+  height: 20px;
+  padding: 2px;
+  border: 1px solid var(--annot-line);
+  border-radius: var(--annot-radius-pill);
+  background: var(--annot-surface-3);
+  cursor: pointer;
+  transition: background var(--annot-motion-fast), border-color var(--annot-motion-fast);
+}
+
+.switch[data-state='checked'] {
+  background: var(--annot-accent);
+  border-color: var(--annot-accent);
+}
+
+.switch-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--annot-radius-pill);
+  background: var(--annot-surface);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.25);
+  transition: transform var(--annot-motion-fast);
+}
+
+.switch-thumb[data-state='checked'] {
+  transform: translateX(14px);
 }
 
 /* ----------------------------------------------------------------- toasts */
@@ -1420,33 +1638,6 @@ kbd {
     animation: none !important;
     transition: none !important;
   }
-}
-
-/* ------------------------------------------------ ws12: drawings as objects */
-
-.region.move .handle,
-.region.strokes .handle {
-  border-color: var(--annot-accent);
-}
-
-.region.strokes .handle {
-  width: 8px;
-  height: 8px;
-  margin: -4px;
-  border-radius: 50%;
-}
-
-.entry .comment.needs-comment {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  color: var(--annot-ink-2);
-  font-style: italic;
-  text-decoration: underline dotted;
 }
 
 /* ------------------------------------------------------------ attachments */

@@ -1,3 +1,5 @@
+/** The names of every CSS custom property the overlay sets. */
+
 /** Status and mode colors. Every one has a line color, a fill, a wash and an ink. */
 export const SIGNAL_NAMES = [
   'element',
@@ -39,6 +41,11 @@ const BASE_TOKENS = [
   '--annot-pill-ink',
   '--annot-pill-hover',
   '--annot-pill-active',
+  '--annot-box-content',
+  '--annot-box-padding',
+  '--annot-box-border',
+  '--annot-box-margin',
+  '--annot-box-ink',
   '--annot-stroke-1',
   '--annot-stroke-2',
   '--annot-stroke-3',

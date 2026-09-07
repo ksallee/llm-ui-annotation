@@ -11,7 +11,7 @@ Options: `dir` (default: `process.env.ANNOT_DIR` when set, else `.annotations` a
 
 ## Responsibilities
 
-1. **Storage** — sole writer of `<dir>` while the dev server runs. Implements the file layout from spec 01: `routes/`, `batches/`, `events.jsonl`, `screenshots/`, `server.json`. Atomic writes. In-memory cache of route files with `mtime` check so external edits (the CLI in fallback mode, or a human) are noticed.
+1. **Storage** — sole writer of `<dir>` while the dev server runs. Implements the file layout from spec 01: `routes/`, `batches/`, `events.jsonl`, `screenshots/`, `server.json`. Atomic writes. In-memory cache of route files with `mtime` check so external edits (the CLI in fallback mode, or a human) are noticed. A route file that is unparseable, or parses to something that is not a route file, is ignored — the last good copy stays served and neither startup nor a request fails.
 2. **HTTP API** — every endpoint in spec 01 on `server.middlewares`. Body limit 20 MB for screenshots and attachments, 1 MB otherwise. Validate with `validateAnnotation` from core; reject with 400 and the problem list. Assign `number` from `nextNumber` per route. Emit events with `seq`.
 3. **SSE** — `GET /__annot/events/stream?since=` keeps the connection open, replays events after `since`, then streams new ones; heartbeat comment every 15 s. Used by `annot watch`.
 4. **Push to the overlay** — on any change (own writes or detected external writes), `server.ws.send({ type: 'custom', event: 'annot:annotation', data: Annotation })`, `annot:deleted`, or `annot:route` when a whole file changed. Use `fs.watch` on `<dir>/routes` and `<dir>/events.jsonl` with 100 ms debounce (fall back to polling every 500 ms on platforms where `fs.watch` is unreliable, detect via option `watch: 'native' | 'poll'`).
@@ -31,7 +31,7 @@ The overlay sends `route` with every create; the plugin derives the slug and fil
 
 ## Screenshots
 
-`POST /__annot/screenshots/:id` with `image/png` body → `<dir>/screenshots/<id>.png`, returns `{ path: 'screenshots/<id>.png' }`. Reject non-PNG. When an annotation is deleted (drafts only), delete its screenshot.
+`POST /__annot/screenshots/:id` with `image/png` body → `<dir>/screenshots/<id>.png`, returns `{ path: 'screenshots/<id>.png' }`. Reject non-PNG. When an annotation is deleted (drafts only), delete its screenshot. A create or a `PATCH` carrying a `target.screenshot` the server never issued is refused with 400 by `validateAnnotation`: the CLI prints that path and the agent reads it, so it may only be a name this server produced.
 
 ## Attachments
 
@@ -52,7 +52,8 @@ An earlier `POST /screenshots/:id` accepted `text/plain`, which is a CORS-simple
 developer had open could write files into the project. Every endpoint that takes a body now refuses
 `text/plain`, `multipart/form-data` and `application/x-www-form-urlencoded` with 415, and refuses a foreign
 `Origin` or `Sec-Fetch-Site` with 403. What is left needs a preflight, which this server does not answer.
-Callers send the real MIME or `application/octet-stream`.
+Callers send the real MIME or `application/octet-stream`. The check runs once in the dispatcher, on every
+route that is not a `GET`, so a new verb cannot forget it.
 
 Attachments are served with `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src
 'none'; style-src 'unsafe-inline'; sandbox`, so an uploaded SVG cannot run script on the dev origin.

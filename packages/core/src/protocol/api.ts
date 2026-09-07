@@ -1,3 +1,5 @@
+/** Request and response bodies of the dev-server HTTP API. */
+
 import type { Event } from './events.js';
 import type { RouteFile } from './paths.js';
 import type {

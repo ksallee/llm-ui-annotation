@@ -105,7 +105,6 @@
   {:else}
     <div class="rows">
       {#if picked > 0}
-        <!-- Floats at the top of the list: the rows being selected are what it acts on. -->
         <div class="bulk" role="group" aria-label="Bulk actions">
           <div class="row">
             <span class="muted mono">{picked} selected</span>
@@ -114,16 +113,15 @@
           </div>
           <div class="row wrap">
             {#each BULK as action (action.id)}
+              {@const bulk = annot.bulk[action.id]}
               <button
                 class="btn small"
                 class:primary={action.id === 'approve'}
-                disabled={!annot.bulk[action.id].enabled}
+                disabled={!bulk.enabled}
                 onclick={() => void annot.runBulk(action.id)}
               >
                 <Icon name={action.icon} size={14} />
-                {action.label} ({annot.bulk[action.id].count < annot.bulk[action.id].total
-                  ? `${annot.bulk[action.id].count} of ${annot.bulk[action.id].total}`
-                  : annot.bulk[action.id].count})
+                {action.label} ({bulk.count < bulk.total ? `${bulk.count} of ${bulk.total}` : bulk.count})
               </button>
             {/each}
           </div>

@@ -1,7 +1,10 @@
 <script lang="ts">
   import { resolveTokens, tokenMap } from '../dom/core-dom.js';
-  import { inspectElement, type Reading, type Sides } from '../dom/inspect.js';
+  import { hexOf, inspectElement, type Reading } from '../dom/inspect.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
+  import BoxDiagram from './BoxDiagram.svelte';
+  import NodeTitle from './NodeTitle.svelte';
+  import StyleEditors from './StyleEditors.svelte';
 
   let { annot }: { annot: AnnotState } = $props();
 
@@ -16,52 +19,43 @@
   const tokens = $derived(map && styles ? resolveTokens(styles, map) : {});
   const others = $derived(annot.selection.length - 1);
 
-  const sides = (s: Sides): string => `${s.top} ${s.right} ${s.bottom} ${s.left}`;
+  const size = $derived(
+    seen?.box ? `${Math.round(seen.box.borderBox.width)} × ${Math.round(seen.box.borderBox.height)}` : '',
+  );
 </script>
 
-<div class="inspect" role="region" aria-label="Inspector" tabindex="-1">
+<!-- tabindex 0, not -1: the readings scroll, and a scroll region has to be reachable by keyboard. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<div class="inspect" role="region" aria-label="Inspector" tabindex="0">
   {#if !seen}
     <p class="muted empty">
       Nothing selected. In Element mode, click an element to read its box, type and colour.
     </p>
   {:else}
     <section class="sec">
-      <h4>Identity</h4>
-      <div class="ident">{seen.name}</div>
-      <div class="mono sel">{seen.selector}</div>
-      <div class="muted">{seen.role ?? 'no role'} · &lt;{seen.tag}&gt;</div>
+      <NodeTitle label={seen.label} {size} />
       <div class="mono chain">{seen.chain.join(' › ')}</div>
+      <div class="mono sel">{seen.selector}</div>
       {#if others > 0}
         <div class="muted">{others} more element{others === 1 ? '' : 's'} selected</div>
       {/if}
     </section>
 
     {#if seen.box}
-      <section class="sec">
-        <h4>Box <span class="muted">top right bottom left</span></h4>
-        <dl class="pairs">
-          <dt>size</dt>
-          <dd class="nums">{seen.box.contentBox.width} × {seen.box.contentBox.height}</dd>
-          <dt>padding</dt>
-          <dd class="nums">{sides(seen.box.padding)}</dd>
-          <dt>border</dt>
-          <dd class="nums">{sides(seen.box.border)}</dd>
-          <dt>margin</dt>
-          <dd class="nums">{sides(seen.box.margin)}</dd>
-        </dl>
-      </section>
+      <BoxDiagram box={seen.box} />
     {/if}
 
-    {#snippet readings(title: string, rows: Reading[])}
+    {#snippet group(title: string, rows: Reading[])}
       {#if rows.length > 0}
         <section class="sec">
           <h4>{title}</h4>
-          <dl class="pairs">
+          <dl class="decls">
             {#each rows as [name, value] (name)}
+              {@const colour = SWATCHES.has(name)}
               <dt>{name}</dt>
               <dd>
-                {#if SWATCHES.has(name)}<span class="swatch" style="background: {value}"></span>{/if}
-                {value}
+                {#if colour}<span class="swatch inline" style="background: {value}"></span>{/if}
+                {colour ? hexOf(value) : value}
               </dd>
             {/each}
           </dl>
@@ -69,9 +63,17 @@
       {/if}
     {/snippet}
 
-    {@render readings('Layout', seen.layout)}
-    {@render readings('Type', seen.type)}
-    {@render readings('Colour', seen.colour)}
+    {@render group('Layout', seen.layout)}
+    {@render group('Text', seen.type)}
+    {@render group('Appearance', seen.colour)}
+    {@render group(
+      'Accessibility',
+      seen.a11y.map((r): Reading => [r.name, r.value]),
+    )}
+
+    {#if el}
+      <StyleEditors {annot} {el} />
+    {/if}
 
     <section class="sec">
       <h4>What the agent will see</h4>
@@ -86,7 +88,7 @@
             global tag rules comes back nearly empty, and the agent gets this much and no more.
           </p>
         {/if}
-        <dl class="pairs payload">
+        <dl class="decls payload">
           {#each entries as [name, value] (name)}
             <dt>{name}</dt>
             <dd>

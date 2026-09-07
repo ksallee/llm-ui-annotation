@@ -1,6 +1,6 @@
 import type { Rect, Stroke } from '@llm-ui-annotation/core';
 import { findElementsInRect } from '../dom/core-dom.js';
-import { rectFromPoints, sample } from '../dom/geometry.js';
+import { docPoint, rectFromPoints, sample } from '../dom/geometry.js';
 import type { AnnotState } from '../state/annot-state.svelte.js';
 
 const near = (stroke: Stroke, x: number, y: number, slack = 8): boolean => {
@@ -46,11 +46,6 @@ export function pageMode(state: AnnotState, layer: HTMLElement): () => void {
   let origin: { x: number; y: number } | null = null;
   let dragging: { from: Rect; at: { x: number; y: number }; ids: string[]; strokes: boolean } | null = null;
 
-  const point = (event: PointerEvent): { x: number; y: number } => ({
-    x: event.clientX + state.scroll.x,
-    y: event.clientY + state.scroll.y,
-  });
-
   /** Move: a click picks a drawing or, inside one, a stroke; the drag carries what is picked. */
   const onSelect = (event: PointerEvent, at: { x: number; y: number }): void => {
     const additive = event.metaKey || event.ctrlKey || event.shiftKey;
@@ -95,7 +90,7 @@ export function pageMode(state: AnnotState, layer: HTMLElement): () => void {
 
   const onDown = (event: PointerEvent): void => {
     if (event.button !== 0) return;
-    const at = point(event);
+    const at = docPoint(event, state.scroll);
     const color = state.drawColor || state.palette[0] || 'currentColor';
 
     if (state.drawTool === 'move' || state.drawTool === 'frame') {
@@ -142,7 +137,7 @@ export function pageMode(state: AnnotState, layer: HTMLElement): () => void {
   };
 
   const onMove = (event: PointerEvent): void => {
-    const at = point(event);
+    const at = docPoint(event, state.scroll);
 
     if (dragging) {
       const dx = at.x - dragging.at.x;
@@ -182,7 +177,7 @@ export function pageMode(state: AnnotState, layer: HTMLElement): () => void {
    * exception is the drawing you are currently adding to: a fast double-tap there is sketching.
    */
   const onDouble = (event: MouseEvent): void => {
-    const at = { x: event.clientX + state.scroll.x, y: event.clientY + state.scroll.y };
+    const at = docPoint(event, state.scroll);
     const hit = state.insideDrawing ?? state.drawingAt(at.x, at.y)?.id ?? null;
     // Only the brush makes a double-tap mean sketching; with every other tool a double-click
     // produces nothing useful, so it is free to mean "go inside".

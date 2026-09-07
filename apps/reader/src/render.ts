@@ -19,7 +19,19 @@ const BLOCK_TAG = /<(p|h[1-6]|li|blockquote|pre|td|th|dd|dt|figcaption)(\s|>)/g;
 const FENCE = /^\s{0,3}(?:```|~~~)/;
 const HR = /^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$/;
 
-const marked = new Marked({ gfm: true, breaks: false });
+const ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+const escapeHtml = (text: string): string => text.replace(/[&<>"]/g, (c) => ESCAPES[c] ?? c);
+
+// The document is a local file, but a local file is not the same as a trusted one: a README from a
+// dependency renders on the dev origin, which is the same origin as the annotation API. Raw HTML in
+// markdown is shown as text rather than run.
+const marked = new Marked({
+  gfm: true,
+  breaks: false,
+  renderer: {
+    html: ({ text }: { text: string }) => escapeHtml(text),
+  },
+});
 
 /** URL-safe, deduplicated key for a heading. */
 export function sectionKey(title: string, taken: Set<string>): string {

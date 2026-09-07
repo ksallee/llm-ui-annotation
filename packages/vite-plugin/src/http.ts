@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { ApiError, forbidden, unsupportedMedia } from './errors.js';
+import { ApiError, badRequest, forbidden, tooLarge, unsupportedMedia } from './errors.js';
 
 export const JSON_LIMIT = 1024 * 1024;
 export const PNG_LIMIT = 20 * 1024 * 1024;
@@ -12,7 +12,7 @@ function header(req: IncomingMessage, name: string): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-export function contentType(req: IncomingMessage): string {
+function contentType(req: IncomingMessage): string {
   return (header(req, 'content-type') ?? '').split(';')[0]?.trim().toLowerCase() ?? '';
 }
 
@@ -27,12 +27,13 @@ export function assertSameOrigin(req: IncomingMessage): void {
   }
   const origin = header(req, 'origin');
   const host = header(req, 'host');
-  if (origin !== undefined && origin !== 'null') {
-    let originHost: string;
+  if (origin !== undefined) {
+    // `null` is what a sandboxed iframe, a data: document and a file: page send. It is not ours.
+    let originHost: string | null = null;
     try {
-      originHost = new URL(origin).host;
+      originHost = origin === 'null' ? null : new URL(origin).host;
     } catch {
-      throw forbidden(`cross-origin request refused (origin: ${origin})`);
+      originHost = null;
     }
     if (originHost !== host) throw forbidden(`cross-origin request refused (origin: ${origin})`);
   }
@@ -64,7 +65,7 @@ export async function readBody(req: IncomingMessage, limit: number): Promise<Buf
   for await (const chunk of req) {
     const buf = chunk as Buffer;
     size += buf.length;
-    if (size > limit) throw new ApiError(413, `body larger than ${limit} bytes`);
+    if (size > limit) throw tooLarge(`body larger than ${limit} bytes`);
     chunks.push(buf);
   }
   return Buffer.concat(chunks);
@@ -76,7 +77,7 @@ export async function readJson(req: IncomingMessage, limit = JSON_LIMIT): Promis
   try {
     return JSON.parse(body.toString('utf8'));
   } catch {
-    throw new ApiError(400, 'body is not valid JSON');
+    throw badRequest('body is not valid JSON');
   }
 }
 

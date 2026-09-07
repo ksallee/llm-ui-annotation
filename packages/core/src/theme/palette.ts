@@ -184,6 +184,14 @@ export function computeTheme(
     set(`--annot-${name}-ink`, pickInk(color, color.h));
   }
 
+  // The one place the accent does not reach: Chrome's box model colours, which people already read
+  // without a legend. Same values in both schemes, as in devtools.
+  set('--annot-box-content', 'rgba(111, 168, 220, 0.66)');
+  set('--annot-box-padding', 'rgba(147, 196, 125, 0.55)');
+  set('--annot-box-border', 'rgba(255, 229, 153, 0.66)');
+  set('--annot-box-margin', 'rgba(246, 178, 107, 0.66)');
+  set('--annot-box-ink', 'rgba(26, 26, 26, 0.92)');
+
   const stroke = (dh: number): string =>
     formatOklch(clampToGamut({ l: spec.signalL, c, h: h + dh, alpha: 1 }));
   set('--annot-stroke-1', stroke(0));

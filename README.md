@@ -5,11 +5,11 @@ Annotate a running UI in the browser and hand the feedback to a coding agent. Po
 - Svelte 5 first, framework-free core.
 - No MCP, no cloud: a Vite plugin writes `.annotations/`, a small `annot` CLI is what the agent runs.
 - One accent in, a coherent light and dark palette out (oklch). Highlights, pins, popups and panel all follow it.
-- Never mutates your app's DOM.
+- Change a value in the inspector, see it on the page, send the diff with the design token's name.
+- Never mutates your app's DOM — the one exception is a stylesheet it owns, holding the style change you are previewing, removed when you send or clear it.
 
-Status: `0.1.0`, sixteen workstreams landed, not published to npm. 506 unit tests pass. The 50
-Playwright e2e pass individually but the suite is not reliably green end to end — about one run in
-three trips over the duplicate-attachment bug in `docs/known-gaps.md`. The four packages in `packages/` are private workspace packages; run the demo from
+Status: `0.1.0`, seventeen workstreams landed, not published to npm. 529 unit tests and 54 Playwright
+e2e pass, the e2e suite repeatably. The four packages in `packages/` are private workspace packages; run the demo from
 the repo.
 
 ```sh

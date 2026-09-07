@@ -192,6 +192,33 @@ describe('renderReopenMarkdown', () => {
   });
 });
 
+describe('style edits', () => {
+  const EDITED = annotation({
+    styleEdits: [
+      { selector: 'button.cta', property: 'padding', from: '8px 16px', to: 'var(--space-5)', token: '--space-5' },
+      { selector: 'button.cta', property: 'color', from: 'rgb(0, 0, 0)', to: '#fff', token: null },
+    ],
+  });
+
+  it('renders one diff block per element, at every level', () => {
+    for (const level of LEVELS) {
+      const md = renderAnnotationMarkdown(EDITED, { level, dir: DIR });
+      expect(md).toContain('style edits proposed by the user:');
+      expect(md).toContain('  button.cta {');
+      expect(md).toContain('-   padding: 8px 16px;');
+      expect(md).toContain('+   padding: var(--space-5);   /* --space-5 */');
+      expect(md).toContain('+   color: #fff;');
+      expect(md.indexOf('```diff')).toBeLessThan(md.indexOf('> Make this'));
+    }
+  });
+
+  it('says nothing when there are none', () => {
+    expect(renderAnnotationMarkdown(annotation(), { level: 'detailed', dir: DIR })).not.toContain(
+      'style edits',
+    );
+  });
+});
+
 describe('attachments', () => {
   const BLOCK = [
     'attachments:',

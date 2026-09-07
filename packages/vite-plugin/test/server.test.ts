@@ -363,3 +363,44 @@ describe('screenshots', () => {
     await expect(stat(join(h.dir, 'screenshots', `${created.id}.png`))).rejects.toThrow();
   });
 });
+
+describe('cross-origin writes', () => {
+  const WRITES: [string, string][] = [
+    ['POST', '/__annot/annotations'],
+    ['POST', '/__annot/batches'],
+  ];
+
+  it('refuses a CORS-simple content type on every write', async () => {
+    for (const [method, path] of WRITES) {
+      const res = await h.raw(path, { method, headers: { 'content-type': 'text/plain' }, body: '{}' });
+      expect(res.status, `${method} ${path}`).toBe(415);
+    }
+  });
+
+  it('refuses a foreign origin on every write', async () => {
+    const created = await post<Annotation>('/__annot/annotations', makeAnnotation());
+    const paths = [...WRITES, ['PATCH', `/__annot/annotations/${created.id}`] as [string, string]];
+    for (const [method, path] of paths) {
+      const res = await h.raw(path, {
+        method,
+        headers: { 'content-type': 'application/json', origin: 'http://evil.example' },
+        body: '{}',
+      });
+      expect(res.status, `${method} ${path}`).toBe(403);
+    }
+  });
+
+  it('refuses an opaque origin, which a sandboxed frame or a file: page sends', async () => {
+    const res = await h.raw('/__annot/annotations', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: 'null' },
+      body: '{}',
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it('still answers a read from anywhere', async () => {
+    const res = await h.raw('/__annot/health', { headers: { origin: 'http://evil.example' } });
+    expect(res.status).toBe(200);
+  });
+});

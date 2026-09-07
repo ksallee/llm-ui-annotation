@@ -200,6 +200,48 @@ describe('AnnotState writes', () => {
   });
 });
 
+describe('style edits', () => {
+  const edit = (over: Record<string, unknown> = {}) => ({
+    selector: '[data-testid="signup"]',
+    property: 'padding',
+    from: '8px 16px',
+    to: '24px',
+    token: null,
+    ...over,
+  });
+
+  it('keeps one edit per property and drops it when the value comes back', () => {
+    const { state } = make();
+    state.setStyleEdit(edit());
+    state.setStyleEdit(edit({ to: '32px' }));
+    expect(state.styleEdits).toHaveLength(1);
+    expect(state.styleEdit('[data-testid="signup"]', 'padding')?.to).toBe('32px');
+
+    state.setStyleEdit(edit({ to: '' }));
+    expect(state.styleEdits).toEqual([]);
+  });
+
+  it('rides with the next note and does not outlive it', async () => {
+    const { state } = make();
+    state.setStyleEdit(edit({ to: 'var(--space-5)', token: '--space-5' }));
+    const created = await state.add('element', elementTarget(), 'roomier');
+    expect(created.styleEdits).toEqual([edit({ to: 'var(--space-5)', token: '--space-5' })]);
+
+    state.clearStyleEdits();
+    const next = await state.add('element', elementTarget(), 'something else');
+    expect(next.styleEdits).toBeUndefined();
+  });
+
+  it('leaving the mode drops the proposal', () => {
+    const { state } = make();
+    state.setMode('element');
+    state.setStyleEdit(edit());
+    state.setMode('element');
+    expect(state.mode).toBeNull();
+    expect(state.styleEdits).toEqual([]);
+  });
+});
+
 describe('drawing stack', () => {
   it('undoes and redoes strokes', () => {
     const { state } = make();

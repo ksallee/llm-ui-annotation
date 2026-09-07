@@ -1,6 +1,6 @@
 import type { Rect } from '../model/types.js';
 import { rectOf } from './rect.js';
-import { isOverlay } from './describe.js';
+import { isOverlay } from './ancestors.js';
 
 const BLOCKS = new Set([
   'main', 'article', 'section', 'aside', 'nav', 'header', 'footer', 'div', 'ul', 'ol', 'dl',

@@ -1,16 +1,16 @@
 <script lang="ts">
   import css from '../styles/overlay.css?raw';
   import {
-    accentSuggestions,
     bindKeys,
     capturePage,
+    clearStylePreview,
     commitPopup,
-    drawingPalette,
     freezeWhile,
     holdScroll,
     locate,
     LOCATE_KEY,
     paintTextHighlights,
+    previewStyleEdits,
     primaryAction,
     watchPageDrops,
     watchViewport,
@@ -29,8 +29,9 @@
   import type { AnnotatorProps, OverlayOptions } from '../options.js';
   import { connectLive } from '../transport/live.js';
   import { VERSION } from '../version.js';
-  import { applyTheme } from '../theme/index.js';
+  import { accentSuggestions, applyTheme, drawingPalette } from '../theme/index.js';
   import DrawBar from './DrawBar.svelte';
+  import ElementCard from './ElementCard.svelte';
   import Highlights from './Highlights.svelte';
   import HoverCard from './HoverCard.svelte';
   import Markers from './Markers.svelte';
@@ -84,6 +85,7 @@
   $effect(() => {
     if (!root) return;
     const accent = annot.prefs.accent ?? merged.accent;
+    let dropHighlightStyle = (): void => {};
     // Repainted on every theme change, not just on mount: the host can move its accent live.
     const theme = applyTheme(
       root,
@@ -96,13 +98,13 @@
         annot.palette = drawingPalette(tokens);
         annot.accentSuggestions = accentSuggestions(tokens);
         if (!annot.drawColor) annot.drawColor = annot.palette[0] ?? '';
-        ensureHighlightStyle(annot.doc, tokens);
+        dropHighlightStyle = ensureHighlightStyle(annot.doc, tokens);
       },
     );
     return () => {
       theme.destroy();
       clearHighlights(annot.doc);
-      annot.doc.head?.querySelector('style[data-annot-highlights]')?.remove();
+      dropHighlightStyle();
     };
   });
 
@@ -136,6 +138,12 @@
   });
 
   $effect(() => watchViewport(annot));
+
+  // The proposal is shown on the page while it is pending, and taken off with it.
+  $effect(() => {
+    previewStyleEdits(annot);
+    return () => clearStylePreview(annot.doc);
+  });
 
   // The state commits drawings on its own when Draw closes, but it has no screenshot backend.
   $effect(() => {
@@ -191,7 +199,9 @@
       }}
     />
 
-    {#if annot.mode === 'element' && annot.hover.rect && annot.hover.label}
+    {#if annot.mode === 'element' && annot.hover.rect && annot.hover.el && annot.prefs.cssDetails}
+      <ElementCard {annot} el={annot.hover.el} rect={annot.hover.rect} />
+    {:else if annot.mode === 'element' && annot.hover.rect && annot.hover.label}
       <span
         class="chip label-chip"
         style="left: {annot.hover.rect.x - annot.scroll.x}px; top: {annot.hover.rect.y -
@@ -227,49 +237,39 @@
     {/if}
 
     {#if annot.mode === 'page' && !annot.popup}
-      {#if annot.drawTool === 'frame'}
+      {#if annot.drawTool === 'move' && annot.insideDrawing}
+        {@const box = annot.pickedStrokeBox}
+        {#if box}
+          <Region
+            {annot}
+            region={box}
+            kind="strokes"
+            onresize={(from, to) => annot.transformPickedStrokes(from, to)}
+            oncommit={() => {
+              const id = annot.insideDrawing;
+              if (id && annot.drawingRef(id)?.committed) void annot.saveDrawing(id);
+            }}
+          />
+        {/if}
+      {:else if annot.drawTool === 'frame' || annot.drawTool === 'move'}
+        {@const framing = annot.drawTool === 'frame'}
         {#each [...annot.selectedDrawings] as id (id)}
           {@const ref = annot.drawingRef(id)}
           {#if ref}
             <Region
               {annot}
               region={ref.region}
-              kind="frame"
-              fit={!ref.committed && annot.regionOverride !== null && id === annot.activeDrawingId}
-              onresize={(_, to) => annot.setDrawingRegion(id, to)}
+              kind={framing ? 'frame' : 'move'}
+              fit={framing &&
+                !ref.committed &&
+                annot.regionOverride !== null &&
+                id === annot.activeDrawingId}
+              onresize={(from, to) =>
+                framing ? annot.setDrawingRegion(id, to) : annot.transformDrawing(id, from, to)}
               oncommit={() => ref.committed && void annot.saveDrawing(id)}
             />
           {/if}
         {/each}
-      {:else if annot.drawTool === 'move'}
-        {#if annot.insideDrawing}
-          {@const box = annot.pickedStrokeBox}
-          {#if box}
-            <Region
-              {annot}
-              region={box}
-              kind="strokes"
-              onresize={(from, to) => annot.transformPickedStrokes(from, to)}
-              oncommit={() => {
-                const id = annot.insideDrawing;
-                if (id && annot.drawingRef(id)?.committed) void annot.saveDrawing(id);
-              }}
-            />
-          {/if}
-        {:else}
-          {#each [...annot.selectedDrawings] as id (id)}
-            {@const ref = annot.drawingRef(id)}
-            {#if ref}
-              <Region
-                {annot}
-                region={ref.region}
-                kind="move"
-                onresize={(from, to) => annot.transformDrawing(id, from, to)}
-                oncommit={() => ref.committed && void annot.saveDrawing(id)}
-              />
-            {/if}
-          {/each}
-        {/if}
       {/if}
 
       {#if annot.drawingRegion && annot.drawing.strokes.length > 0}
@@ -347,7 +347,7 @@
     {/if}
 
     {#if annot.popup}
-      <Popup {annot} oncommit={() => void commitPopup(annot)} />
+      <Popup {annot} oncommit={(send) => void commitPopup(annot, send)} />
     {/if}
 
     {#if annot.sendOpen}

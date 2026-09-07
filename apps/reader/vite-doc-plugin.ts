@@ -66,6 +66,7 @@ export function readerDoc(options: DocPluginOptions = {}): Plugin {
           },
           (error: unknown) => {
             res.statusCode = 404;
+            res.setHeader('content-type', 'application/json');
             res.end(JSON.stringify({ error: String(error) }));
           },
         );

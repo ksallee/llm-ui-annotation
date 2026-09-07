@@ -79,7 +79,7 @@ export interface Store {
   stream(since: number, signal: AbortSignal): AsyncGenerator<Event>;
 }
 
-function countByStatus(annotations: readonly Annotation[]): RouteSummary['counts'] {
+export function countByStatus(annotations: readonly Annotation[]): RouteSummary['counts'] {
   const counts = { draft: 0, sent: 0, acknowledged: 0, question: 0, review: 0, approved: 0 };
   for (const a of annotations) counts[a.status]++;
   return counts;

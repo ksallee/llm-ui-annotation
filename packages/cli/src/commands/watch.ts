@@ -1,4 +1,5 @@
 import {
+  isId,
   renderAnswerMarkdown,
   renderBatchMarkdown,
   renderReopenMarkdown,
@@ -7,12 +8,11 @@ import {
   type Event,
   type Message,
 } from '@llm-ui-annotation/core';
-import { flagBool, flagNumber, type Args } from '../args.js';
+import { flagBool, flagNumber, renderLevel, type Args } from '../args.js';
 import type { Context } from '../context.js';
 import { readCursor, writeCursor } from '../cursor.js';
 import { EXIT_OK, EXIT_TIMEOUT } from '../errors.js';
 import { json, type Io } from '../output.js';
-import { renderLevel } from './read.js';
 
 export const DEFAULT_TIMEOUT_S = 540;
 export const DEFAULT_COLLECT_MS = 1500;
@@ -95,7 +95,7 @@ export async function watch(ctx: Context, args: Args, io: Io): Promise<number> {
     const kind = wakeKind(event);
     if (kind === 'batch') {
       const id = event.batchId ?? (isBatch(event.data) ? event.data.id : undefined);
-      if (id === undefined || seen.has(`b:${id}`)) continue;
+      if (id === undefined || !isId(id) || seen.has(`b:${id}`)) continue;
       seen.add(`b:${id}`);
       const batch = isBatch(event.data) ? event.data : await ctx.store.batch(id);
       if (!batch) continue;

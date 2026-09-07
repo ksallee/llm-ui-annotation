@@ -1,6 +1,7 @@
 /** @vitest-environment happy-dom */
 import { describe, expect, it } from 'vitest';
-import { describeElement, findElementsInRect, isOverlay } from '../../src/dom/describe.js';
+import { isOverlay } from '../../src/dom/ancestors.js';
+import { describeElement, findElementsInRect } from '../../src/dom/describe.js';
 import { allElements, FIXTURES, loadFixture, rect, setRect } from './helpers.js';
 
 describe('describeElement', () => {

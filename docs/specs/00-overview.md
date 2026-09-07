@@ -73,6 +73,7 @@ session with the overlay and split into two agents, so it supersedes the conflic
 | 08 | Demo app and e2e | `apps/demo` | 04, 05, 06 | M |
 | 09 | Multi-block text, protocol 2 (spec 09 §5) | `packages/core` model + `src/dom/text.ts` | 02, 04 | S, bumps `protocolVersion` to 2 |
 | 10 | Interaction rework (spec 09 §1–4, §6–11) | `packages/svelte` | 04, 08 | M |
+| 13 | Style edits, protocol 3 | `packages/svelte` (editors, preview) + `packages/core` model | 04, 12 | M, bumps `protocolVersion` to 3 |
 
 Phase 1: WS 01 alone, one agent, merge to `main`. Everything downstream imports its types.
 Phase 2: WS 02, 03, 04, 05, 06 in parallel worktrees. 04 starts against 01 and stubs 02/03 locally where needed.

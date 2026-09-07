@@ -6,6 +6,7 @@ import { emptyRouteFile, nowIso, type Event, type NewEvent, type RouteFile } fro
 import {
   appendEvent,
   attachmentDirPath,
+  attachmentPath,
   findAnnotationsDir,
   initDir,
   lastEventSeq,
@@ -201,6 +202,12 @@ describe('attachments', () => {
     expect(new Uint8Array((await readAttachment(dir, rel)) ?? new Uint8Array())).toEqual(bytes);
     await removeAttachment(dir, rel);
     expect(await readAttachment(dir, rel)).toBeNull();
+  });
+
+  it('refuses a path that leaves the annotations dir', async () => {
+    await expect(readAttachment(dir, '../../etc/passwd')).rejects.toThrow(/escapes/);
+    await expect(removeAttachment(dir, `attachments/${ID}/../../../x`)).rejects.toThrow(/escapes/);
+    expect(() => attachmentPath(dir, '../secrets')).toThrow(/escapes/);
   });
 
   it('drops the whole directory, twice without complaining', async () => {

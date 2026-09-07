@@ -54,7 +54,7 @@ describe('entry separation', () => {
   });
 
   it('exports the protocol constants downstream packages key off', () => {
-    expect(browser.PROTOCOL_VERSION).toBe(2);
+    expect(browser.PROTOCOL_VERSION).toBe(3);
     expect(browser.DEFAULT_DIR).toBe('.annotations');
     expect(browser.DEFAULT_BASE_PATH).toBe('/__annot');
   });

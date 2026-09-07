@@ -1,5 +1,6 @@
-import type { ElementRef, Rect, TextTarget } from '../model/types.js';
-import { describeElement, isOverlay, type DescribeOptions } from './describe.js';
+import type { Rect, TextTarget } from '../model/types.js';
+import { isOverlay } from './ancestors.js';
+import { compactRefs, describeElement, type DescribeOptions } from './describe.js';
 import { clientRectsOf, mergeLineRects } from './rect.js';
 import { resolveSelector } from './selector.js';
 
@@ -219,10 +220,6 @@ export function describeRange(range: Range, opts: DescribeOptions = {}): Describ
   };
   if (blocks.length > 1) target.blocks = compactRefs(blocks, opts);
   return { ok: true, target };
-}
-
-function compactRefs(elements: readonly Element[], opts: DescribeOptions): ElementRef[] {
-  return elements.map((el) => describeElement(el, { ...opts, styles: false, context: false }));
 }
 
 function closestIndex(haystack: string, needle: string, near: number): number {

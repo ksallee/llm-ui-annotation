@@ -3,11 +3,10 @@
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import { trapFocus } from './focus.js';
   import Icon from './Icon.svelte';
-  import type { IconName } from '../icons.js';
+  import { MODE_ICON } from './mode-icon.js';
 
   let { annot }: { annot: AnnotState } = $props();
 
-  const MODE_ICON: Record<string, IconName> = { element: 'element', text: 'text', page: 'page' };
   let summary = $state('');
 
   const drafts = $derived(annot.drafts);
@@ -32,7 +31,7 @@
       {#each drafts as a (a.id)}
         <li>
           <span class="num">#{a.number}</span>
-          <Icon name={MODE_ICON[a.mode] ?? 'element'} size={14} />
+          <Icon name={MODE_ICON[a.mode]} size={14} />
           <span class="target">{a.comment.slice(0, 60) || summarizeTarget(a.target)}</span>
         </li>
       {/each}

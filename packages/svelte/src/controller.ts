@@ -1,5 +1,8 @@
-import type { Rect, Status, Stroke, Target } from '@llm-ui-annotation/core';
-import { captureRegion, freezeAnimations, isOverlayNode } from './dom/core-dom.js';
+// What the overlay binds to the host page — listeners, the key map, the style preview — and the
+// commands its surfaces run. The host page is read-only to all of it.
+
+import type { Rect, Status, Stroke, StyleEdit, Target } from '@llm-ui-annotation/core';
+import { captureRegion, freezeAnimations, isOverlayNode, SHADOW_SEP } from './dom/core-dom.js';
 import { paintHighlights, supportsHighlights } from './dom/highlights.js';
 import { isTyping, keyAction } from './keyboard.js';
 import { DRAW_TOOLS } from './draw-tools.js';
@@ -7,7 +10,7 @@ import { openElementPopup, openPagePopup, openTextPopup } from './modes/index.js
 import { domToCanvas } from './screenshot.js';
 import type { AnnotState } from './state/annot-state.svelte.js';
 import { filesOf, isFileDrag } from './ui/drop.js';
-import { formatOklch, parseColor, type ThemeTokens } from '@llm-ui-annotation/core/theme';
+
 
 /** Scroll position, re-anchoring and the mutation watchdog. */
 export function watchViewport(state: AnnotState): () => void {
@@ -135,7 +138,7 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
         state.redoStroke();
         break;
       case 'delete':
-        // Picked marks first: otherwise ⌫ inside a drawing deleted the whole annotation.
+        // Picked marks first, so ⌫ inside a drawing takes the marks and not the whole annotation.
         if (!state.deleteSelectedMarks() && state.focusedId) void state.deleteNote(state.focusedId);
         break;
       case 'help':
@@ -202,31 +205,10 @@ export function holdScroll(state: AnnotState, host: Element | null, held: boolea
   };
 }
 
+/** Hold the host page's animations still while `frozen`. */
 export function freezeWhile(state: AnnotState, frozen: boolean): () => void {
   if (!frozen) return () => {};
   return freezeAnimations(state.doc);
-}
-
-/** The five drawing colours the theme derives from the accent. */
-export function drawingPalette(tokens: ThemeTokens): string[] {
-  return [
-    tokens['--annot-stroke-1'],
-    tokens['--annot-stroke-2'],
-    tokens['--annot-stroke-3'],
-    tokens['--annot-stroke-4'],
-    tokens['--annot-stroke-5'],
-  ];
-}
-
-/** Six accents around the colour wheel, at the current accent's lightness and chroma. */
-export function accentSuggestions(tokens: ThemeTokens): string[] {
-  const accent = parseColor(tokens['--annot-accent']);
-  const l = accent?.l ?? 0.62;
-  const c = Math.max(0.08, accent?.c ?? 0.16);
-  const base = accent?.h ?? 250;
-  return [0, 60, 120, 180, 240, 300].map((step) =>
-    formatOklch({ l, c, h: (base + step) % 360, alpha: 1 }),
-  );
 }
 
 /** Files dropped on the page itself land on the note being written. */
@@ -276,7 +258,7 @@ export function watchPageDrops(state: AnnotState): () => void {
 }
 
 /** Turn the popup into an annotation, capturing a screenshot for page targets. */
-export async function commitPopup(state: AnnotState): Promise<void> {
+export async function commitPopup(state: AnnotState, send = false): Promise<void> {
   const popup = state.popup;
   if (!popup || popup.busy) return;
   const comment = popup.comment.trim();
@@ -314,6 +296,14 @@ export async function commitPopup(state: AnnotState): Promise<void> {
     state.clearDrawing();
   }
 
+  // The proposal is the note's now: the pending diff and its preview are done.
+  state.clearStyleEdits();
+
+  if (send && state.annotations.get(created.id)?.status === 'draft') {
+    await state.sendOne(created.id);
+    state.announce('Sent 1 annotation');
+  }
+
   if (popup.mode === 'element') state.selection = [];
   if (popup.mode === 'text') {
     state.textChip = null;
@@ -322,6 +312,52 @@ export async function commitPopup(state: AnnotState): Promise<void> {
 
   state.closePopup();
   state.reanchor();
+}
+
+const PREVIEW_ATTR = 'data-annot-preview';
+
+// A brace ends the rule a selector or value sits in, so one carrying it could write rules of its
+// own into the host page.
+const CLOSES_RULE = /[{}]/;
+
+/** One rule per element, `!important` so a specific host rule does not win over the proposal. */
+function previewCss(edits: readonly StyleEdit[]): string {
+  const bySelector = new Map<string, string[]>();
+  for (const edit of edits) {
+    // A `>>>` selector crosses a shadow boundary, which no stylesheet can do.
+    if (edit.selector.includes(SHADOW_SEP)) continue;
+    if (CLOSES_RULE.test(edit.selector) || CLOSES_RULE.test(edit.to)) continue;
+    const decls = bySelector.get(edit.selector) ?? [];
+    decls.push(`  ${edit.property}: ${edit.to} !important;`);
+    bySelector.set(edit.selector, decls);
+  }
+  return [...bySelector]
+    .map(([selector, decls]) => `${selector} {\n${decls.join('\n')}\n}`)
+    .join('\n');
+}
+
+/**
+ * Show the pending edits on the page itself. This is the one thing the overlay puts in the host: a
+ * `<style>` of its own, holding what the user asked for, removed the moment the edits are.
+ */
+export function previewStyleEdits(state: AnnotState): void {
+  const head = state.doc.head;
+  if (!head) return;
+  const existing = head.querySelector<HTMLStyleElement>(`style[${PREVIEW_ATTR}]`);
+  if (state.styleEdits.length === 0) {
+    existing?.remove();
+    return;
+  }
+  const style = existing ?? state.doc.createElement('style');
+  if (!existing) {
+    style.dataset.annotPreview = '';
+    head.append(style);
+  }
+  style.textContent = previewCss(state.styleEdits);
+}
+
+export function clearStylePreview(doc: Document): void {
+  doc.head?.querySelector(`style[${PREVIEW_ATTR}]`)?.remove();
 }
 
 /** A PNG of the region with its marks drawn on, or null when the backend is missing. */
@@ -367,12 +403,19 @@ export function locate(state: AnnotState, id: string): void {
 
   // Anchors only exist for the route in the DOM right now, so another route has to be visited first.
   if (annotation.route !== state.route) {
+    // The route is read off a file on disk. Resolving it and refusing another origin keeps a
+    // crafted one from turning Locate into a navigation of the host's choosing.
+    const to = new URL(annotation.route, view.location.href);
+    if (to.origin !== view.location.origin) {
+      state.toast('That annotation points off this site');
+      return;
+    }
     try {
       view.sessionStorage?.setItem(LOCATE_KEY, id);
     } catch {
       // private mode; the target route still opens, just without the flash
     }
-    view.location.assign(annotation.route);
+    view.location.assign(to.href);
     return;
   }
 

@@ -27,9 +27,9 @@ Never mutate the host DOM. Text highlights use the CSS Custom Highlight API when
 
 Collapsed: a single 44 px round button with the logo glyph and a badge with the count of drafts (batch mode) or unread agent activity (questions + reviews). Click expands.
 
-Expanded, left to right — the eleven controls of spec 09 §4 and nothing else:
+Expanded, left to right — the ten controls of spec 09 §4 and nothing else:
 
-1. Grip, then the command palette (`⌥A`).
+1. Grip. The command palette has no button here: it opens on its shortcut, which Settings rebinds.
 2. The mode segment: **Element** (`E`), **Highlight** (`H`), **Draw** (`D`). One active or none. Clicking the active one exits (`Esc` too).
 3. Pin visibility cycle (all → dots → none), pause animations (`⇧P`).
 4. **Send** (`⌘↵`) with the draft count, batch mode only. Disabled when no drafts.
@@ -47,7 +47,7 @@ Tooltips show label and shortcut, the key rendered as a keycap at `--annot-text-
 ## Modes
 
 ### Element mode
-Hover shows a 2 px outline and a small label chip (`button "Save"`) above the element; the label is `describeName(el)` from `core/dom`. It also draws the box model — content, padding, border and margin as nested bands with the non-zero numbers on each side (spec 12 §2) — for anything at least 24 px in both directions; smaller than that, the outline alone.
+Hover draws the devtools picture: the four box-model bands in devtools' colours, and its tooltip card above the element — node title, size, colour, font, box, contrast, accessibility (spec 12 §2). **CSS Details** (settings, default on) turns that off and leaves the quiet version: a 2 px outline and a small label chip (`button "Save"`, `describeName(el)` from `core/dom`).
 Clicking empty space clears the selection, and so does `Esc` before it reaches the panel. Click opens the popup anchored to the element. Drag from empty space draws a marquee: the outermost elements at least 50% inside are selected, then the selection steps down one level for as long as a single container is tiled (≥ 70% of its area) by children that are ≥ 90% inside, so a box round a card grid selects the cards and a box round one card selects the card. `⇧` extends the selection and shows an Annotate chip. Ignore the overlay host, `html`, `body`.
 
 ### Highlight mode
@@ -60,18 +60,20 @@ Drawing happens on the SVG layer in document coordinates. Brush points are sampl
 
 Shared for all modes.
 
+Nothing above the note: the card is the field and two buttons.
+
 ```
-› button "Save Changes"                       breadcrumb, mono, ink-2   (text: › text in p.lede · page: › drawing over 3 elements)
-"Cancel anytime, no questions asked"           quote or first element text, italic, ink-2, max 3 lines (text/page only)
 ┌────────────────────────────────────────┐
 │ What should change?                    │      textarea, autogrow 2–8 lines, autofocus
 └────────────────────────────────────────┘
-[detail ▾]                 Cancel   Add (⌘↵)   in immediate mode the primary button reads Send
+[details ▾]                Add (⌘↵)  Send (⇧⌘↵)   editing a note: Save alone · immediate mode: Send alone
 ```
 
-`detail` is a small disclosure showing the selector(s), rect, and the styles subset (element mode) so the user can check what the agent will see. Escape cancels. Clicking outside cancels only if the textarea is empty; otherwise it stays.
+`details` is a disclosure holding everything else: the breadcrumb (`› button "Save Changes"`, mono,
+ink-2), the quote or first element text, and the selector(s), rect and styles subset the agent will
+see. Escape cancels. Clicking outside cancels only if the textarea is empty; otherwise it stays.
 
-After Add in batch mode: the pin appears with dashed `draft` styling, badge increments, popup closes, the mode stays active. In immediate mode the annotation is POSTed as `sent` and a batch of one is created.
+After Add in batch mode: the pin appears with dashed `draft` styling, badge increments, popup closes, the mode stays active. **Send** does the same and then sends that one note as a batch of one, without going through the send dialog. In immediate mode Add and Send are the same thing, so only Send is shown.
 
 ## Pins and hover cards
 
@@ -117,7 +119,9 @@ Clicking a row scrolls the page so the target is centered and flashes the highli
 
 ## Settings (popover from the gear)
 
-Command palette key (click, then press a chord; persisted). Send mode: batch / immediate. Scheme: auto / light / dark. Accent: a swatch row of six derived suggestions plus a native color input, and "follow host". Detail level for the agent: compact / standard / detailed. Block page interactions. Pin visibility default. Density. Reset pill position. Version and a link to the docs.
+Command palette key (click, then press a chord; persisted). Send mode: batch / immediate. Scheme: auto / light / dark. Accent: a swatch row of six derived suggestions plus a native color input, and "follow host". Detail level for the agent: compact / standard / detailed. Pin visibility default. Density. Two switches: **CSS Details** and **Block Page Interactions**. Reset pill position. Version and a link to the docs.
+
+Switches follow the shadcn switch: a `role="switch"` button carrying `data-state`, a track that fills with the accent when checked and a thumb that slides.
 
 ## Keyboard summary
 

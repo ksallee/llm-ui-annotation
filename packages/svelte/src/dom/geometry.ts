@@ -11,11 +11,10 @@ export interface Size {
   height: number;
 }
 
-export const toViewport = (rect: Rect, scroll: Point): Rect => ({
-  x: rect.x - scroll.x,
-  y: rect.y - scroll.y,
-  width: rect.width,
-  height: rect.height,
+/** A pointer event's position in document coordinates. */
+export const docPoint = (event: { clientX: number; clientY: number }, scroll: Point): Point => ({
+  x: event.clientX + scroll.x,
+  y: event.clientY + scroll.y,
 });
 
 export const unionRects = (rects: Rect[]): Rect | null => {
@@ -33,9 +32,6 @@ export const rectFromPoints = (a: Point, b: Point): Rect => ({
   width: Math.abs(a.x - b.x),
   height: Math.abs(a.y - b.y),
 });
-
-export const intersects = (a: Rect, b: Rect): boolean =>
-  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
 /** Fraction of `a` that lies inside `b`. */
 export function coverage(a: Rect, b: Rect): number {

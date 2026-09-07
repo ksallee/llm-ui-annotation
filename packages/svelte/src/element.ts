@@ -1,12 +1,11 @@
 import { mount as mountComponent, unmount } from 'svelte';
-import { optionsFromAttributes, type OverlayOptions } from './options.js';
+import { OVERLAY_TAG } from './dom/core-dom.js';
+import { ATTRIBUTES, optionsFromAttributes, type OverlayOptions } from './options.js';
 import { createState } from './create.js';
 import type { AnnotState } from './state/annot-state.svelte.js';
 import { connectLive } from './transport/live.js';
 import Annotator from './ui/Annotator.svelte';
 import { VERSION } from './version.js';
-
-export const OVERLAY_TAG = 'annot-overlay';
 
 const HOST_STYLE = [
   'all: initial',
@@ -26,7 +25,7 @@ const HOST_STYLE = [
  * root, the host styles and the props stay under our control in any bundler.
  */
 export class AnnotOverlayElement extends HTMLElement {
-  static readonly observedAttributes = ['accent', 'scheme', 'density', 'route-key', 'send-mode', 'base-path', 'mode'];
+  static readonly observedAttributes = ATTRIBUTES;
 
   /** Options that cannot be expressed as attributes, set before the element is connected. */
   options: OverlayOptions = {};

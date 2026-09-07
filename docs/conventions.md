@@ -15,6 +15,26 @@ Set by WS 01 in `packages/core`. Copy them; do not re-invent them per package.
 - ESLint 9 flat config, one `eslint.config.js` at the repo root. No per-package config.
 - Shared devDeps live at the root only: eslint, typescript-eslint, typescript, vitest, happy-dom, @types/node, globals. Declare only your own **runtime** deps in your package, so the lockfile barely moves.
 
+## Code style
+
+Declarative. The reader is as often an agent as a person, so the code has to be legible cold.
+
+- **File header.** One line at the top of a file saying what the file is, when the filename does not
+  already say it. Not a changelog, not an inventory of its exports.
+- **Comments.** Only where the code is genuinely hard to follow, and only for what the code cannot
+  state itself — a constraint from the DOM, a browser behaviour, a decision that looks wrong until
+  you know the reason. Never code history, never session or PR context, never a restatement of the
+  line below.
+- **Doc comments.** What the function does, never why it was built. One short sentence. A genuinely
+  non-obvious function may take two or three; most take one and stop. No examples, no rationale.
+- **Params.** Typed, and at most one very short sentence each. Usually none: a well-named param
+  documents itself.
+- **Classes and modules.** A class earns its place by owning state with invariants. Anything else is
+  a function, and a module that exists only because something had to go somewhere is a module that
+  should be deleted. The same for a component with one user.
+- **Duplication.** Collapse it when the second copy appears, not before. An abstraction with a
+  single caller costs more than the duplication it removed.
+
 ## Protocol decisions downstream code must honour
 
 - `applyTransition` has no resolution parameter. The resolution is derived from the message kind: `summary` → `{ kind: 'changed' }`, `decline` → `{ kind: 'declined' }`, the text becomes the summary. An HTTP `resolution` body field maps onto such a message.

@@ -88,3 +88,16 @@ describe('init side effects', () => {
     expect(h.warnings.filter((w) => w.includes('.gitignore'))).toEqual([]);
   });
 });
+
+describe('a damaged route file', () => {
+  it('is ignored rather than taken down the server', async () => {
+    const h = await start();
+    await post<Annotation>(h, '/__annot/annotations', makeAnnotation());
+    await writeFile(join(h.dir, 'routes', `${slug('/pricing')}.json`), 'null\n');
+
+    await until(async () => (await h.api<RouteFile>(`/__annot/routes/${slug('/pricing')}`)).annotations.length === 1);
+    expect(await h.api('/__annot/health')).toMatchObject({ ok: true });
+    const fresh = await post<Annotation>(h, '/__annot/annotations', makeAnnotation({ route: '/other' }));
+    expect(fresh.number).toBe(1);
+  });
+});

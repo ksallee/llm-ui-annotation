@@ -1,8 +1,5 @@
 import { DOC_ENDPOINT, DOC_EVENT, DOC_META_ID, type DocMeta, type DocPayload } from './doc-protocol.js';
 
-export { DOC_ENDPOINT, DOC_EVENT, DOC_META_ID };
-export type { DocMeta, DocPayload };
-
 /** The subset of `import.meta.hot` the reader uses. */
 export interface HotLike {
   on(event: string, handler: (payload: unknown) => void): void;
@@ -21,8 +18,8 @@ export function docMeta(doc: Document): DocMeta {
   }
 }
 
-export async function fetchDoc(fetcher: typeof fetch = fetch): Promise<DocPayload> {
-  const response = await fetcher(DOC_ENDPOINT, { cache: 'no-store' });
+export async function fetchDoc(): Promise<DocPayload> {
+  const response = await fetch(DOC_ENDPOINT, { cache: 'no-store' });
   if (!response.ok) throw new Error(`${DOC_ENDPOINT}: ${response.status}`);
   return (await response.json()) as DocPayload;
 }

@@ -14,6 +14,8 @@ export interface Prefs {
   mode: Mode | null;
   panelOpen: boolean;
   markers: MarkerVisibility;
+  /** Draw the box model and its numbers over the hovered element in Element mode. */
+  cssDetails: boolean;
   blockInteractions: boolean;
   expanded: boolean;
   /** The one global binding, as `comboOf` writes it. */
@@ -32,6 +34,7 @@ export const DEFAULT_PREFS: Prefs = {
   mode: null,
   panelOpen: false,
   markers: 'all',
+  cssDetails: true,
   blockInteractions: true,
   expanded: false,
   paletteKey: DEFAULT_PALETTE_KEY,

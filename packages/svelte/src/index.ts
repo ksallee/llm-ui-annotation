@@ -5,7 +5,8 @@ import AnnotatorComponent from './ui/Annotator.svelte';
 /** The overlay as a plain Svelte component, for hosts that mount it themselves. */
 export const Annotator = AnnotatorComponent as unknown as Component<AnnotatorProps>;
 
-export { AnnotOverlayElement, defineOverlay, OVERLAY_TAG } from './element.js';
+export { OVERLAY_TAG } from './dom/core-dom.js';
+export { AnnotOverlayElement, defineOverlay } from './element.js';
 export { mount, type MountedOverlay } from './mount.js';
 export { autoMount } from './auto-mount.js';
 export { createState } from './create.js';
@@ -50,14 +51,13 @@ export {
 export {
   coverage,
   cornerStyle,
-  intersects,
+  docPoint,
   nearestCorner,
   place,
   rectFromPoints,
   relativeTime,
   sample,
   smoothPath,
-  toViewport,
   unionRects,
   type Point,
   type Size,

@@ -1,3 +1,5 @@
+/** Atomic writes, and reads that answer null instead of throwing on a missing file. */
+
 import { appendFile, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 

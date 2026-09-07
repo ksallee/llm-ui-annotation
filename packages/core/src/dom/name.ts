@@ -1,3 +1,5 @@
+/** Accessible-ish names for elements, for humans and for the agent. */
+
 import { collapse, truncate } from './css.js';
 
 const SKIP_TEXT = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'TITLE', 'DESC', 'DEFS', 'METADATA']);
@@ -62,26 +64,28 @@ export function isIconOnly(el: Element): boolean {
   return visibleText(el) === '' && el.querySelector('svg, img') !== null;
 }
 
+const LABEL_MAX = 40;
+
 /** Accessible-ish label, unformatted. Empty when nothing describes the element. */
 export function labelOf(el: Element): string {
   const aria = el.getAttribute('aria-label')?.trim();
-  if (aria) return aria;
+  if (aria) return truncate(collapse(aria), LABEL_MAX);
 
   const labelledBy = el.getAttribute('aria-labelledby');
   if (labelledBy) {
     const text = byIds(el, labelledBy);
-    if (text) return text;
+    if (text) return truncate(text, LABEL_MAX);
   }
 
   const label = labelText(el);
-  if (label) return label;
+  if (label) return truncate(label, LABEL_MAX);
 
   const text = visibleText(el);
-  if (text) return truncate(text, 40);
+  if (text) return truncate(text, LABEL_MAX);
 
   for (const attr of ['alt', 'title', 'placeholder']) {
     const value = el.getAttribute(attr)?.trim();
-    if (value) return value;
+    if (value) return truncate(collapse(value), LABEL_MAX);
   }
 
   const tail = hrefTail(el);

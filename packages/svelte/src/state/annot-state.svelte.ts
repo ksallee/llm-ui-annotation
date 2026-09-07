@@ -20,6 +20,7 @@ import {
   type RouteFile,
   type Status,
   type Stroke,
+  type StyleEdit,
   type PageTarget,
   type Target,
   type TextTarget,
@@ -52,7 +53,7 @@ export type BulkAction = 'approve' | 'reopen' | 'send' | 'delete';
 export type SelectHow = 'toggle' | 'range' | 'only';
 
 /** Which statuses each bulk action may act on. */
-export const BULK_ALLOWS: Record<BulkAction, (a: Annotation) => boolean> = {
+const BULK_ALLOWS: Record<BulkAction, (a: Annotation) => boolean> = {
   approve: (a) => a.status === 'review',
   reopen: (a) => a.status === 'review' || a.status === 'approved',
   send: (a) => a.status === 'draft' && a.comment.trim().length > 0,
@@ -86,15 +87,16 @@ export interface PopupState {
   draftId: string | null;
 }
 
+const tooLarge = (name: string): string =>
+  `${name}: too large — ${formatBytes(ATTACHMENT_MAX_BYTES)} per file, ${formatBytes(ATTACHMENT_TOTAL_MAX_BYTES)} per annotation`;
+
 /** What a refused attachment says to the user, reason first. */
-export function attachFailure(name: string, error: unknown): string {
+function attachFailure(name: string, error: unknown): string {
   if (!(error instanceof AnnotHttpError)) return `Could not attach ${name}`;
   if (error.status === 415) {
     return `${name}: unsupported type — ${error.problems[0] ?? `accepted: ${ACCEPTED_ATTACHMENT_TYPES.join(', ')}`}`;
   }
-  if (error.status === 413) {
-    return `${name}: too large — ${formatBytes(ATTACHMENT_MAX_BYTES)} per file, ${formatBytes(ATTACHMENT_TOTAL_MAX_BYTES)} per annotation`;
-  }
+  if (error.status === 413) return tooLarge(name);
   if (error.status === 403) return `${name}: refused, uploads must come from this origin`;
   return `${name}: ${error.message}`;
 }
@@ -164,7 +166,7 @@ const OPEN: Status[] = ['draft', 'sent', 'acknowledged'];
 const NEEDS_YOU: Status[] = ['question', 'review'];
 
 /** What each panel filter keeps. The chips count with the predicate they filter by. */
-export const FILTER_MATCHES: Record<Filter, (a: Annotation) => boolean> = {
+const FILTER_MATCHES: Record<Filter, (a: Annotation) => boolean> = {
   'needs-you': (a) => NEEDS_YOU.includes(a.status),
   open: (a) => OPEN.includes(a.status),
   done: (a) => a.status === 'approved',
@@ -172,7 +174,7 @@ export const FILTER_MATCHES: Record<Filter, (a: Annotation) => boolean> = {
 };
 
 /** Keeps a drawing's pin inside its region instead of centred on the corner. */
-export const REGION_INSET = 14;
+const REGION_INSET = 14;
 
 /** Everything the overlay renders from. One instance per mounted overlay. */
 export class AnnotState {
@@ -195,6 +197,8 @@ export class AnnotState {
   /** Held by the channel toggle until the selection changes. */
   channelPin = $state<Channel | null>(null);
   marquee = $state<Rect | null>(null);
+  /** Values changed in the inspector, waiting to ride with the next note. */
+  styleEdits = $state<StyleEdit[]>([]);
   drawings = $state<PendingDrawing[]>([]);
   activeDrawingId = $state<string | null>(null);
   insideDrawing = $state<string | null>(null);
@@ -271,6 +275,30 @@ export class AnnotState {
       next.length === this.#selection.length && next.every((el, i) => el === this.#selection[i]);
     this.#selection = next;
     if (!same) this.channelPin = null;
+  }
+
+  // ------------------------------------------------------------ style edits
+
+  styleEdit(selector: string, property: string): StyleEdit | undefined {
+    return this.styleEdits.find((e) => e.selector === selector && e.property === property);
+  }
+
+  /** Record one changed value, or drop it when it is back to what the page already had. */
+  setStyleEdit(edit: StyleEdit): void {
+    const rest = this.styleEdits.filter(
+      (e) => e.selector !== edit.selector || e.property !== edit.property,
+    );
+    this.styleEdits = edit.to.trim() === '' ? rest : [...rest, edit];
+  }
+
+  dropStyleEdit(selector: string, property: string): void {
+    this.styleEdits = this.styleEdits.filter(
+      (e) => e.selector !== selector || e.property !== property,
+    );
+  }
+
+  clearStyleEdits(): void {
+    this.styleEdits = [];
   }
 
   /** The element the inspector reads. */
@@ -436,11 +464,6 @@ export class AnnotState {
     return this.prefs.detail;
   }
 
-  get markerVisibility(): MarkerVisibility {
-    return this.prefs.markers;
-  }
-
-  /** Open or close the panel, defaulting the filter to what needs the user. */
   /** Collapse the pill, closing every popover that hangs off it. */
   collapse(): void {
     this.setMode(null);
@@ -455,6 +478,7 @@ export class AnnotState {
     this.paletteOpen = open;
   }
 
+  /** Open or close the panel, defaulting the filter to what needs the user. */
   togglePanel(open: boolean = !this.prefs.panelOpen): void {
     this.setPref('panelOpen', open);
     if (open && !this.panelFilterTouched) {
@@ -496,6 +520,8 @@ export class AnnotState {
     this.hover = { el: null, rect: null, label: '' };
     this.textChip = null;
     this.labelDraft = null;
+    // Leaving the mode is closing the proposal: the preview goes with it.
+    this.clearStyleEdits();
   }
 
   // ------------------------------------------------------------- reconciling
@@ -601,6 +627,7 @@ export class AnnotState {
       batch: null,
       number: this.nextNumber,
       viewport: this.viewport(),
+      ...(this.styleEdits.length > 0 ? { styleEdits: [...this.styleEdits] } : {}),
       createdAt: at,
       updatedAt: at,
       sentAt: immediate ? at : null,
@@ -804,9 +831,7 @@ export class AnnotState {
   async attach(id: string, files: readonly File[]): Promise<void> {
     for (const file of files) {
       if (file.size > ATTACHMENT_MAX_BYTES) {
-        this.toast(
-          `${file.name}: too large — ${formatBytes(ATTACHMENT_MAX_BYTES)} per file, ${formatBytes(ATTACHMENT_TOTAL_MAX_BYTES)} per annotation`,
-        );
+        this.toast(tooLarge(file.name));
         continue;
       }
       this.attaching.add(id);
@@ -917,8 +942,8 @@ export class AnnotState {
     if (target.kind === 'text') {
       const found = anchorText(this.doc, target);
       if (!found) return { rects: target.rects, state: 'lost', range: null };
-      // `rangeRects` is what wrote `target.rects`; computing them any other way here made the
-      // highlight change shape between creation and the first re-anchor.
+      // `rangeRects` is what wrote `target.rects`; any other measure changes the highlight's shape
+      // between creation and the first re-anchor.
       const rects = rangeRects(found.range);
       return { rects: rects.length > 0 ? rects : target.rects, state: found.state, range: found.range };
     }
@@ -1292,10 +1317,6 @@ export class AnnotState {
     this.#patch(active.id, { strokes: [...active.strokes, last], undone });
   }
 
-  eraseStrokeAt(index: number): void {
-    if (this.activeDrawingId) this.eraseStrokeOf(this.activeDrawingId, index);
-  }
-
   clearDrawing(): void {
     this.dropDrawing(this.activeDrawingId);
   }
@@ -1307,14 +1328,6 @@ export class AnnotState {
 
   get regionOverride(): Rect | null {
     return this.activeDrawing?.region ?? null;
-  }
-
-  setRegion(rect: Rect): void {
-    if (this.activeDrawingId) this.setDrawingRegion(this.activeDrawingId, rect);
-  }
-
-  setStrokes(strokes: Stroke[]): void {
-    if (this.activeDrawingId) this.setDrawingStrokes(this.activeDrawingId, strokes);
   }
 
   fitRegionToDrawing(): void {

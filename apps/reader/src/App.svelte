@@ -3,7 +3,8 @@
   import type { MountedOverlay } from '@llm-ui-annotation/svelte';
   import Document from './Document.svelte';
   import Rail from './Rail.svelte';
-  import { watchDoc, type DocPayload, type HotLike } from './doc.js';
+  import type { DocPayload } from './doc-protocol.js';
+  import { watchDoc, type HotLike } from './doc.js';
   import { renderDoc } from './render.js';
   import { applyReaderTheme, loadPrefs, nextStep, savePrefs, type ReaderPrefs } from './theme.js';
 

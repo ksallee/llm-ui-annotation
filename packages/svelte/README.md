@@ -56,6 +56,7 @@ an active mode, or focus on one of our surfaces:
 | `⌥A` | Command palette | always |
 | `E` `H` `D` | Element / Highlight / Draw | in a mode |
 | `⌘↵` | Add the annotation, or send the batch | in a mode |
+| `⇧⌘↵` | Add the annotation and send it alone | in the popup |
 | `I` | Toggle the panel | in a mode |
 | `⇧P` | Pause animations | in a mode |
 | `1`–`6` | Pick a drawing tool | in Draw |
@@ -77,6 +78,20 @@ on the page. A checkbox per row appears on hover: `⇧`-click extends, `⌘A` ta
 and the footer turns into Approve / Reopen / Send / Delete with the count each transition allows,
 enabled only when every selected row allows it.
 
+## Inspector
+
+The drawer's Inspect channel is devtools' Elements panel: the node title with its size, the tag
+chain, the box diagram, then Layout / Text / Appearance / Accessibility as mono declarations, then
+the exact `styles` the annotation will carry. On the canvas, hovering in Element mode draws the same
+box model bands and devtools' tooltip; the **CSS Details** switch in Settings takes both off and
+leaves a plain outline.
+
+Under the readings, **Propose a change** makes the design set editable — spacing, colour, type,
+radius, shadow — each row offering the page's own custom properties that fit it. What you change
+shows on the page immediately, through one `<style data-annot-preview>` the overlay owns, and rides
+with your next note as a `styleEdits` diff the agent reads. Sending the note, clearing the list or
+leaving the mode reverts the page.
+
 ## Attachments
 
 Drop a file on the popup, on a panel row, or on the page while a mode is active, or paste an image
@@ -92,6 +107,8 @@ Every colour, size, radius and duration comes from a token computed by
 `@llm-ui-annotation/core/theme` and written onto the shadow root by `./theme`. The host page never
 gains a class, an attribute or a wrapper: text highlights use the CSS Custom Highlight API through
 one `<style data-annot-highlights>` in the host head, and everything else lives in the shadow root.
+The only other thing we put there is `<style data-annot-preview>`, holding the style change you are
+previewing, removed with it.
 `scripts/no-host-mutation.mjs` runs in `lint` and `check` and fails on `classList`, `setAttribute`,
 `innerHTML =` and friends anywhere in `src/`.
 

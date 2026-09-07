@@ -1,3 +1,4 @@
+import type { RenderLevel } from '@llm-ui-annotation/core';
 import { CliError } from './errors.js';
 
 export interface Args {
@@ -70,6 +71,18 @@ export function flagString(args: Args, name: string): string | undefined {
 
 export function flagBool(args: Args, name: string): boolean {
   return args.flags[name] === true || args.flags[name] === 'true';
+}
+
+const LEVELS: readonly RenderLevel[] = ['compact', 'standard', 'detailed'];
+
+/** The `--level` flag, or `fallback`. */
+export function renderLevel(args: Args, fallback: RenderLevel = 'standard'): RenderLevel {
+  const value = flagString(args, 'level');
+  if (value === undefined) return fallback;
+  if (!(LEVELS as readonly string[]).includes(value)) {
+    throw new CliError(`--level must be one of ${LEVELS.join(', ')}`);
+  }
+  return value as RenderLevel;
 }
 
 export function flagNumber(args: Args, name: string): number | undefined {

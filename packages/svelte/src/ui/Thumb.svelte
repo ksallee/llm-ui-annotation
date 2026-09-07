@@ -1,14 +1,13 @@
 <script lang="ts">
+  // The tile at the head of a panel row: a screenshot, the drawing's own marks, or a mode icon.
   import type { Annotation } from '@llm-ui-annotation/core';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import { strokeBounds } from '../dom/core-dom.js';
-  import type { IconName } from '../icons.js';
   import Icon from './Icon.svelte';
+  import { MODE_ICON } from './mode-icon.js';
   import Strokes from './Strokes.svelte';
 
   let { annot, annotation }: { annot: AnnotState; annotation: Annotation } = $props();
-
-  const MODE_ICON: Record<string, IconName> = { element: 'element', text: 'text', page: 'page' };
 
   const a = $derived(annotation);
   const drawing = $derived(a.target.kind === 'page' ? a.target : null);
@@ -36,6 +35,6 @@
       <Strokes strokes={drawing.strokes} />
     </svg>
   {:else}
-    <Icon name={MODE_ICON[a.mode] ?? 'element'} size={20} />
+    <Icon name={MODE_ICON[a.mode]} size={20} />
   {/if}
 </span>

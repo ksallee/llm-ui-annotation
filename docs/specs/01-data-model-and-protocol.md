@@ -10,7 +10,7 @@ Give every other workstream a single vocabulary: what an annotation is, how it i
 
 - `id`: 26-char Crockford base32 ULID-like string generated client-side (10-char time prefix + 16 random). Provide `newId(now = Date.now())`. Sortable, no dependency; ids made in the same millisecond increment the random part so the order is strict. Also `isId`, `idTime`, `compareIds`, `nowIso`.
 - All timestamps ISO 8601 UTC strings (`2026-09-05T18:24:41.048Z`).
-- `protocolVersion: 2` (`PROTOCOL_VERSION`). Readers accept every version in `SUPPORTED_PROTOCOL_VERSIONS` — `[1, 2]` — so files written before multi-block highlights keep loading; a v1 text target simply has no `blocks`. `validateAnnotation` is the one place that decides. `attachments` (spec 11 §1) did **not** bump it: the field is additive and optional, so a v2 reader that predates it sees an annotation without attachments, which is a state it already handles. `tokens` on `ElementRef` (spec 12 §4) does not bump it either, for the same reason: a reader that predates it sees an element with no tokens, which every element without a design system already looks like.
+- `protocolVersion: 3` (`PROTOCOL_VERSION`). Readers accept every version in `SUPPORTED_PROTOCOL_VERSIONS` — `[1, 2, 3]` — so files written before multi-block highlights keep loading; a v1 text target simply has no `blocks`, a v2 annotation no `styleEdits`. `validateAnnotation` is the one place that decides. `attachments` (spec 11 §1) did **not** bump it: the field is additive and optional, so a v2 reader that predates it sees an annotation without attachments, which is a state it already handles. `tokens` on `ElementRef` (spec 12 §4) does not bump it either, for the same reason. `styleEdits` (spec 13) **does** bump it, on a different ground: it is not more description of what is there, it is an instruction, and a reader that drops it silently loses half of what the user said.
 
 ## Types (TypeScript, exported from `@llm-ui-annotation/core`)
 
@@ -69,7 +69,7 @@ export interface PageTarget {
   kind: 'page';
   region: Rect;                // bounding box of all strokes plus padding
   strokes: Stroke[];
-  screenshot: string | null;   // path relative to .annotations/, e.g. screenshots/01J8...png; null if capture failed
+  screenshot: string | null;   // screenshots/<id>.png, relative to .annotations/; null if capture failed
   elements: ElementRef[];      // elements intersecting the region, largest coverage first, max 12, compact (no styles)
 }
 
@@ -94,9 +94,17 @@ export interface Attachment {
   by: Actor;
 }
 
+export interface StyleEdit {
+  selector: string;            // the element it applies to, an ElementRef.selector of this annotation
+  property: string;            // CSS property name
+  from: string;                // computed value before the edit
+  to: string;                  // proposed value, `var(--token)` when picked from the page's tokens
+  token: string | null;        // the custom property `to` came from, else null
+}
+
 export interface Annotation {
   id: string;
-  protocolVersion: 1 | 2;
+  protocolVersion: 1 | 2 | 3;
   route: string;               // pathname (+ search if the host opts in), used as file key
   url: string;                 // full URL at creation
   mode: Mode;
@@ -114,6 +122,7 @@ export interface Annotation {
   approvedAt: string | null;
   resolution: { kind: 'changed' | 'declined'; summary: string } | null;
   attachments?: Attachment[];  // files dropped on the annotation, spec 11 §1
+  styleEdits?: StyleEdit[];    // values the user changed in the inspector, spec 13
   anchorState?: 'exact' | 'moved' | 'lost';   // browser-only, not persisted
 }
 
@@ -126,7 +135,18 @@ export interface Batch {
 }
 ```
 
-Provide `isAnnotation(x): x is Annotation` and `validateAnnotation(x): string[]` (list of problems, each prefixed with its path) hand-written, no zod in core. Same for `isBatch` / `validateBatch`. Also `summarizeTarget(target): string` returning one line like `button "Save" (form > .actions > button)` or `text "…quote…" in p.lede` — `text "…quote…" across p.lede, blockquote, p` when the run spans blocks — or `drawing over 3 elements: h2 "Pricing", …`.
+Provide `isAnnotation(x): x is Annotation` and `validateAnnotation(x): string[]` (list of problems, each prefixed with its path) hand-written, no zod in core.
+
+Validation is also a boundary, not only a shape check. Two rules exist because the values cross into
+places that act on them:
+
+- `PageTarget.screenshot` must be `screenshots/<id>.png` — the same discipline `Attachment.path`
+  already had. The CLI joins it onto the annotations dir and hands it to `open`, and the agent is
+  told to read it, so an arbitrary string there is a file-read primitive.
+- `LIMITS` (exported) caps what a page can grow: 10 000 chars for a comment, message, caption or
+  summary, 5 000 for a quote or an element's name and text, 1 000 for a selector, 1 000 entries in
+  any array, 20 000 points in a brush stroke. Generous by design — they exist because the store
+  rewrites a route file whole on every mutation, not to shape real input. Same for `isBatch` / `validateBatch`. Also `summarizeTarget(target): string` returning one line like `button "Save" (form > .actions > button)` or `text "…quote…" in p.lede` — `text "…quote…" across p.lede, blockquote, p` when the run spans blocks — or `drawing over 3 elements: h2 "Pricing", …`.
 
 ## State machine
 

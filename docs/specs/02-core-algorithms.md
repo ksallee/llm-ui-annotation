@@ -84,4 +84,4 @@ Inject a `<style data-annot-freeze>` pausing `animation-play-state` and disablin
 
 ## Notes
 
-happy-dom has no layout: `getBoundingClientRect` and `Range.getClientRects` return zeros, so the fixtures carry `data-rect` attributes the test helper installs as stub rects, and rect merging is tested on its own. `src/dom/oklch.ts` is the single import site for `toOklch` from `core/theme`.
+happy-dom has no layout: `getBoundingClientRect` and `Range.getClientRects` return zeros, so the fixtures carry `data-rect` attributes the test helper installs as stub rects, and rect merging is tested on its own. `src/dom/styles.ts` and `src/dom/tokens.ts` are the only import sites for `core/theme`.

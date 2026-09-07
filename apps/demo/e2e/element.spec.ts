@@ -13,19 +13,37 @@ import {
   storedAnnotations,
 } from './overlay.js';
 
+test('the popup can send one note straight out of batch mode', async ({ page, site, annotDir }) => {
+  await page.goto(`${site}/`);
+  await setMode(page, 'Element');
+
+  const at = await centre(page, '[data-testid="signup"]');
+  await page.mouse.click(at.x, at.y);
+  await popup(page).locator('textarea.field').fill('send this one now');
+  await popup(page).getByRole('button', { name: /^Send/ }).click();
+  await expect(popup(page)).toBeHidden();
+
+  await expect.poll(() => snapshot(page).then((s) => s.counts['sent'])).toBe(1);
+  const stored = await storedAnnotations(annotDir, '/');
+  expect(stored).toHaveLength(1);
+  expect(stored[0]!.status).toBe('sent');
+  expect(stored[0]!.batch).not.toBeNull();
+});
+
 test('element mode: hover, popup, draft, send, marker', async ({ page, site, annotDir }) => {
   await page.goto(`${site}/`);
   await setMode(page, 'Element');
 
   await pointAt(page, '[data-testid="signup"]');
-  const chip = overlay(page).locator('.label-chip');
-  await expect(chip).toBeVisible();
-  await expect(chip).toHaveText(/Sign up/);
+  const card = overlay(page).locator('.element-card');
+  await expect(card).toBeVisible();
+  await expect(card.locator('.node')).toContainText('button');
 
   const at = await centre(page, '[data-testid="signup"]');
   await page.mouse.click(at.x, at.y);
   await expect(popup(page)).toBeVisible();
-  await expect(popup(page).locator('.breadcrumb')).toContainText('Sign up');
+  await popup(page).getByRole('button', { name: /details/ }).click();
+  await expect(popup(page).locator('.detail .breadcrumb')).toContainText('Sign up');
 
   await popup(page).locator('textarea.field').fill('Make this button say "Start free"');
   await popup(page).locator('button.primary').click();

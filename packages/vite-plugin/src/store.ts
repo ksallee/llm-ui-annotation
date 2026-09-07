@@ -91,6 +91,11 @@ function safeAttachmentPath(annotationId: string, attachment: Attachment): strin
   return attachmentFile(annotationId, attachment.id, attachmentExtension(attachment.type));
 }
 
+function isRouteFile(x: unknown): x is RouteFile {
+  const file = x as RouteFile | null;
+  return typeof file === 'object' && file !== null && typeof file.route === 'string' && Array.isArray(file.annotations);
+}
+
 /** Sole writer of the annotations directory while the dev server runs. */
 export class Store {
   readonly dir: string;
@@ -303,6 +308,9 @@ export class Store {
     }
     if (!Array.isArray(req.annotationIds) || req.annotationIds.length === 0) {
       throw badRequest('annotationIds: expected a non-empty array');
+    }
+    if (req.summary !== undefined && req.summary !== null && typeof req.summary !== 'string') {
+      throw badRequest('summary: expected a string or null');
     }
 
     return this.withRoute(req.route, async () => {
@@ -598,12 +606,13 @@ export class Store {
       this.cache.set(routeSlug, { ...entry, mtimeMs: st.mtimeMs, size: st.size });
       return entry.file;
     }
-    let parsed: RouteFile;
+    let parsed: unknown;
     try {
-      parsed = JSON.parse(text) as RouteFile;
+      parsed = JSON.parse(text);
     } catch {
       return entry?.file ?? null;
     }
+    if (!isRouteFile(parsed)) return entry?.file ?? null;
     this.cache.set(routeSlug, { file: parsed, text, mtimeMs: st.mtimeMs, size: st.size });
     this.reindex(parsed);
     if (entry) this.change({ kind: 'route', file: parsed });
@@ -649,6 +658,11 @@ export class Store {
 
   private change(change: Change): void {
     for (const listener of this.changeListeners) listener(change);
+  }
+
+  /** Resolves once every write in flight has landed. */
+  async settle(): Promise<void> {
+    await Promise.allSettled([...this.chains.values()]);
   }
 
   private withRoute<T>(route: string, fn: () => Promise<T>): Promise<T> {

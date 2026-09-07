@@ -11,6 +11,18 @@ import {
 
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 
+/**
+ * Caps on anything a page can grow. Generous — they exist so a hostile or looping writer cannot
+ * inflate a route file the store rewrites whole on every mutation, not to shape real input.
+ */
+export const LIMITS = {
+  text: 10_000,
+  quote: 5_000,
+  selector: 1_000,
+  array: 1_000,
+  points: 20_000,
+} as const;
+
 type Rec = Record<string, unknown>;
 
 function isRec(x: unknown): x is Rec {
@@ -76,9 +88,23 @@ class Problems {
     return v === null ? true : this.iso(v, path);
   }
 
-  arr(v: unknown, path: string): v is unknown[] {
+  arr(v: unknown, path: string, max: number = LIMITS.array): v is unknown[] {
     if (!Array.isArray(v)) {
       this.add(`${path}: expected array, got ${typeName(v)}`);
+      return false;
+    }
+    if (v.length > max) {
+      this.add(`${path}: expected at most ${max} entries, got ${v.length}`);
+      return false;
+    }
+    return true;
+  }
+
+  /** A string within its cap. Callers that pass a cap are the ones a page can grow. */
+  capped(v: unknown, path: string, max: number): boolean {
+    if (!this.str(v, path)) return false;
+    if ((v as string).length > max) {
+      this.add(`${path}: expected at most ${max} characters, got ${(v as string).length}`);
       return false;
     }
     return true;
@@ -119,14 +145,14 @@ function typeName(v: unknown): string {
 
 function checkElementRef(p: Problems, v: unknown, path: string): void {
   if (!p.rec(v, path)) return;
-  p.str(v['selector'], `${path}.selector`);
+  p.capped(v['selector'], `${path}.selector`, LIMITS.selector);
   if (p.arr(v['fallbacks'], `${path}.fallbacks`)) {
-    v['fallbacks'].forEach((f, i) => p.str(f, `${path}.fallbacks[${i}]`));
+    v['fallbacks'].forEach((f, i) => p.capped(f, `${path}.fallbacks[${i}]`, LIMITS.selector));
   }
-  p.str(v['tag'], `${path}.tag`);
-  if (v['role'] !== null) p.str(v['role'], `${path}.role`);
-  p.str(v['name'], `${path}.name`);
-  p.str(v['text'], `${path}.text`);
+  p.capped(v['tag'], `${path}.tag`, LIMITS.selector);
+  if (v['role'] !== null) p.capped(v['role'], `${path}.role`, LIMITS.selector);
+  p.capped(v['name'], `${path}.name`, LIMITS.quote);
+  p.capped(v['text'], `${path}.text`, LIMITS.quote);
   p.rect(v['rect'], `${path}.rect`);
   p.bool(v['fixed'], `${path}.fixed`);
   p.stringMap(v['attrs'], `${path}.attrs`);
@@ -145,7 +171,7 @@ function checkStroke(p: Problems, v: unknown, path: string): void {
   const tool = v['tool'];
   switch (tool) {
     case 'brush':
-      if (p.arr(v['points'], `${path}.points`)) {
+      if (p.arr(v['points'], `${path}.points`, LIMITS.points)) {
         v['points'].forEach((pt, i) => p.point(pt, `${path}.points[${i}]`));
       }
       p.str(v['color'], `${path}.color`);
@@ -165,7 +191,7 @@ function checkStroke(p: Problems, v: unknown, path: string): void {
       break;
     case 'label':
       p.point(v['at'], `${path}.at`);
-      p.str(v['text'], `${path}.text`);
+      p.capped(v['text'], `${path}.text`, LIMITS.text);
       p.str(v['color'], `${path}.color`);
       p.num(v['size'], `${path}.size`);
       break;
@@ -189,7 +215,7 @@ function checkTarget(p: Problems, v: unknown, mode: unknown, path: string): void
     }
     case 'text': {
       checkElementRef(p, v['container'], `${path}.container`);
-      p.str(v['quote'], `${path}.quote`);
+      p.capped(v['quote'], `${path}.quote`, LIMITS.quote);
       p.str(v['prefix'], `${path}.prefix`);
       p.str(v['suffix'], `${path}.suffix`);
       const startOk = p.num(v['start'], `${path}.start`);
@@ -211,7 +237,12 @@ function checkTarget(p: Problems, v: unknown, mode: unknown, path: string): void
       if (p.arr(v['strokes'], `${path}.strokes`)) {
         v['strokes'].forEach((s, i) => checkStroke(p, s, `${path}.strokes[${i}]`));
       }
-      if (v['screenshot'] !== null) p.str(v['screenshot'], `${path}.screenshot`);
+      if (v['screenshot'] !== null && p.str(v['screenshot'], `${path}.screenshot`)) {
+        // The CLI opens this path and the agent reads it, so it is a name we issued or nothing.
+        if (!SCREENSHOT_PATH.test(v['screenshot'] as string)) {
+          p.add(`${path}.screenshot: expected screenshots/<id>.png`);
+        }
+      }
       if (p.arr(v['elements'], `${path}.elements`)) {
         v['elements'].forEach((e, i) => checkElementRef(p, e, `${path}.elements[${i}]`));
       }
@@ -227,11 +258,12 @@ function checkMessage(p: Problems, v: unknown, path: string): void {
   p.id(v['id'], `${path}.id`);
   p.oneOf(v['role'], ACTORS, `${path}.role`);
   p.oneOf(v['kind'], MESSAGE_KINDS, `${path}.kind`);
-  p.str(v['text'], `${path}.text`);
+  p.capped(v['text'], `${path}.text`, LIMITS.text);
   p.iso(v['at'], `${path}.at`);
 }
 
 const ATTACHMENT_PATH = /^attachments\/[0-9A-HJKMNP-TV-Z]{26}\/[0-9A-HJKMNP-TV-Z]{26}\.[a-z0-9]{1,8}$/;
+const SCREENSHOT_PATH = /^screenshots\/[0-9A-HJKMNP-TV-Z]{26}\.png$/;
 
 function checkAttachment(p: Problems, v: unknown, annotationId: unknown, path: string): void {
   if (!p.rec(v, path)) return;
@@ -252,6 +284,23 @@ function checkAttachment(p: Problems, v: unknown, annotationId: unknown, path: s
   }
 }
 
+const CSS_PROPERTY = /^[a-z][a-z-]*$/;
+
+function checkStyleEdit(p: Problems, v: unknown, path: string): void {
+  if (!p.rec(v, path)) return;
+  p.str(v['selector'], `${path}.selector`);
+  p.str(v['from'], `${path}.from`);
+  if (p.str(v['property'], `${path}.property`) && !CSS_PROPERTY.test(v['property'] as string)) {
+    p.add(`${path}.property: expected a CSS property name`);
+  }
+  if (p.str(v['to'], `${path}.to`) && (v['to'] as string).trim() === '') {
+    p.add(`${path}.to: must not be empty`);
+  }
+  if (v['token'] !== null && p.str(v['token'], `${path}.token`)) {
+    if (!(v['token'] as string).startsWith('--')) p.add(`${path}.token: expected a custom property`);
+  }
+}
+
 /** Every problem with `x` as an Annotation; empty when it is valid. */
 export function validateAnnotation(x: unknown): string[] {
   const p = new Problems();
@@ -269,7 +318,7 @@ export function validateAnnotation(x: unknown): string[] {
   p.str(x['url'], 'url');
   p.oneOf(x['mode'], MODES, 'mode');
   checkTarget(p, x['target'], x['mode'], 'target');
-  p.str(x['comment'], 'comment');
+  p.capped(x['comment'], 'comment', LIMITS.text);
   const status = x['status'];
   p.oneOf(status, STATUSES, 'status');
 
@@ -298,12 +347,16 @@ export function validateAnnotation(x: unknown): string[] {
   if (res !== null) {
     if (p.rec(res, 'resolution')) {
       p.oneOf(res['kind'], ['changed', 'declined'] as const, 'resolution.kind');
-      p.str(res['summary'], 'resolution.summary');
+      p.capped(res['summary'], 'resolution.summary', LIMITS.text);
     }
   }
 
   if (x['attachments'] !== undefined && p.arr(x['attachments'], 'attachments')) {
     x['attachments'].forEach((a, i) => checkAttachment(p, a, x['id'], `attachments[${i}]`));
+  }
+
+  if (x['styleEdits'] !== undefined && p.arr(x['styleEdits'], 'styleEdits')) {
+    x['styleEdits'].forEach((e, i) => checkStyleEdit(p, e, `styleEdits[${i}]`));
   }
 
   if (x['anchorState'] !== undefined) {
@@ -336,7 +389,7 @@ export function validateBatch(x: unknown): string[] {
   if (p.arr(x['annotationIds'], 'annotationIds')) {
     x['annotationIds'].forEach((v, i) => p.id(v, `annotationIds[${i}]`));
   }
-  if (x['summary'] !== null) p.str(x['summary'], 'summary');
+  if (x['summary'] !== null) p.capped(x['summary'], 'summary', LIMITS.text);
   p.iso(x['sentAt'], 'sentAt');
   return p.list;
 }

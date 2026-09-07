@@ -23,6 +23,7 @@ import {
   TEXT_TARGET_MULTI,
   annotation,
   elementRef,
+  message,
 } from './fixtures.js';
 
 const V1_ROUTE = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'route-v1.json');
@@ -38,7 +39,11 @@ describe('validateAnnotation', () => {
   it.each([
     ['not an object', 42, 'annotation: expected object, got number'],
     ['bad id', annotation({ id: 'nope' }), 'id: expected a 26-char id, got "nope"'],
-    ['bad protocol version', { ...annotation(), protocolVersion: 3 }, 'protocolVersion: expected 1 or 2, got 3'],
+    [
+      'bad protocol version',
+      { ...annotation(), protocolVersion: 4 },
+      'protocolVersion: expected 1 or 2 or 3, got 4',
+    ],
     ['relative route', annotation({ route: 'pricing' }), 'route: must start with /'],
     ['unknown mode', { ...annotation(), mode: 'sketch' }, 'mode: expected one of element|text|page, got "sketch"'],
     ['unknown status', { ...annotation(), status: 'done' }, 'status: expected one of draft|sent|acknowledged|question|review|approved, got "done"'],
@@ -47,9 +52,52 @@ describe('validateAnnotation', () => {
     ['draft with a batch', annotation({ status: 'draft' }), 'batch: must be null while draft'],
     ['review without resolvedAt', annotation({ status: 'review' }), 'resolvedAt: required once the status is review'],
     ['approved without approvedAt', annotation({ status: 'approved', resolvedAt: '2026-09-05T18:24:41.048Z' }), 'approvedAt: required once the status is approved'],
+    [
+      'a style edit that is not a property',
+      annotation({ styleEdits: [{ selector: 'button', property: 'Padding!', from: '8px', to: '12px', token: null }] }),
+      'styleEdits[0].property: expected a CSS property name',
+    ],
+    [
+      'a style edit with no value',
+      annotation({ styleEdits: [{ selector: 'button', property: 'padding', from: '8px', to: '  ', token: null }] }),
+      'styleEdits[0].to: must not be empty',
+    ],
+    [
+      'a style edit whose token is not a custom property',
+      annotation({ styleEdits: [{ selector: 'button', property: 'padding', from: '8px', to: '12px', token: 'space-4' }] }),
+      'styleEdits[0].token: expected a custom property',
+    ],
   ])('rejects %s', (_name, bad, problem) => {
     expect(validateAnnotation(bad)).toContain(problem);
     expect(isAnnotation(bad)).toBe(false);
+  });
+
+  it('caps what a page can grow', () => {
+    expect(validateAnnotation(annotation({ comment: 'x'.repeat(10_001) }))).toContain(
+      'comment: expected at most 10000 characters, got 10001',
+    );
+    expect(validateAnnotation(annotation({ thread: new Array(1001).fill(message()) }))).toContain(
+      'thread: expected at most 1000 entries, got 1001',
+    );
+    expect(validateAnnotation(annotation({ comment: 'x'.repeat(10_000) }))).toEqual([]);
+  });
+
+  it('rejects a screenshot path we did not issue', () => {
+    const bad = annotation({
+      mode: 'page',
+      target: { ...PAGE_TARGET, screenshot: '../../../../etc/passwd' },
+    });
+    expect(validateAnnotation(bad)).toContain('target.screenshot: expected screenshots/<id>.png');
+    expect(validateAnnotation(PAGE_ANNOTATION)).toEqual([]);
+  });
+
+  it('accepts an annotation carrying style edits', () => {
+    const a = annotation({
+      styleEdits: [
+        { selector: '[data-testid="signup"]', property: 'padding', from: '8px 16px', to: 'var(--space-5)', token: '--space-5' },
+      ],
+    });
+    expect(validateAnnotation(a)).toEqual([]);
   });
 
   it('reads a v1 route file, whose text targets have no blocks', () => {

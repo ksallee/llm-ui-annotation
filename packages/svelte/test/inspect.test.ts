@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 import { describe, expect, it } from 'vitest';
-import { boxDrawable, boxModel, inspectElement, MIN_BOX } from '../src/dom/inspect.js';
+import { boxModel, elementCard, hexOf, inspectElement, shorthand } from '../src/dom/inspect.js';
 
 function element(style: string, tag = 'div'): Element {
   document.body.innerHTML = `<main><section><${tag} id="t" style="${style}">hi</${tag}></section></main>`;
@@ -15,11 +15,40 @@ describe('boxModel', () => {
     expect(box.margin).toEqual({ top: 4, right: 0, bottom: 6, left: 0 });
   });
 
-  it('declines to draw under 24 px in either direction', () => {
-    const box = boxModel(element('padding: 4px'))!;
-    expect(boxDrawable({ ...box, borderBox: { x: 0, y: 0, width: MIN_BOX, height: MIN_BOX } })).toBe(true);
-    expect(boxDrawable({ ...box, borderBox: { x: 0, y: 0, width: 200, height: 23 } })).toBe(false);
-    expect(boxDrawable({ ...box, borderBox: { x: 0, y: 0, width: 18, height: 200 } })).toBe(false);
+});
+
+describe('the devtools card', () => {
+  it('writes the sides as CSS shorthand', () => {
+    expect(shorthand({ top: 8, right: 8, bottom: 8, left: 8 })).toBe('8px');
+    expect(shorthand({ top: 8, right: 16, bottom: 8, left: 16 })).toBe('8px 16px');
+    expect(shorthand({ top: 16, right: 0, bottom: 0, left: 0 })).toBe('16px 0px 0px');
+    expect(shorthand({ top: 1, right: 2, bottom: 3, left: 4 })).toBe('1px 2px 3px 4px');
+  });
+
+  it('writes an opaque colour as hex and leaves anything else alone', () => {
+    expect(hexOf('rgb(31, 41, 55)')).toBe('#1f2937');
+    expect(hexOf('rgba(0, 0, 0, 0.5)')).toBe('rgba(0, 0, 0, 0.5)');
+  });
+
+  it('carries the gap and the shadow a design note needs', () => {
+    document.body.innerHTML =
+      '<div id="bar" style="display: flex; gap: 12px; box-shadow: 0 1px 2px red; background: #fff"><span>a</span></div>';
+    const card = elementCard(document.querySelector('#bar')!)!;
+    expect(card.rows.find((r) => r.name === 'Gap')?.value).toBe('12px');
+    expect(card.rows.find((r) => r.name === 'Shadow')?.value).toContain('red');
+    expect(card.rows.find((r) => r.name === 'Background')?.value).toMatch(/^#f{3,6}$/);
+  });
+
+  it('titles the node the way devtools does and reads the box off it', () => {
+    document.body.innerHTML =
+      '<main><button id="go" class="btn primary" style="padding: 8px 16px; margin: 4px">Save</button></main>';
+    const card = elementCard(document.querySelector('#go')!)!;
+    expect(card.label).toEqual({ tag: 'button', id: 'go', classes: ['btn', 'primary'] });
+    expect(card.rows.find((r) => r.name === 'Padding')?.value).toBe('8px 16px');
+    expect(card.rows.find((r) => r.name === 'Margin')?.value).toBe('4px');
+    expect(card.a11y.find((r) => r.name === 'Role')?.value).toBe('button');
+    expect(card.rows.find((r) => r.name === 'Background')).toBeUndefined();
+    expect(card.a11y.find((r) => r.name === 'Name')?.value).toBe('Save');
   });
 });
 

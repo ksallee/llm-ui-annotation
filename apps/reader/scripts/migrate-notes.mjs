@@ -40,7 +40,7 @@ const stamp = (value, fallback) =>
 function container(note) {
   const key = `${note.section ?? 'body'}/${note.pi ?? 0}`;
   return {
-    selector: `[data-annot-block="${key}"]`,
+    selector: `[data-annot-block=${JSON.stringify(key)}]`,
     fallbacks: [],
     tag: 'p',
     role: null,

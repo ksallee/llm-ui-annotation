@@ -1,4 +1,11 @@
-import { formatBytes, type Annotation, type Attachment, type NewMessage, type Status } from '@llm-ui-annotation/core';
+import {
+  formatBytes,
+  type Annotation,
+  type Attachment,
+  type MessageKind,
+  type NewMessage,
+  type Status,
+} from '@llm-ui-annotation/core';
 import { readFile } from 'node:fs/promises';
 import { basename, isAbsolute, join, resolve } from 'node:path';
 import { flagString, type Args } from '../args.js';
@@ -51,36 +58,21 @@ export async function ask(ctx: Context, args: Args, io: Io): Promise<number> {
   );
 }
 
+/** The `--summary` / `--reason` text as the agent message that closes an item. */
+function resolutionMessage(args: Args, flag: string, kind: MessageKind, usage: string): () => NewMessage {
+  const text = flagString(args, flag);
+  if (text === undefined || text.trim() === '') throw new CliError(`usage: ${usage}`);
+  return () => ({ role: 'agent', kind, text });
+}
+
 export async function done(ctx: Context, args: Args, io: Io): Promise<number> {
-  const summary = flagString(args, 'summary');
-  if (summary === undefined || summary.trim() === '') {
-    throw new CliError('usage: annot done <id…> --summary "<what changed>"');
-  }
-  return report(
-    ctx,
-    io,
-    await moveAll(ctx, args.positionals, 'review', () => ({
-      role: 'agent',
-      kind: 'summary',
-      text: summary,
-    })),
-  );
+  const message = resolutionMessage(args, 'summary', 'summary', 'annot done <id…> --summary "<what changed>"');
+  return report(ctx, io, await moveAll(ctx, args.positionals, 'review', message));
 }
 
 export async function decline(ctx: Context, args: Args, io: Io): Promise<number> {
-  const reason = flagString(args, 'reason');
-  if (reason === undefined || reason.trim() === '') {
-    throw new CliError('usage: annot decline <id…> --reason "<why>"');
-  }
-  return report(
-    ctx,
-    io,
-    await moveAll(ctx, args.positionals, 'review', () => ({
-      role: 'agent',
-      kind: 'decline',
-      text: reason,
-    })),
-  );
+  const message = resolutionMessage(args, 'reason', 'decline', 'annot decline <id…> --reason "<why>"');
+  return report(ctx, io, await moveAll(ctx, args.positionals, 'review', message));
 }
 
 export async function reply(ctx: Context, args: Args, io: Io): Promise<number> {

@@ -1,7 +1,14 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { CliError } from './errors.js';
+
+const AGENT = /^[A-Za-z0-9._-]{1,64}$/;
+
+/** True when the name is safe to put in a filename. */
+export const isAgentName = (agent: string): boolean => AGENT.test(agent) && !agent.startsWith('.');
 
 export function cursorPath(dir: string, agent: string): string {
+  if (!isAgentName(agent)) throw new CliError(`--agent: unusable name ${JSON.stringify(agent)}`);
   return join(dir, `.cursor-${agent}`);
 }
 

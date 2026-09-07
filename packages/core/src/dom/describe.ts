@@ -1,5 +1,6 @@
 import type { ElementContext, ElementRef, Rect } from '../model/types.js';
-import { classList, collapse, isStableClass, truncate } from './css.js';
+import { DEFAULT_OVERLAY_TAG, ancestorChain, isOverlay } from './ancestors.js';
+import { collapse, stableClasses, truncate } from './css.js';
 import { describeName, visibleText } from './name.js';
 import { area, intersect, rectOf } from './rect.js';
 import { roleOf } from './roles.js';
@@ -7,7 +8,6 @@ import { describeSelector } from './selector.js';
 import { computedStyles } from './styles.js';
 import { resolveTokens, tokenMap, type TokenMap } from './tokens.js';
 
-const DEFAULT_OVERLAY_TAG = 'annot-overlay';
 const DEFAULT_MAX_TEXT = 200;
 const ATTR_MAX = 100;
 const ATTR_NAMES = ['id', 'class', 'name', 'type', 'href', 'src', 'alt', 'title', 'placeholder', 'role'];
@@ -34,14 +34,6 @@ export interface DescribeOptions {
   tokens?: TokenMap;
 }
 
-export function isOverlay(el: Element, overlayTag = DEFAULT_OVERLAY_TAG): boolean {
-  const tag = overlayTag.toUpperCase();
-  for (let current: Element | null = el; current; current = current.parentElement) {
-    if (current.tagName === tag) return true;
-  }
-  return false;
-}
-
 function ignorable(el: Element, overlayTag: string): boolean {
   return NEVER_RENDERED.has(el.tagName) || isOverlay(el, overlayTag);
 }
@@ -49,14 +41,10 @@ function ignorable(el: Element, overlayTag: string): boolean {
 function isFixed(el: Element): boolean {
   const view = el.ownerDocument.defaultView;
   if (!view) return false;
-  let current: Element | null = el;
-  while (current) {
-    const position = view.getComputedStyle(current).getPropertyValue('position');
-    if (position === 'fixed' || position === 'sticky') return true;
-    const root = current.getRootNode();
-    current = current.parentElement ?? (root.nodeType === 11 ? (root as ShadowRoot).host : null);
-  }
-  return false;
+  return ancestorChain(el).some((a) => {
+    const position = view.getComputedStyle(a).getPropertyValue('position');
+    return position === 'fixed' || position === 'sticky';
+  });
 }
 
 function attrsOf(el: Element, detailed: boolean): Record<string, string> {
@@ -69,8 +57,7 @@ function attrsOf(el: Element, detailed: boolean): Record<string, string> {
   }
   const raw = out['class'];
   if (raw !== undefined) {
-    const stable = classList(el).filter(isStableClass);
-    out['class'] = truncate(stable.join(' '), ATTR_MAX);
+    out['class'] = truncate(stableClasses(el).join(' '), ATTR_MAX);
     if (detailed && out['class'] !== raw) out['class:raw'] = raw;
     if (out['class'] === '') delete out['class'];
   }
@@ -122,6 +109,11 @@ export function describeElement(el: Element, opts: DescribeOptions = {}): Elemen
   return ref;
 }
 
+/** Refs without styles or context, for the targets that hold several elements. */
+export function compactRefs(elements: readonly Element[], opts: DescribeOptions = {}): ElementRef[] {
+  return elements.map((el) => describeElement(el, { ...opts, styles: false, context: false }));
+}
+
 interface Hit {
   el: Element;
   overlap: number;
@@ -159,5 +151,5 @@ export function findElementsInRect(doc: Document, region: Rect, opts: DescribeOp
   const hits = dropCoveredParents(sized.length > 0 ? sized : all)
     .sort((a, b) => b.overlap - a.overlap)
     .slice(0, MAX_RESULTS);
-  return hits.map((h) => describeElement(h.el, { ...opts, styles: false, context: false }));
+  return compactRefs(hits.map((h) => h.el), opts);
 }

@@ -1,3 +1,5 @@
+/** The markdown an agent reads: a batch, an answer, a reopen. */
+
 import { elementLabel } from '../model/summarize.js';
 import type {
   Annotation,
@@ -7,6 +9,7 @@ import type {
   Message,
   PageTarget,
   Rect,
+  StyleEdit,
   TextTarget,
 } from '../model/types.js';
 import { formatBytes } from './attachments.js';
@@ -26,6 +29,8 @@ function joinPath(dir: string, rel: string): string {
   return `${dir.replace(/\/+$/, '')}/${rel}`;
 }
 
+// Every page-derived string goes through this. A newline in an aria-label or a data attribute would
+// otherwise forge a line, and the agent reads these sections as structure.
 function oneLine(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
 }
@@ -40,7 +45,7 @@ function rectText(r: Rect): string {
 
 function pairs(map: Record<string, string>): string {
   return Object.entries(map)
-    .map(([k, v]) => `${k} ${v}`)
+    .map(([k, v]) => `${k} ${oneLine(v)}`)
     .join(' · ');
 }
 
@@ -67,7 +72,8 @@ function elementLines(el: ElementRef, level: RenderLevel): string[] {
 
   if (level !== 'compact' && el.context) {
     const { parent, prev, next } = el.context;
-    lines.push(`context: parent ${parent ?? 'null'}, prev ${prev ?? 'null'}, next ${next ?? 'null'}`);
+    const name = (value: string | null): string => (value === null ? 'null' : oneLine(value));
+    lines.push(`context: parent ${name(parent)}, prev ${name(prev)}, next ${name(next)}`);
   }
   if (level !== 'compact' && el.styles && Object.keys(el.styles).length > 0) {
     lines.push(`styles: ${styleText(el)}`);
@@ -146,6 +152,31 @@ function attachmentLines(list: readonly Attachment[], dir: string): string[] {
   ];
 }
 
+/**
+ * The user's own edits as a CSS diff, one block per element. These are a proposal read off the live
+ * page, not a patch: the selector is where it was seen, not necessarily where the rule lives.
+ */
+function styleEditLines(edits: readonly StyleEdit[]): string[] {
+  const bySelector = new Map<string, StyleEdit[]>();
+  for (const edit of edits) {
+    const list = bySelector.get(edit.selector);
+    if (list) list.push(edit);
+    else bySelector.set(edit.selector, [edit]);
+  }
+
+  const lines = ['style edits proposed by the user:', '```diff'];
+  for (const [selector, list] of bySelector) {
+    lines.push(`  ${selector} {`);
+    for (const e of list) {
+      lines.push(`-   ${e.property}: ${e.from};`);
+      lines.push(`+   ${e.property}: ${e.to};${e.token ? `   /* ${e.token} */` : ''}`);
+    }
+    lines.push('  }');
+  }
+  lines.push('```');
+  return lines;
+}
+
 function threadLines(thread: readonly Message[]): string[] {
   return ['thread:', ...thread.map((m) => `- ${m.role} ${m.kind} (${m.at}): ${oneLine(m.text)}`)];
 }
@@ -176,6 +207,8 @@ export function renderAnnotationMarkdown(a: Annotation, opts: RenderOptions): st
   if (a.attachments && a.attachments.length > 0) {
     lines.push(...attachmentLines(a.attachments, opts.dir));
   }
+
+  if (a.styleEdits && a.styleEdits.length > 0) lines.push(...styleEditLines(a.styleEdits));
 
   lines.push(`> ${oneLine(a.comment)}`);
 
