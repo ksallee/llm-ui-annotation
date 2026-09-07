@@ -22,6 +22,14 @@ export interface RenderOptions {
   dir: string;
 }
 
+/** What each question level asks of the agent, in the words the agent reads. */
+export const QUESTION_BUDGET: Record<number, string> = {
+  0: 'none — decide it yourself and say what you chose in the summary',
+  1: 'only when you are blocked and cannot make a sound choice',
+  2: 'when the answer would change what you build',
+  3: 'freely — check anything you are unsure of',
+};
+
 export const AGENT_VERBS_FOOTER =
   'Reply with: annot ack <id…> · annot ask <id> "…" · annot done <id> --summary "…" · annot decline <id> --reason "…"';
 
@@ -233,6 +241,7 @@ export function renderBatchMarkdown(
     `## Feedback batch ${batch.id}  ·  route ${batch.route}  ·  ${items.length} item${items.length === 1 ? '' : 's'}`,
   ];
   if (batch.summary) blocks.push(`Summary from the user: ${oneLine(batch.summary)}`);
+  if (batch.questions !== undefined) blocks.push(`Questions: ${QUESTION_BUDGET[batch.questions]}`);
   for (const a of items) blocks.push(renderAnnotationMarkdown(a, opts));
   blocks.push(AGENT_VERBS_FOOTER);
   return `${blocks.join('\n\n')}\n`;

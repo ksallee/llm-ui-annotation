@@ -12,7 +12,7 @@ const mounting = autoMount({
   accent: READER_ACCENT,
   scheme: 'auto',
   mode: 'text',
-  sendMode: 'immediate',
+  sendMode: 'review',
   routeKey: meta.route,
   hot: import.meta.hot ?? null,
 });

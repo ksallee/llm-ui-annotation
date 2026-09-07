@@ -105,7 +105,7 @@ describe('AnnotState derivations', () => {
     expect(state.counts.approved).toBe(1);
     expect(state.badge).toBe(1);
 
-    state.setPref('sendMode', 'immediate');
+    state.setPref('sendMode', 'review');
     expect(state.badge).toBe(2);
   });
 
@@ -166,7 +166,7 @@ describe('AnnotState writes', () => {
 
   it('sends a batch of one straight away in immediate mode', async () => {
     const { state, client } = make();
-    state.setPref('sendMode', 'immediate');
+    state.setPref('sendMode', 'review');
     const created = await state.add('element', elementTarget(), 'now');
     expect(created.status).toBe('sent');
     expect(client.calls).toContain('batch');
@@ -197,6 +197,37 @@ describe('AnnotState writes', () => {
     expect(state.annotations.get('A')?.status).toBe('sent');
     expect(client.calls).toContain('batch');
     expect(state.sendOpen).toBe(false);
+  });
+});
+
+describe('send modes', () => {
+  it('sends on add and leaves the agent\u2019s work for review', async () => {
+    const { state, client } = make();
+    state.setPref('sendMode', 'review');
+    const created = await state.add('element', elementTarget(), 'now');
+    expect(created.status).toBe('sent');
+
+    state.applyServer({ ...state.annotations.get(created.id)!, status: 'review' });
+    expect(state.annotations.get(created.id)!.status).toBe('review');
+    expect(client.calls).not.toContain(`transition:${created.id}`);
+  });
+
+  it('approves the work itself when the mode says so', async () => {
+    const { state, client } = make();
+    state.setPref('sendMode', 'auto');
+    const created = await state.add('element', elementTarget(), 'now');
+
+    state.applyServer({ ...state.annotations.get(created.id)!, status: 'review' });
+    await Promise.resolve();
+    expect(client.calls).toContain(`transition:${created.id}`);
+  });
+
+  it('carries the question budget on every batch it creates', async () => {
+    const { state, client } = make();
+    state.setPref('questions', 0);
+    state.setPref('sendMode', 'review');
+    await state.add('element', elementTarget(), 'now');
+    expect(client.batches.at(-1)?.questions).toBe(0);
   });
 });
 

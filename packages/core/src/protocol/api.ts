@@ -9,6 +9,7 @@ import type {
   Batch,
   MessageKind,
   ProtocolVersion,
+  QuestionLevel,
   Resolution,
   Status,
   Target,
@@ -48,6 +49,7 @@ export interface CreateBatchRequest {
   route: string;
   annotationIds: string[];
   summary: string | null;
+  questions?: QuestionLevel;
 }
 
 export interface TransitionRequest {

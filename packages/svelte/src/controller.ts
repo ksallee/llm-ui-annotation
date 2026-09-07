@@ -405,7 +405,7 @@ export function primaryAction(state: AnnotState): void {
     openElementPopup(state);
     return;
   }
-  if (state.sendMode === 'batch' && state.drafts.length > 0) state.openSend();
+  if (state.sendMode === 'manual' && state.drafts.length > 0) state.openSend();
 }
 
 /** Centre the annotation's target in the viewport and show its card. */

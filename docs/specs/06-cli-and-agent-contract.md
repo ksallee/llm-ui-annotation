@@ -48,6 +48,13 @@ attachments:
   /repo/.annotations/attachments/01J8…/01JA….pdf   brand-spec.pdf (application/pdf, 1.1 MB)
 ```
 
+A batch whose user set a question budget opens with it, under the summary:
+
+```
+## Feedback batch 01J8…  ·  route /pricing  ·  3 items
+Questions: only when you are blocked and cannot make a sound choice
+```
+
 An item whose user changed a value in the inspector carries a diff block, above the comment, at
 every level (spec 13):
 
@@ -87,7 +94,8 @@ This project uses llm-ui-annotation. The user annotates the running UI in the br
 - An item may carry an `attachments:` block of absolute paths — a mock, a PDF, notes the user dropped on it. Read them before changing anything; `annot attach <id> <file…>` hands a file back the other way.
 A `styles:` line may name a token after a value, as `background-color oklch(0.55 0.15 250) var(--color-primary-600)`. Change or reuse the token; do not paste the literal value.
 - An item may carry a `style edits proposed by the user` diff. Those are exact values the user set in the browser, so apply them rather than guessing: put each one in the rule that governs the element, and when the line names a token (`/* --space-5 */`) use the token, not the literal.
-- If the request is ambiguous, `annot ask <id> "<one precise question>"` and move on to other items; the answer arrives through `annot watch`.
+- A batch may open with a `Questions:` line. It is the user saying how freely to ask: `none` means decide it yourself and say what you chose, `only when you are blocked` means one question at most and only when no sound choice exists, `freely` means check anything unclear. Honour it over your own instinct.
+- If the request is ambiguous and the budget allows, `annot ask <id> "<one precise question>"` and move on to other items; the answer arrives through `annot watch`.
 - Keep summaries concrete (file and what changed). The user reads them in the browser before approving.
 - Do not edit files under `.annotations/` by hand.
 <!-- annot:end -->

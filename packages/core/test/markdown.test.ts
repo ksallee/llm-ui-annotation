@@ -192,6 +192,27 @@ describe('renderReopenMarkdown', () => {
   });
 });
 
+describe('the question budget', () => {
+  it('opens the batch with what the user allowed, and says nothing when they set none', () => {
+    const asked = renderBatchMarkdown({ ...BATCH, questions: 1 }, ALL_ANNOTATIONS, {
+      level: 'standard',
+      dir: DIR,
+    });
+    expect(asked).toContain('Questions: only when you are blocked');
+    expect(renderBatchMarkdown(BATCH, ALL_ANNOTATIONS, { level: 'standard', dir: DIR })).not.toContain(
+      'Questions:',
+    );
+  });
+
+  it('says none as an instruction, not as an absence', () => {
+    const md = renderBatchMarkdown({ ...BATCH, questions: 0 }, ALL_ANNOTATIONS, {
+      level: 'compact',
+      dir: DIR,
+    });
+    expect(md).toContain('Questions: none — decide it yourself');
+  });
+});
+
 describe('style edits', () => {
   const EDITED = annotation({
     styleEdits: [

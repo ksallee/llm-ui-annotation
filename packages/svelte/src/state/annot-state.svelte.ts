@@ -342,7 +342,7 @@ export class AnnotState {
   });
 
   readonly badge = $derived(
-    this.prefs.sendMode === 'batch' && this.drafts.length > 0
+    this.prefs.sendMode === 'manual' && this.drafts.length > 0
       ? this.drafts.length
       : this.needsYou.length,
   );
@@ -466,6 +466,9 @@ export class AnnotState {
     return this.prefs.sendMode;
   }
 
+  /** Both automatic modes send a note the moment it is written. */
+  readonly autoSends = $derived(this.prefs.sendMode !== 'manual');
+
   get detail(): DetailLevel {
     return this.prefs.detail;
   }
@@ -547,9 +550,14 @@ export class AnnotState {
 
   /** The server's copy always wins. */
   applyServer(annotation: Annotation): void {
+    const before = this.annotations.get(annotation.id)?.status;
     this.optimistic.delete(annotation.id);
     this.annotations.set(annotation.id, annotation);
     this.nextNumber = Math.max(this.nextNumber, annotation.number + 1);
+    // `auto` means the user is not reviewing: the agent saying it is done is the end of it.
+    if (this.prefs.sendMode === 'auto' && annotation.status === 'review' && before !== 'review') {
+      void this.approve(annotation.id);
+    }
   }
 
   applyLocal(annotation: Annotation): void {
@@ -619,7 +627,7 @@ export class AnnotState {
   draft(mode: Mode, target: Target, comment: string, asDraft = false): Annotation {
     const at = nowIso();
     const id = newId();
-    const immediate = this.prefs.sendMode === 'immediate' && !asDraft;
+    const immediate = this.autoSends && !asDraft;
     return {
       id,
       protocolVersion: PROTOCOL_VERSION,
@@ -657,6 +665,7 @@ export class AnnotState {
           route: saved.route,
           annotationIds: [saved.id],
           summary: null,
+          questions: this.prefs.questions,
         });
         this.announce('Sent 1 annotation');
       }
@@ -806,7 +815,12 @@ export class AnnotState {
       if (current) this.applyLocal(applyTransition(current, 'sent', 'user'));
     }
     try {
-      await this.client.createBatch({ route: this.route, annotationIds: ids, summary });
+      await this.client.createBatch({
+        route: this.route,
+        annotationIds: ids,
+        summary,
+        questions: this.prefs.questions,
+      });
       this.toast('Sent. Waiting for the agent.');
       this.announce(`Sent ${ids.length} annotation${ids.length === 1 ? '' : 's'}`);
     } catch {
@@ -825,7 +839,12 @@ export class AnnotState {
     }
     this.applyLocal(applyTransition(current, 'sent', 'user'));
     try {
-      await this.client.createBatch({ route: current.route, annotationIds: [id], summary: null });
+      await this.client.createBatch({
+        route: current.route,
+        annotationIds: [id],
+        summary: null,
+        questions: this.prefs.questions,
+      });
     } catch {
       this.connection = 'offline';
     }
@@ -911,7 +930,7 @@ export class AnnotState {
   /** Finish a draft the popup created early: its comment, and the send when that is immediate. */
   async finishDraft(id: string, comment: string): Promise<Annotation> {
     await this.editComment(id, comment);
-    if (this.prefs.sendMode === 'immediate') {
+    if (this.autoSends) {
       await this.sendOne(id);
       this.announce('Sent 1 annotation');
     }

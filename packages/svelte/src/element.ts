@@ -1,6 +1,6 @@
 import { mount as mountComponent, unmount } from 'svelte';
 import { OVERLAY_TAG } from './dom/core-dom.js';
-import { ATTRIBUTES, optionsFromAttributes, type OverlayOptions } from './options.js';
+import { ATTRIBUTES, optionsFromAttributes, sendModeOf, type OverlayOptions } from './options.js';
 import { createState } from './create.js';
 import type { AnnotState } from './state/annot-state.svelte.js';
 import { connectLive } from './transport/live.js';
@@ -78,8 +78,9 @@ export class AnnotOverlayElement extends HTMLElement {
     if (name === 'scheme' && (value === 'light' || value === 'dark' || value === 'auto')) {
       state.setPref('scheme', value);
     }
-    if (name === 'send-mode' && (value === 'batch' || value === 'immediate')) {
-      state.setPref('sendMode', value);
+    const send = name === 'send-mode' && value !== null ? sendModeOf(value) : null;
+    if (send) {
+      state.setPref('sendMode', send);
     }
     if (name === 'density' && (value === 'compact' || value === 'comfortable')) {
       state.setPref('density', value);

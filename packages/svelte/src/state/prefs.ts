@@ -1,5 +1,6 @@
 import type { Mode } from '@llm-ui-annotation/core';
 import { DEFAULT_PALETTE_KEY } from '../keyboard.js';
+import { sendModeOf } from '../options.js';
 import type { Corner, Density, DetailLevel, MarkerVisibility, SchemeOption, SendMode } from '../options.js';
 
 export const PREFS_KEY = 'annot:prefs';
@@ -10,6 +11,8 @@ export interface Prefs {
   accent: string | null;
   density: Density;
   sendMode: SendMode;
+  /** How freely the agent may ask instead of deciding: 0 never, 3 whenever it would help. */
+  questions: 0 | 1 | 2 | 3;
   detail: DetailLevel;
   mode: Mode | null;
   panelOpen: boolean;
@@ -29,7 +32,8 @@ export const DEFAULT_PREFS: Prefs = {
   scheme: null,
   accent: null,
   density: 'comfortable',
-  sendMode: 'batch',
+  sendMode: 'manual',
+  questions: 1,
   detail: 'standard',
   mode: null,
   panelOpen: false,
@@ -59,7 +63,9 @@ export function loadPrefs(doc?: Document): Prefs {
     const raw = store.getItem(PREFS_KEY);
     if (!raw) return { ...DEFAULT_PREFS };
     const parsed = JSON.parse(raw) as Partial<Prefs>;
-    return { ...DEFAULT_PREFS, ...parsed };
+    // `batch` and `immediate` are what the two-way version of this preference stored.
+    const sendMode = parsed.sendMode ? sendModeOf(parsed.sendMode) : null;
+    return { ...DEFAULT_PREFS, ...parsed, ...(sendMode ? { sendMode } : {}) };
   } catch {
     return { ...DEFAULT_PREFS };
   }

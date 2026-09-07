@@ -1548,6 +1548,54 @@ kbd {
   color: var(--annot-ink);
 }
 
+/* One choice of several, each with a sentence: shadcn's radio group. */
+.radios {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.radio {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--annot-space-2);
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--annot-radius-sm);
+  background: transparent;
+  color: var(--annot-ink);
+  font-size: var(--annot-text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.radio:hover {
+  background: var(--annot-surface-2);
+}
+
+.radio .mark {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  border: 1px solid var(--annot-line);
+  border-radius: var(--annot-radius-pill);
+}
+
+.radio[data-state='checked'] .mark {
+  border-color: var(--annot-accent);
+  background: radial-gradient(circle, var(--annot-accent) 0 4px, transparent 4px);
+}
+
+.radio .text {
+  display: flex;
+  flex-direction: column;
+}
+
+.radio .radio-title {
+  font-weight: 500;
+}
+
 .setting.toggle {
   flex-direction: row;
   align-items: center;

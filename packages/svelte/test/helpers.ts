@@ -1,4 +1,10 @@
-import type { Annotation, RouteFile, Status, Target } from '@llm-ui-annotation/core';
+import type {
+  Annotation,
+  CreateBatchRequest,
+  RouteFile,
+  Status,
+  Target,
+} from '@llm-ui-annotation/core';
 import { newId, nowIso } from '@llm-ui-annotation/core';
 
 export const elementTarget = (selector = 'button.cta'): Target => ({
@@ -63,17 +69,20 @@ export const routeFile = (annotations: Annotation[], route = '/'): RouteFile => 
 export function fakeClient(): {
   calls: string[];
   create: (a: Annotation) => Promise<Annotation>;
-  createBatch: (r: unknown) => Promise<unknown>;
+  createBatch: (r: CreateBatchRequest) => Promise<unknown>;
   transition: (id: string, r: unknown) => Promise<Annotation>;
   patch: (id: string, comment: string) => Promise<Annotation>;
   patchTarget: (id: string, target: Target) => Promise<Annotation>;
   remove: (id: string) => Promise<void>;
+  batches: CreateBatchRequest[];
   store: Map<string, Annotation>;
 } {
   const calls: string[] = [];
+  const batches: CreateBatchRequest[] = [];
   const store = new Map<string, Annotation>();
   return {
     calls,
+    batches,
     store,
     async create(a) {
       calls.push(`create:${a.id}`);
@@ -81,8 +90,9 @@ export function fakeClient(): {
       store.set(saved.id, saved);
       return saved;
     },
-    async createBatch(request) {
+    async createBatch(request: CreateBatchRequest) {
       calls.push('batch');
+      batches.push(request);
       return request;
     },
     async transition(id) {

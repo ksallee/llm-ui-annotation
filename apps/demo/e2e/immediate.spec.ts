@@ -18,11 +18,9 @@ test('immediate mode sends on Add and keeps the badge on agent activity', async 
 }) => {
   await page.goto(`${site}/app/`);
   const settings = await openSettings(page);
-  await settings.getByRole('button', { name: 'immediate', exact: true }).click();
-  await expect(settings.getByRole('button', { name: 'immediate', exact: true })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  const send = settings.getByRole('radio', { name: /Send, then review/ });
+  await send.click();
+  await expect(send).toHaveAttribute('aria-checked', 'true');
   await page.keyboard.press('Escape');
 
   await setMode(page, 'Element');
@@ -50,10 +48,33 @@ test('immediate mode sends on Add and keeps the badge on agent activity', async 
   expect(batches.size).toBe(2);
 });
 
+test('send and approve needs nothing from the user once the agent is done', async ({
+  page,
+  site,
+  annotDir,
+  agent,
+}) => {
+  await page.goto(`${site}/app/`);
+  const settings = await openSettings(page);
+  await settings.getByRole('radio', { name: /Send and approve/ }).click();
+  await page.keyboard.press('Escape');
+  agent.start();
+
+  await setMode(page, 'Element');
+  await annotateElement(page, '[data-testid="save"]', 'tighten this');
+
+  // No review step: the agent reports done and the note is approved without being touched.
+  await expect
+    .poll(() => storedAnnotations(annotDir, '/app/').then((all) => all[0]?.status), {
+      timeout: 20_000,
+    })
+    .toBe('approved');
+});
+
 test('the popup primary button reads Send in immediate mode', async ({ page, site }) => {
   await page.goto(`${site}/app/`);
   const settings = await openSettings(page);
-  await settings.getByRole('button', { name: 'immediate', exact: true }).click();
+  await settings.getByRole('radio', { name: /Send, then review/ }).click();
   await page.keyboard.press('Escape');
   await setMode(page, 'Element');
 

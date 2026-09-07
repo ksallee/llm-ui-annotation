@@ -119,7 +119,7 @@ Clicking a row scrolls the page so the target is centered and flashes the highli
 
 ## Settings (popover from the gear)
 
-Command palette key (click, then press a chord; persisted). Send mode: batch / immediate. Scheme: auto / light / dark. Accent: a swatch row of six derived suggestions plus a native color input, and "follow host". Detail level for the agent: compact / standard / detailed. Pin visibility default. Density. Two switches: **CSS Details** and **Block Page Interactions**. Reset pill position. Version and a link to the docs.
+Command palette key (click, then press a chord; persisted). **Send mode**, a radio group of three: *Manual* keeps a note as a draft until you send it; *Send, then review* sends it as written and leaves the agent's work for you to approve; *Send and approve* sends it and approves the work when the agent says it is done, so nothing waits on you. **Questions the agent may ask**, 0–3 with the meaning under it — 0 decide and report, 1 only when blocked, 2 when the answer would change the work, 3 freely — carried on the batch and rendered for the agent (spec 06). Scheme: auto / light / dark. Accent: a swatch row of six derived suggestions plus a native color input, and "follow host". Detail level for the agent: compact / standard / detailed. Pin visibility default. Density. Two switches: **CSS Details** and **Block Page Interactions**. Reset pill position. Version and a link to the docs.
 
 Switches follow the shadcn switch: a `role="switch"` button carrying `data-state`, a track that fills with the accent when checked and a thumb that slides.
 

@@ -5,7 +5,17 @@ import type { Density, Scheme } from '@llm-ui-annotation/core/theme';
 export type SchemeOption = Scheme;
 export type { Density };
 
-export type SendMode = 'batch' | 'immediate';
+/**
+ * What happens when a note is written: `manual` keeps it as a draft to send by hand, `review` sends
+ * it at once and waits for the agent's work to be reviewed, `auto` sends it and approves the result.
+ */
+export type SendMode = 'manual' | 'review' | 'auto';
+
+/** The names the element attribute used before there were three. */
+const SEND_ALIASES: Record<string, SendMode> = { batch: 'manual', immediate: 'review' };
+
+export const sendModeOf = (value: string): SendMode | null =>
+  SEND_ALIASES[value] ?? (SEND_MODES.has(value) ? (value as SendMode) : null);
 export type DetailLevel = 'compact' | 'standard' | 'detailed';
 export type MarkerVisibility = 'all' | 'dots' | 'none';
 export type Corner = 'br' | 'bl' | 'tr' | 'tl';
@@ -56,7 +66,7 @@ export const ATTRIBUTES = [
 ] as const;
 
 const SCHEMES = new Set(['light', 'dark', 'auto']);
-const SEND_MODES = new Set(['batch', 'immediate']);
+const SEND_MODES = new Set<string>(['manual', 'review', 'auto']);
 const MODES = new Set(['element', 'text', 'page']);
 
 /** Read `<annot-overlay>` attributes into options. Unknown values are dropped. */
@@ -71,7 +81,8 @@ export function optionsFromAttributes(el: Element): OverlayOptions {
   const routeKey = el.getAttribute('route-key');
   if (routeKey) out.routeKey = routeKey;
   const sendMode = el.getAttribute('send-mode');
-  if (sendMode && SEND_MODES.has(sendMode)) out.sendMode = sendMode as SendMode;
+  const send = sendMode === null ? null : sendModeOf(sendMode);
+  if (send) out.sendMode = send;
   const basePath = el.getAttribute('base-path');
   if (basePath) out.basePath = basePath;
   const mode = el.getAttribute('mode');

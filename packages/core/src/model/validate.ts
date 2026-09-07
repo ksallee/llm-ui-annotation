@@ -390,6 +390,7 @@ export function validateBatch(x: unknown): string[] {
     x['annotationIds'].forEach((v, i) => p.id(v, `annotationIds[${i}]`));
   }
   if (x['summary'] !== null) p.capped(x['summary'], 'summary', LIMITS.text);
+  if (x['questions'] !== undefined) p.oneOf(String(x['questions']), ['0', '1', '2', '3'], 'questions');
   p.iso(x['sentAt'], 'sentAt');
   return p.list;
 }

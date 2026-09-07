@@ -188,10 +188,17 @@ export interface Annotation {
   anchorState?: AnchorState;
 }
 
+/** How freely the agent may ask instead of deciding: 0 never, 3 whenever it would help. */
+export type QuestionLevel = 0 | 1 | 2 | 3;
+
+export const QUESTION_LEVELS: readonly QuestionLevel[] = [0, 1, 2, 3];
+
 export interface Batch {
   id: string;
   route: string;
   annotationIds: string[];
   summary: string | null;
   sentAt: string;
+  /** The user's question budget for this batch; absent means the agent decides for itself. */
+  questions?: QuestionLevel;
 }

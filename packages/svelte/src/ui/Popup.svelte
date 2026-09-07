@@ -135,18 +135,18 @@
         Save<kbd>⌘↵</kbd>
       </button>
     {:else}
-      {#if annot.sendMode === 'batch'}
+      {#if annot.sendMode === 'manual'}
         <button class="btn primary small" disabled={!popup.comment.trim()} onclick={() => commit(false)}>
           Add<kbd>⌘↵</kbd>
         </button>
       {/if}
       <button
         class="btn small"
-        class:primary={annot.sendMode === 'immediate'}
+        class:primary={annot.autoSends}
         disabled={!popup.comment.trim()}
         onclick={() => commit(true)}
       >
-        Send<kbd>{annot.sendMode === 'batch' ? '⇧⌘↵' : '⌘↵'}</kbd>
+        Send<kbd>{annot.sendMode === 'manual' ? '⇧⌘↵' : '⌘↵'}</kbd>
       </button>
     {/if}
   </div>

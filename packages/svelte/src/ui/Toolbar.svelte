@@ -100,7 +100,7 @@
       <span class="tooltip">{annot.frozen ? 'Resume' : 'Pause'} animations<kbd>⇧P</kbd></span>
     </button>
 
-    {#if annot.sendMode === 'batch'}
+    {#if annot.sendMode === 'manual'}
       <button
         class="icon-btn send-btn"
         aria-label="Send {annot.drafts.length} annotation{annot.drafts.length === 1 ? '' : 's'}"

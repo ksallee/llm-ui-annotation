@@ -2,7 +2,10 @@
 
 import { DRAW_TOOLS } from './draw-tools.js';
 import { formatCombo } from './keyboard.js';
+import type { SendMode } from './options.js';
 import type { AnnotState, Filter } from './state/annot-state.svelte.js';
+
+const SEND_ORDER: SendMode[] = ['manual', 'review', 'auto'];
 
 export type PaletteKind = 'mode' | 'tool' | 'color' | 'filter' | 'setting' | 'annotation';
 
@@ -90,8 +93,8 @@ export function paletteEntries(state: AnnotState, locate: (id: string) => void):
     entry('setting:routes', 'setting', 'Show every route in the panel', '', () => {
       void state.toggleAllRoutes();
     }),
-    entry('setting:send-mode', 'setting', 'Send mode: batch or immediate', state.prefs.sendMode, () =>
-      state.setPref('sendMode', state.prefs.sendMode === 'batch' ? 'immediate' : 'batch'),
+    entry('setting:send-mode', 'setting', 'Send mode: manual, review or auto', state.prefs.sendMode, () =>
+      state.setPref('sendMode', SEND_ORDER[(SEND_ORDER.indexOf(state.prefs.sendMode) + 1) % SEND_ORDER.length]!),
     ),
     entry('setting:css', 'setting', 'CSS details on the canvas', String(state.prefs.cssDetails), () =>
       state.setPref('cssDetails', !state.prefs.cssDetails),

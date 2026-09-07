@@ -91,6 +91,14 @@ describe('validateAnnotation', () => {
     expect(validateAnnotation(PAGE_ANNOTATION)).toEqual([]);
   });
 
+  it('takes a question budget of 0 to 3 and nothing else', () => {
+    expect(validateBatch({ ...BATCH, questions: 0 })).toEqual([]);
+    expect(validateBatch({ ...BATCH, questions: 3 })).toEqual([]);
+    expect(validateBatch({ ...BATCH, questions: 4 })).toContain(
+      'questions: expected one of 0|1|2|3, got "4"',
+    );
+  });
+
   it('accepts an annotation carrying style edits', () => {
     const a = annotation({
       styleEdits: [

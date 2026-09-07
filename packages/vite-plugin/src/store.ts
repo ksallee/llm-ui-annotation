@@ -16,6 +16,7 @@ import {
   makeMessage,
   newId,
   nowIso,
+  QUESTION_LEVELS,
   routeFileFromSlug,
   sniffAttachmentType,
   slug,
@@ -312,6 +313,9 @@ export class Store {
     if (req.summary !== undefined && req.summary !== null && typeof req.summary !== 'string') {
       throw badRequest('summary: expected a string or null');
     }
+    if (req.questions !== undefined && !QUESTION_LEVELS.includes(req.questions)) {
+      throw badRequest('questions: expected 0, 1, 2 or 3');
+    }
 
     return this.withRoute(req.route, async () => {
       const file = await this.mutableRoute(req.route);
@@ -322,6 +326,7 @@ export class Store {
         annotationIds: [...req.annotationIds],
         summary: req.summary ?? null,
         sentAt: now,
+        ...(req.questions === undefined ? {} : { questions: req.questions }),
       };
 
       const moved: Annotation[] = [];

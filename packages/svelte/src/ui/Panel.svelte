@@ -152,7 +152,7 @@
       >
         <Icon name="check-all" size={14} /> Approve all ({annot.inReview.length})
       </button>
-      {#if annot.sendMode === 'batch'}
+      {#if annot.sendMode === 'manual'}
         <button class="btn primary small" disabled={sendable === 0} onclick={onsend}>
           <Icon name="send" size={14} />
           {annot.draftsNeedingComment.length > 0

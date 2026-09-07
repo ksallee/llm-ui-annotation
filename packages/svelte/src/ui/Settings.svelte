@@ -3,12 +3,24 @@
   import { comboOf, formatCombo } from '../keyboard.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import { trapFocus } from './focus.js';
+  import RadioGroup from './RadioGroup.svelte';
   import Switch from './Switch.svelte';
   import type { Density, DetailLevel, MarkerVisibility, SchemeOption, SendMode } from '../options.js';
 
   let { annot, version }: { annot: AnnotState; version: string } = $props();
 
-  const SEND: SendMode[] = ['batch', 'immediate'];
+  const SEND: { value: SendMode; title: string; note: string }[] = [
+    { value: 'manual', title: 'Manual', note: 'notes wait as drafts until you send them' },
+    { value: 'review', title: 'Send, then review', note: 'sent as written; you approve the work' },
+    { value: 'auto', title: 'Send and approve', note: 'sent as written; done is done' },
+  ];
+
+  const QUESTIONS = [
+    { level: 0, note: 'none — the agent decides and says what it chose' },
+    { level: 1, note: 'only when it is blocked' },
+    { level: 2, note: 'when the answer would change what it builds' },
+    { level: 3, note: 'freely' },
+  ] as const;
   const SCHEMES: SchemeOption[] = ['auto', 'light', 'dark'];
   const DETAIL: DetailLevel[] = ['compact', 'standard', 'detailed'];
   const MARKERS: MarkerVisibility[] = ['all', 'dots', 'none'];
@@ -47,7 +59,26 @@
 {/snippet}
 
 <div class="card popover" {style} role="dialog" aria-label="Overlay settings" use:trapFocus>
-  {@render segment('Send mode', SEND, annot.prefs.sendMode, (v) => annot.setPref('sendMode', v as SendMode))}
+  <RadioGroup
+    label="Send mode"
+    options={SEND}
+    value={annot.prefs.sendMode}
+    onpick={(v) => annot.setPref('sendMode', v)}
+  />
+
+  <div class="setting">
+    <span class="title">Questions the agent may ask</span>
+    <div class="segment">
+      {#each QUESTIONS as option (option.level)}
+        <button
+          aria-label="Questions {option.level}"
+          aria-pressed={annot.prefs.questions === option.level}
+          onclick={() => annot.setPref('questions', option.level)}>{option.level}</button
+        >
+      {/each}
+    </div>
+    <span class="muted">{QUESTIONS[annot.prefs.questions].note}</span>
+  </div>
   {@render segment('Scheme', SCHEMES, annot.prefs.scheme ?? 'auto', (v) =>
     annot.setPref('scheme', v as SchemeOption),
   )}
