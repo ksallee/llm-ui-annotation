@@ -61,7 +61,7 @@ export function elementMode(state: AnnotState, layer: HTMLElement): () => void {
       state.marquee = rectFromPoints(start, docPoint(event, state.scroll));
       return;
     }
-    const el = elementUnder(state, event.clientX, event.clientY);
+    const el = state.picking ? elementUnder(state, event.clientX, event.clientY) : null;
     state.hover = el
       ? { el, rect: docRect(el), label: elementLabelOf(el) }
       : { el: null, rect: null, label: '' };
@@ -100,7 +100,10 @@ export function elementMode(state: AnnotState, layer: HTMLElement): () => void {
     }
     state.selection = [el];
     // Inspecting is its own activity: the note comes from the chip or ⌘↵, not from every click.
-    if (!state.inspecting) open(state, [el]);
+    if (state.inspecting) {
+      state.picking = false;
+      state.hover = { el: null, rect: null, label: '' };
+    } else open(state, [el]);
   };
 
   layer.addEventListener('pointermove', onMove);
@@ -138,7 +141,6 @@ export function walkSelection(state: AnnotState, walk: Walk): void {
   const to = step(from, walk);
   if (!to) return;
   state.selection = [to];
-  state.hover = { el: to, rect: docRect(to), label: elementLabelOf(to) };
   to.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 

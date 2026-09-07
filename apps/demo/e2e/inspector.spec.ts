@@ -4,6 +4,7 @@ import { expect, test } from './fixtures.js';
 import {
   annotate,
   centre,
+  clickHost,
   commit,
   popup,
   openPanel,
@@ -61,11 +62,7 @@ test('the drawer switches channel with the selection, and the toggle holds', asy
   await pick(page, '[data-plan="Free"] button');
   await expect(channel(page, 'Inspect')).toHaveAttribute('aria-pressed', 'true');
 
-  // Deselecting goes back to Notes.
-  await page.keyboard.press('Escape');
-  await expect(channel(page, 'Notes')).toHaveAttribute('aria-pressed', 'true');
-
-  // So does leaving Element mode with something selected.
+  // Leaving Element mode with something selected goes back to Notes.
   await pick(page, '[data-testid="signup"]');
   await expect(channel(page, 'Inspect')).toHaveAttribute('aria-pressed', 'true');
   await setMode(page, 'Highlight');
@@ -241,6 +238,26 @@ async function clickGap(page: Page, testid: string): Promise<void> {
   await page.mouse.move(at.x, at.y);
   await page.mouse.click(at.x, at.y);
 }
+
+test('picking stops when you pick, and C starts it again', async ({ page, site }) => {
+  await page.goto(`${site}/`);
+  await setMode(page, 'Element');
+  await openPanel(page);
+
+  await pointAt(page, '[data-testid="signup"]');
+  await expect(overlay(page).locator('.element-card')).toBeVisible();
+
+  // Picking an element leaves the picker, the way devtools does.
+  await clickHost(page, '[data-testid="signup"]');
+  await expect(overlay(page).locator('.element-card')).toHaveCount(0);
+  await pointAt(page, '[data-plan="Pro"] button');
+  await expect(overlay(page).locator('.element-card')).toHaveCount(0);
+  await expect(panel(page).locator('.inspect .sel')).toContainText('signup');
+
+  await page.keyboard.press('c');
+  await pointAt(page, '[data-plan="Pro"] button');
+  await expect(overlay(page).locator('.element-card')).toBeVisible();
+});
 
 test('a gap is read back as the stylesheet wrote it, on every kind of container', async ({
   page,

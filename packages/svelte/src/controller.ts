@@ -92,6 +92,12 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
     });
     if (!action) return;
 
+    if (action === 'pick') {
+      state.picking = !state.picking;
+      event.preventDefault();
+      return;
+    }
+
     if (action.startsWith('walk:')) {
       walkSelection(state, action.slice(5) as Walk);
       event.preventDefault();
@@ -113,6 +119,8 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
       case 'palette':
         state.togglePalette();
         break;
+      // Escape closes what is on top of the mode, then the mode. It never touches the panel: the
+      // panel is opened and closed deliberately, from the toolbar or `I`.
       case 'escape':
         if (state.paletteOpen) state.togglePalette(false);
         else if (state.labelDraft) state.labelDraft = null;
@@ -121,10 +129,7 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
           state.sendOpen = false;
           state.settingsOpen = false;
           state.shortcutsOpen = false;
-        } else if (state.mode === 'page' && state.stepOutDraw()) {
-          // inside a drawing → that drawing selected → nothing selected → leave Draw
-        } else if (state.mode === 'element' && state.selection.length > 0) state.selection = [];
-        else if (state.prefs.panelOpen) state.togglePanel(false);
+        } else if (state.insideDrawing) state.stepOutDraw();
         else if (state.mode) state.setMode(null);
         else state.collapse();
         break;

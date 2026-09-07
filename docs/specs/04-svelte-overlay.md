@@ -30,6 +30,7 @@ Collapsed: a single 44 px round button with the logo glyph and a badge with the 
 Expanded, left to right — the ten controls of spec 09 §4 and nothing else:
 
 1. Grip. The command palette has no button here: it opens on its shortcut, which Settings rebinds.
+1a. In Element mode only, the picker toggle (`C`).
 2. The mode segment: **Element** (`E`), **Highlight** (`H`), **Draw** (`D`). One active or none. Clicking the active one exits (`Esc` too).
 3. Pin visibility cycle (all → dots → none), pause animations (`⇧P`).
 4. **Send** (`⌘↵`) with the draft count, batch mode only. Disabled when no drafts.
@@ -47,7 +48,7 @@ Tooltips show label and shortcut, the key rendered as a keycap at `--annot-text-
 ## Modes
 
 ### Element mode
-Hover draws the devtools picture: the four box-model bands in devtools' colours, and its tooltip card above the element — node title, size, colour, font, box, contrast, accessibility (spec 12 §2). **CSS Details** (settings, default on) turns that off and leaves the quiet version: a 2 px outline and a small label chip (`button "Save"`, `describeName(el)` from `core/dom`).
+Hover draws the devtools picture: the four box-model bands in devtools' colours, and its tooltip card above the element — node title, size, colour, font, box, contrast, accessibility (spec 12 §2). Hovering follows the pointer only while **picking** is on, which the pill toggles and `C` toggles; selecting an element with the drawer open turns it off, the way devtools leaves its picker after a pick, so the card stops chasing the cursor while you work in the panel. Entering Element mode turns it back on. **CSS Details** (settings, default on) turns that off and leaves the quiet version: a 2 px outline and a small label chip (`button "Save"`, `describeName(el)` from `core/dom`).
 Clicking empty space clears the selection, and so does `Esc` before it reaches the panel. Click opens the popup anchored to the element — **unless the drawer is open on Inspect** (spec 12 §1), where a click only selects and the note comes from the Annotate chip or `⌘↵`: reading an element and annotating it are different activities, and popping a note over every click makes the inspector unusable. Drag from empty space draws a marquee: the outermost elements at least 50% inside are selected, then the selection steps down one level for as long as a single container is tiled (≥ 70% of its area) by children that are ≥ 90% inside, so a box round a card grid selects the cards and a box round one card selects the card. `⇧` extends the selection and shows an Annotate chip. Ignore the overlay host, `html`, `body`.
 
 ### Highlight mode
@@ -125,7 +126,9 @@ Switches follow the shadcn switch: a `role="switch"` button carrying `data-state
 
 ## Keyboard summary
 
-`⌥A` is the only global binding and opens the command palette; everything else is scoped to an active mode or to a focused surface — spec 09 §2. Scoped: `E` `H` `D` modes · `Esc` close popup / clear the element selection / close panel / exit mode · `⌘↵` add or send · `I` panel · `⇧P` pause · `⌘Z` `⇧⌘Z` in Draw mode · `1`–`6` drawing tools · `⌫` delete focused draft · `?` shows the sheet. Shortcuts are ignored while typing in the host page (focus inside an input/textarea/contenteditable outside the overlay).
+`⌥A` is the only global binding and opens the command palette; everything else is scoped to an active mode or to a focused surface — spec 09 §2. Scoped: `E` `H` `D` modes · `Esc` · `⌘↵` add or send · `I` panel · `C` point at elements · `↑↓←→` walk the tree · `⇧P` pause · `⌘Z` `⇧⌘Z` in Draw mode · `1`–`6` drawing tools · `⌫` delete focused draft · `?` shows the sheet.
+
+**Escape** closes what is on top of the mode, then the mode, then the pill: the palette, a caption being typed, the popup, a dialog, one step out of a drawing you are inside, the mode, the toolbar. It never touches the panel — the panel is opened and closed deliberately, from the toolbar or `I` — and it does not clear the element selection on its own, because leaving the mode already does. One press in a mode with nothing open means one thing: you are out of the mode. Shortcuts are ignored while typing in the host page (focus inside an input/textarea/contenteditable outside the overlay).
 
 ## State
 

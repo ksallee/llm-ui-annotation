@@ -25,6 +25,14 @@ const ctx = (over: Partial<KeyContext> = {}): KeyContext => ({
   ...over,
 });
 
+describe('picking', () => {
+  it('takes C in element mode and nowhere else', () => {
+    expect(keyAction(key({ key: 'c' }), ctx())).toBe('pick');
+    expect(keyAction(key({ key: 'C' }), ctx())).toBe('pick');
+    expect(keyAction(key({ key: 'c' }), ctx({ mode: 'page' }))).toBeNull();
+  });
+});
+
 describe('walking the tree', () => {
   it('takes the arrows only in element mode with something selected', () => {
     const walking = ctx({ selected: true });

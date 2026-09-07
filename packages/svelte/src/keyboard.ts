@@ -16,6 +16,7 @@ export type KeyAction =
   | `tool:${number}`
   | 'tool:move'
   | 'tool:frame'
+  | 'pick'
   | 'walk:parent'
   | 'walk:child'
   | 'walk:previous'
@@ -119,6 +120,8 @@ export function keyAction(event: KeyboardEvent, ctx: KeyContext): KeyAction | nu
     if (event.key === 'f' || event.key === 'F') return 'tool:frame';
   }
 
+  if (ctx.mode === 'element' && (event.key === 'c' || event.key === 'C')) return 'pick';
+
   // The arrows walk the DOM only with something to walk from; otherwise the page keeps its scroll.
   if (ctx.mode === 'element' && ctx.selected) {
     switch (event.key) {
@@ -177,10 +180,11 @@ export const SHORTCUTS: ShortcutEntry[] = [
   { keys: 'F', what: 'Frame: resize the capture box alone', scope: 'in Draw' },
   { keys: '1–6', what: 'Pick a drawing tool', scope: 'in Draw' },
   { keys: '⌘Z / ⇧⌘Z', what: 'Undo / redo a stroke', scope: 'in Draw' },
+  { keys: 'C', what: 'Point at elements again, or stop', scope: 'in Element' },
   { keys: '↑ ↓', what: 'Walk to the parent or the first child', scope: 'with a selection' },
   { keys: '← →', what: 'Walk to the previous or next sibling', scope: 'with a selection' },
   { keys: '⌫', what: 'Delete the focused draft', scope: 'in a mode' },
   { keys: '⌘A', what: 'Select every row the filter shows', scope: 'in the panel' },
-  { keys: 'Esc', what: 'Exit mode, close popup or panel', scope: 'on a surface' },
+  { keys: 'Esc', what: 'Close what is open, then the mode', scope: 'on a surface' },
   { keys: '?', what: 'This sheet', scope: 'in a mode' },
 ];

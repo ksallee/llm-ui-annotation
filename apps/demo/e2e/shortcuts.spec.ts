@@ -59,10 +59,15 @@ test('no overlay key but ⌥A fires while idle; the scoped ones fire in a mode',
     await expect.poll(() => field<string | null>(page, 'mode')).toBe(mode);
   }
 
+  // The panel is `I` and the toolbar, never Escape: Escape belongs to the mode.
   await page.keyboard.press('i');
   await expect(overlay(page).locator('[aria-label="Annotations"]')).toBeVisible();
   await page.keyboard.press('Escape');
+  await expect(overlay(page).locator('[aria-label="Annotations"]')).toBeVisible();
+  await expect.poll(() => field<string | null>(page, 'mode')).toBeNull();
+  await page.keyboard.press('i');
   await expect(overlay(page).locator('[aria-label="Annotations"]')).toBeHidden();
+  await page.keyboard.press('d');
 
   await page.keyboard.press('Shift+P');
   await expect.poll(() => field<boolean>(page, 'frozen')).toBe(true);

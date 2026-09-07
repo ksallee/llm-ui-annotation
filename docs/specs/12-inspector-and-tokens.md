@@ -12,7 +12,10 @@ The right drawer is 360px and already belongs to the annotations panel. It gains
 - Selecting an element in Element mode switches an **already-open** drawer to Inspect. Deselecting, or leaving Element mode, switches back to Notes.
 - A **closed** drawer stays closed. Selecting an element must not force chrome open. The channel is a function of the selection, not an event, so a drawer opened later with the element still selected opens on Inspect.
 - The toggle overrides the automatic switch until the selection changes, so you can read a note while an element is selected.
-- Deselecting is a click on empty space, or `Esc` — which now clears the selection before it closes the panel.
+- Deselecting is a click on empty space. `Esc` does not: it leaves Element mode, which clears the selection anyway (spec 04).
+- Selecting an element with the drawer open stops the picker: the hover outline and card go, the
+  selection highlight stays, and the panel holds still while you work in it. `C` or the pill's picker
+  button starts it again, without leaving Element mode.
 - With a selection, the arrows walk the DOM instead of scrolling the page: `↑` parent, `↓` first
   child, `←` `→` siblings, skipping the overlay, `html` and `body`, and bringing the new element into
   view. Nothing selected, or another mode, and the page keeps its scroll.

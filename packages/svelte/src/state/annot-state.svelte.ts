@@ -308,6 +308,12 @@ export class AnnotState {
   readonly channel = $derived<Channel>(this.channelPin ?? (this.inspected ? 'inspect' : 'notes'));
 
   /**
+   * Whether pointing at the page still outlines what is under the cursor. Selecting an element with
+   * the drawer open turns it off, the way devtools leaves its picker after a pick.
+   */
+  picking = $state(true);
+
+  /**
    * Reading an element rather than annotating it. True with the drawer open on anything but Notes,
    * including before the first selection, so a click behaves the same way every time.
    */
@@ -516,6 +522,7 @@ export class AnnotState {
       this.clearDrawSelection();
       void this.commitDrawings();
     }
+    if (this.mode === 'element') this.picking = true;
     if (this.mode === 'page' && was !== 'page') {
       this.announce('Drawing. The page is held still; Esc to move around.');
       this.toast('The page is held still while you draw — Esc to move around', null, 4000);

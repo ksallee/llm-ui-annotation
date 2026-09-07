@@ -29,6 +29,7 @@ export const ICONS = {
   trash: '<path d="M4.5 6h11M8 6V4.5h4V6M6 6l.8 9.2a1 1 0 0 0 1 .8h4.4a1 1 0 0 0 1-.8L14 6"/>',
   edit: '<path d="M4 16l.8-3 8-8 2.2 2.2-8 8z"/><path d="M11.5 6.5 13.7 8.7"/>',
   locate: '<path d="M10 17.5s5.5-5.6 5.5-9a5.5 5.5 0 0 0-11 0c0 3.4 5.5 9 5.5 9z"/><circle cx="10" cy="8.5" r="2"/>',
+  pick: '<path d="M3.5 7.5v-4h4"/><path d="M16.5 12.5v4h-4"/><path d="M8.5 6.5 15 9.9l-3 1.1-1.1 3z" fill="currentColor" stroke="none"/>',
   search: '<circle cx="9" cy="9" r="5"/><path d="M12.8 12.8 17 17"/>',
   more: '<circle cx="4.5" cy="10" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="10" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="10" r="1.2" fill="currentColor" stroke="none"/>',
   move: '<path d="M10 3.2v13.6M3.2 10h13.6"/><path d="m8 5.2 2-2 2 2M8 14.8l2 2 2-2M5.2 8l-2 2 2 2M14.8 8l2 2-2 2"/>',
