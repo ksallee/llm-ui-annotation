@@ -1,8 +1,9 @@
 // What the overlay binds to the host page — listeners, the key map, the style preview — and the
 // commands its surfaces run. The host page is read-only to all of it.
 
-import type { Rect, Status, Stroke, Target } from '@llm-ui-annotation/core';
-import { captureRegion, freezeAnimations, isOverlayNode } from './dom/core-dom.js';
+import type { Rect, Status, Stroke, StyleEdit, Target } from '@llm-ui-annotation/core';
+import { captureRegion, describeElement, freezeAnimations, isOverlayNode } from './dom/core-dom.js';
+import { withoutPreview } from './dom/preview.js';
 import { paintHighlights, supportsHighlights } from './dom/highlights.js';
 import { isTyping, keyAction } from './keyboard.js';
 import { DRAW_TOOLS } from './draw-tools.js';
@@ -334,6 +335,30 @@ export async function commitPopup(state: AnnotState, send = false): Promise<void
 
   state.closePopup();
   state.reanchor();
+}
+
+/** What a CSS-only note is called: the properties, so the panel row says something. */
+function editSummary(edits: readonly StyleEdit[]): string {
+  const names = [...new Set(edits.map((edit) => edit.property))];
+  const shown = names.slice(0, 3).join(', ');
+  return `CSS: ${shown}${names.length > 3 ? ` and ${names.length - 3} more` : ''}`;
+}
+
+/**
+ * Send the pending changes on their own, for when the values are the whole point and there is
+ * nothing to add in words. The note is anchored to the element being inspected; each edit carries
+ * its own selector, so the diff stays true even for edits made on another element.
+ */
+export async function sendStyleEdits(state: AnnotState): Promise<void> {
+  const el = state.inspected;
+  if (!el || state.styleEdits.length === 0) return;
+  const elements = withoutPreview(state.doc, () => [
+    describeElement(el, { styles: state.detail !== 'compact' }),
+  ]);
+  const created = await state.add('element', { kind: 'element', elements }, editSummary(state.styleEdits), true);
+  state.clearStyleEdits();
+  await state.sendOne(created.id);
+  state.noteSent();
 }
 
 /** A PNG of the region with its marks drawn on, or null when the backend is missing. */

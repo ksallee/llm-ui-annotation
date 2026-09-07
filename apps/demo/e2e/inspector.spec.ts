@@ -159,10 +159,10 @@ test('the panel shows what the source declares, and a change goes into the note'
   // The token it already has changes nothing, and must not be recorded as a change.
   await background.fill('var(--demo-accent)');
   await background.blur();
-  await expect(panel(page)).toContainText('1 CSS change in your next note');
+  await expect(panel(page)).toContainText('1 CSS change');
   await background.fill('var(--demo-surface)');
   await background.blur();
-  await expect(panel(page)).toContainText('2 CSS changes in your next note');
+  await expect(panel(page)).toContainText('2 CSS changes');
 
   await annotate(page, '[data-testid="signup"]');
   await expect(popup(page)).toContainText('2 CSS changes');
@@ -187,6 +187,33 @@ test('the panel shows what the source declares, and a change goes into the note'
   ]);
 
   // Sent means done: the page goes back to what the code says.
+  await expect
+    .poll(() => page.locator('[data-testid="signup"]').evaluate((el) => getComputedStyle(el).padding))
+    .toBe('8px 16px');
+});
+
+test('CSS changes go out on their own, with no note written', async ({ page, site, annotDir }) => {
+  await page.goto(`${site}/`);
+  await setMode(page, 'Element');
+  await openPanel(page);
+  await pick(page, '[data-testid="signup"]');
+
+  const padding = panel(page).locator('input[aria-label="padding"]');
+  await padding.fill('var(--demo-space-5)');
+  await padding.blur();
+  await panel(page).getByRole('button', { name: 'Send', exact: true }).click();
+
+  // No popup, no comment typed: the values are the whole message.
+  await expect(popup(page)).toHaveCount(0);
+  await expect(overlay(page).locator('.toast')).toContainText('Sent. Waiting for the agent.');
+
+  const stored = (await storedAnnotations(annotDir, '/'))[0]!;
+  expect(stored.status).toBe('sent');
+  expect(stored.comment).toBe('CSS: padding');
+  expect(stored.styleEdits?.[0]?.to).toBe('var(--demo-space-5)');
+
+  // Sent means done: the pending bar is empty and the page is back to what the code says.
+  await expect(panel(page).getByRole('button', { name: 'Send', exact: true })).toHaveCount(0);
   await expect
     .poll(() => page.locator('[data-testid="signup"]').evaluate((el) => getComputedStyle(el).padding))
     .toBe('8px 16px');

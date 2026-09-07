@@ -1,5 +1,6 @@
 <script lang="ts">
   import { declaredTokens, describeSelector, resolveDeclared } from '../dom/core-dom.js';
+  import { sendStyleEdits } from '../controller.js';
   import { matchedDeclarations, type Declaration } from '../dom/declared.js';
   import { withoutPreview } from '../dom/preview.js';
   import { inspectElement, type Reading } from '../dom/inspect.js';
@@ -148,12 +149,12 @@
 
     {#if pending.length > 0}
       <div class="row">
-        <span class="muted"
-          >{pending.length} CSS change{pending.length === 1 ? '' : 's'} in your next note</span
-        >
+        <span class="muted">{pending.length} CSS change{pending.length === 1 ? '' : 's'}</span>
         <span class="spacer"></span>
-        <button class="btn quiet small" onclick={() => annot.clearStyleEdits()}>Clear all</button>
+        <button class="btn quiet small" onclick={() => annot.clearStyleEdits()}>Clear</button>
+        <button class="btn primary small" onclick={() => void sendStyleEdits(annot)}>Send</button>
       </div>
+      <p class="muted hint">Or write a note and they go with it.</p>
     {/if}
 
     <section class="sec">

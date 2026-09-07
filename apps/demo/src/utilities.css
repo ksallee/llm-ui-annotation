@@ -77,6 +77,7 @@ body {
 .gap-3 { gap: var(--demo-space-3); }
 .gap-4 { gap: var(--demo-space-4); }
 .gap-6 { gap: var(--demo-space-5); }
+.gap-10 { gap: var(--demo-space-7); }
 .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 

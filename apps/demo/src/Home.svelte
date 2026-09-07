@@ -32,7 +32,7 @@
 
   <section class="pricing mb-8" aria-labelledby="pricing-heading">
     <h2 id="pricing-heading" class="text-2xl font-semibold mb-4">Pricing</h2>
-    <div class="cards grid grid-cols-3 gap-4">
+    <div class="cards grid grid-cols-3 gap-10">
       {#each PLANS as plan (plan.name)}
         <article class="card border rounded-xl bg-surface p-6 shadow-sm" data-plan={plan.name}>
           <h3 class="text-lg font-semibold mt-0 mb-2">{plan.name}</h3>
@@ -46,7 +46,7 @@
 
   <section class="features mb-8" aria-labelledby="features-heading">
     <h2 id="features-heading" class="text-2xl font-semibold mb-4">What you get</h2>
-    <ul class="grid grid-cols-3 gap-4">
+    <ul class="grid grid-cols-3 gap-10">
       {#each FEATURES as feature (feature.title)}
         <li class="feature flex gap-3 items-start border rounded-lg bg-surface p-4">
           <span class="icon text-lg" aria-hidden="true">{feature.icon}</span>

@@ -457,6 +457,19 @@ export class AnnotState {
     this.batchToast(`Deleted ${rows.length}`, null);
   }
 
+  /**
+   * Why a write did not land. A refusal is not silence: the server answered, and saying it is
+   * unreachable sends the user to look at the wrong thing.
+   */
+  writeFailed(what: string, error: unknown): void {
+    if (error instanceof AnnotHttpError) {
+      this.toast(`${what} refused: ${error.problems[0] ?? error.message}`);
+      return;
+    }
+    this.connection = 'offline';
+    this.toast('Dev server not reachable; kept in memory');
+  }
+
   /** One note has gone out. The pin turning solid is easy to miss; this is not. */
   noteSent(): void {
     this.announce('Sent 1 annotation');
@@ -684,9 +697,8 @@ export class AnnotState {
         this.noteSent();
       }
       return saved;
-    } catch {
-      this.connection = 'offline';
-      this.toast('Dev server not reachable; kept in memory');
+    } catch (error) {
+      this.writeFailed('The note was', error);
       return annotation;
     }
   }
