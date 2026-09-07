@@ -7,8 +7,9 @@ Annotate a running UI in the browser and hand the feedback to a coding agent. Po
 - One accent in, a coherent light and dark palette out (oklch). Highlights, pins, popups and panel all follow it.
 - Never mutates your app's DOM.
 
-Status: `0.1.0`, sixteen workstreams landed, 506 unit tests and 50 Playwright e2e green, not
-published to npm. The four packages in `packages/` are private workspace packages; run the demo from
+Status: `0.1.0`, sixteen workstreams landed, not published to npm. 506 unit tests pass. The 50
+Playwright e2e pass individually but the suite is not reliably green end to end — about one run in
+three trips over the duplicate-attachment bug in `docs/known-gaps.md`. The four packages in `packages/` are private workspace packages; run the demo from
 the repo.
 
 ```sh

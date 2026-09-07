@@ -159,8 +159,17 @@ Kept so nobody re-files them.
 
 - ~~A sent annotation cannot be deleted~~ — fixed: delete is allowed for any status, and removes the screenshot and attachment directory with it.
 - **`vite-plugin/test/ws.test.ts` is flaky under CPU load** (test). The external-edit case waits on an `fs.watch` debounce of 100 ms; with several agents building in parallel the window is missed. Passes 4/4 in isolation, fails around half the time under load. The debounce should be configurable so the test can widen it.
-- **`apps/demo/e2e/attachments.spec.ts` "a file dropped on a panel row" is occasionally flaky** (test, possibly product). Fails as a strict-mode violation: `.attachment .att-name` resolves to two elements, i.e. one drop leaving two chips on one row. Seen ~3 times in ~15 full runs, never in isolation. Ruled out so far, so do not re-check these:
-  - *Not two handlers.* `fileDrop` calls `stopPropagation()` on drop, and the page-level handler is on `document` in the bubble phase, so a row drop cannot also reach it.
-  - *Not optimistic-add racing the websocket push.* `mergeAttachment` filters by `attachment.id` before appending, so the same attachment cannot land twice.
-  - *Not test isolation.* `annotDir` is a per-test `mkdtemp`, torn down after each test.
-  Still open: a Svelte `use:` action surviving a keyed re-render, leaving two live listeners on one row for the duration of a drag. Check whether the chip count doubles or the file count doubles — the first is a UI bug, the second is a double POST.
+- **One dropped file sometimes attaches twice** (product bug, intermittent). Seen on both drop
+  targets: `.attachment .att-name` resolving to two elements inside a panel row *and* inside the
+  popup. Because `mergeAttachment` filters by `attachment.id` before appending, two chips means two
+  ids, which means **two POSTs** — a real double upload, not a rendering artefact. Fails roughly one
+  full e2e run in three (`attachments.spec.ts:30` and `:57`, and it takes `panel.spec.ts:21` down
+  with it when the extra chip lands in a row). Ruled out, so do not re-check:
+  - *Not two handlers.* `fileDrop` calls `stopPropagation()` on drop, and the page-level handler is
+    on `document` in the bubble phase.
+  - *Not `filesOf` doubling.* It reads `dataTransfer.files` only, never `.items` as well.
+  - *Not optimistic-add racing the websocket push.* `mergeAttachment` dedupes by id.
+  - *Not test isolation.* `annotDir` is a per-test `mkdtemp`.
+  Next step: count the POSTs server-side rather than in the page — patching `window.fetch` from a
+  drive script misses them, because the client captured its own reference at construction. Add a
+  request counter to the plugin test harness and drive the popup drop in a loop.
