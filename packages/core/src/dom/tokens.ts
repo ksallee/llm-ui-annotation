@@ -221,8 +221,8 @@ function rootFontSize(doc: Document): number {
   }
 }
 
-/** Custom properties the page declares, keyed by value. `el` scopes them to its own ancestry. */
-export function tokenMap(doc: Document, el?: Element): TokenMap {
+/** The winning declaration per name, with the sheets that could not be read. */
+function collect(doc: Document, el?: Element): { best: Map<string, Declaration>; skipped: number } {
   const view = doc.defaultView;
   const chain = el ? ancestorChain(el) : null;
   const into: Collected = { decls: [], skipped: 0 };
@@ -231,9 +231,16 @@ export function tokenMap(doc: Document, el?: Element): TokenMap {
     const sheet = sheets[i];
     if (sheet) collectSheet(sheet, chain, view, into);
   }
+  return { best: winners(into.decls), skipped: into.skipped };
+}
 
+/**
+ * Custom properties the page declares, keyed by value, one name per value. `el` scopes them to its
+ * own ancestry. Two tokens sharing a value keep the shallower, then the shorter name.
+ */
+export function tokenMap(doc: Document, el?: Element): TokenMap {
+  const { best, skipped } = collect(doc, el);
   const rootPx = rootFontSize(doc);
-  const best = winners(into.decls);
   const chosen = new Map<string, Declaration>();
   const map = new Map<string, string>();
   for (const d of best.values()) {
@@ -244,7 +251,22 @@ export function tokenMap(doc: Document, el?: Element): TokenMap {
     chosen.set(key, d);
     map.set(key, d.name);
   }
-  return Object.assign(map, { skipped: into.skipped });
+  return Object.assign(map, { skipped });
+}
+
+/**
+ * Every custom property in scope, keyed by name. Unlike `tokenMap` nothing is dropped for sharing a
+ * value, which is what an editor offering the page's tokens needs.
+ */
+export function declaredTokens(doc: Document, el?: Element): Map<string, string> {
+  const { best } = collect(doc, el);
+  const rootPx = rootFontSize(doc);
+  const out = new Map<string, string>();
+  for (const d of best.values()) {
+    const value = normalizeValue(deref(best, d), rootPx);
+    if (value !== '') out.set(d.name, value);
+  }
+  return out;
 }
 
 function matchValue(value: string, map: ReadonlyMap<string, string>): string | undefined {
@@ -263,14 +285,40 @@ function matchValue(value: string, map: ReadonlyMap<string, string>): string | u
 }
 
 /** Property to the custom property that produced it. A multi-part value resolves only in full. */
+/** Properties a page writes against its own font size, and the unit their tokens are written in. */
+const RELATIVE: Record<string, 'ratio' | 'em'> = {
+  'line-height': 'ratio',
+  'letter-spacing': 'em',
+};
+
+/** The same value as the page declared it: `41.4px` of line-height is `1.15` on a 36px font. */
+function asDeclared(prop: string, value: string, fontPx: number): string | null {
+  const unit = RELATIVE[prop];
+  const px = Number.parseFloat(value);
+  if (unit === undefined || fontPx <= 0 || !Number.isFinite(px) || !value.endsWith('px')) return null;
+  const ratio = round(px / fontPx);
+  return unit === 'ratio' ? String(ratio) : `${ratio}em`;
+}
+
 export function resolveTokens(
   styles: Record<string, string>,
   map: ReadonlyMap<string, string>,
+  fontPx = 0,
 ): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [prop, value] of Object.entries(styles)) {
-    const name = matchValue(value, map);
+    const name = matchValue(value, map) ?? matchRelative(prop, value, map, fontPx);
     if (name !== undefined) out[prop] = name;
   }
   return out;
+}
+
+function matchRelative(
+  prop: string,
+  value: string,
+  map: ReadonlyMap<string, string>,
+  fontPx: number,
+): string | undefined {
+  const declared = asDeclared(prop, value, fontPx);
+  return declared === null ? undefined : matchValue(declared, map);
 }

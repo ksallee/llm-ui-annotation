@@ -13,6 +13,13 @@ Four Vite MPA entries, so the paths carry a trailing slash: `/`, `/app/`, `/pros
 
 The demo mounts the overlay through the Vite plugin (auto-inject), with an accent picker in its own nav that writes `--annot-accent` on `:root` to prove "follow host" works live.
 
+Its utilities carry a real design system — spacing, type sizes, leading, tracking, weights, radii,
+shadows and font stacks, all `--demo-*` on `:root`, with every utility resolving to one — because a
+demo whose values are literals cannot show the two things spec 12 §4 and spec 13 are for: naming the
+token behind a value, and offering a designer their own scale. The scale deliberately reuses values
+across families (`--space-3` and `--text-xs` are both 12px), which is what makes the one-name-per-value
+limit of `tokenMap` visible.
+
 ## Fake agent
 
 `apps/demo/scripts/fake-agent.mjs`: loops on `annot watch --timeout 30`, and for each item: `ack`, then by comment prefix: `ask:` → asks "Which one?"; `decline:` → declines; anything else → `done --summary "fake: would change <selector>"`. Used by e2e and handy for manual demos.

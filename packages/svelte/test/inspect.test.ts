@@ -1,6 +1,7 @@
 /** @vitest-environment happy-dom */
 import { describe, expect, it } from 'vitest';
 import { boxModel, elementCard, hexOf, inspectElement, shorthand } from '../src/dom/inspect.js';
+import { namedToken } from '../src/dom/style-edit.js';
 
 function element(style: string, tag = 'div'): Element {
   document.body.innerHTML = `<main><section><${tag} id="t" style="${style}">hi</${tag}></section></main>`;
@@ -37,6 +38,19 @@ describe('the devtools card', () => {
     expect(card.rows.find((r) => r.name === 'Gap')?.value).toBe('12px');
     expect(card.rows.find((r) => r.name === 'Shadow')?.value).toContain('red');
     expect(card.rows.find((r) => r.name === 'Background')?.value).toMatch(/^#f{3,6}$/);
+  });
+
+  it('names the token behind a value, and only from that property\u2019s own family', () => {
+    const tokens = new Map([['12px', '--radius-md']]);
+    expect(namedToken('border-radius', '12px', tokens)).toBe('--radius-md');
+    // The same value, the wrong family: a coincidence, not the source.
+    expect(namedToken('padding', '12px', tokens)).toBeNull();
+  });
+
+  it('reads a computed line-height back to the ratio its token is written as', () => {
+    const tokens = new Map([['1.15', '--leading-tight']]);
+    expect(namedToken('line-height', '41.4px', tokens)).toBeNull();
+    expect(namedToken('line-height', '41.4px', tokens, 36)).toBe('--leading-tight');
   });
 
   it('titles the node the way devtools does and reads the box off it', () => {

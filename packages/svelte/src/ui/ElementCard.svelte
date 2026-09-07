@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Rect } from '@llm-ui-annotation/core';
+  import { tokenMap } from '../dom/core-dom.js';
   import { elementCard } from '../dom/inspect.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import NodeTitle from './NodeTitle.svelte';
@@ -12,9 +13,12 @@
   let height = $state(0);
   let width = $state(0);
 
+  // Keyed on the element alone: the map walks every stylesheet, and scrolling must not redo it.
+  const tokens = $derived(tokenMap(annot.doc, el));
+
   const card = $derived.by(() => {
     void rect;
-    return elementCard(el);
+    return elementCard(el, tokens);
   });
 
   // Above the element, as devtools does; below when the top of the window is in the way.
@@ -47,6 +51,7 @@
         <dt>{row.name}</dt>
         <dd>
           {#if row.swatch}<span class="swatch inline" style="background: {row.swatch}"></span>{/if}{row.value}
+          {#if row.token}<span class="token">{row.token}</span>{/if}
         </dd>
       {/each}
     </dl>

@@ -44,18 +44,32 @@ In the drawer, under the readings, as **Propose a change**. Only the design set 
 |-------|------------|
 | Spacing | `padding` `margin` `gap` |
 | Colour | `color` `background-color` `border-color` |
-| Type | `font-family` `font-size` `font-weight` `line-height` |
-| Shape | `border-radius` `box-shadow` |
+| Type | `font-family` `font-size` `font-weight` `line-height` `letter-spacing` `text-transform` `text-align` |
+| Shape | `border-radius` `border-width` `box-shadow` `opacity` |
 
 Every row shows the computed value even when it is `none` or `normal`, so a shadow or a gap can be
 proposed where the page has neither. A row is a text input plus, when the page has tokens that fit,
 a select of them.
 
-Tokens come from `tokenMap(doc, el)` — the custom properties the page declares in scope for that
-element, which is the same source spec 12 §4 uses to name a value. `kindOf` classifies each token's
-value as `color`, `length`, `shadow`, `family` or `free`, and a row offers only the tokens matching
-its own kind: a colour row never offers a spacing token. Picking one writes `to: var(--name)` and
-`token: --name`; typing writes the raw value and `token: null`.
+Tokens come from `declaredTokens(doc, el)` — every custom property in scope for that element, by
+name. Not `tokenMap`: that keeps one name per value, and a page where `--space-3` and `--text-xs` are
+both `12px` must offer both here.
+
+Two filters decide what a row shows. `kindOf` classifies each token's value as `color`, `length`,
+`shadow`, `family` or `free`, and a row offers only its own kind — a colour row never offers a
+spacing token. Then the row's `family` pattern (`/space|gap|pad/` for padding, `/tracking|letter/`
+for letter-spacing, and so on) puts the tokens named for that property first and the rest under an
+`other tokens` group. A designer looking for their type scale should not have to read past the
+spacing scale to find it.
+
+The same `family` patterns decide what the **readings** claim. `namedToken(property, value, tokens,
+fontPx)` reports a token only when its name belongs to that property: a `10px` radius and a `10px`
+pad are the same string, and telling someone their padding is `--radius-lg` is worse than telling
+them nothing. A design system whose names carry no family (`--c1`, `--sp2`) therefore shows values
+without a token in the readings; the payload the agent gets is unfiltered.
+
+Picking a token writes `to: var(--name)` and `token: --name`; typing writes the raw value and
+`token: null`.
 
 ## The preview
 
@@ -98,6 +112,7 @@ different: an old reader that drops the field silently loses half of what the us
 ## Acceptance criteria
 
 - Changing `padding` in the drawer changes the live page, and clearing it puts the page back.
+- The type editors offer the page's type scale first and its spacing scale under `other tokens`.
 - A colour row offers the page's colour tokens and no others; picking one writes `var(--name)` and the token name.
 - The note created next carries both edits; the route file on disk holds them; the page reverts on commit.
 - `annot pending` prints the diff block above the comment, at every detail level.

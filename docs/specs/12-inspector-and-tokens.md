@@ -84,10 +84,19 @@ If a page defines `--color-primary-600` and the button computes to that colour, 
   `core/theme`, absolute lengths and `rem` to px, `,` spacing and case collapsed. A hex that computes
   to `oklch(...)` must still match its token, and so must the `oklch(…) (#hex)` form `styles` stores.
   `em`, `%` and viewport units are compared as written, so they only ever match themselves.
+- `line-height` and `letter-spacing` compute against the element's own font size, so a `1.15` token
+  reaches the inspector as `41.4px` and a `-0.01em` token as `-0.36px`. Given `fontPx`,
+  `resolveTokens` divides the computed value back to the ratio or em the token is written as and
+  retries. Without it those two properties resolve to nothing, which is what they did before.
 - Where two tokens share a value, prefer the one declared on the closest ancestor, then the shortest
   name, then alphabetical. Report one, never a list.
 
-`resolveTokens(styles, map): Record<string, string>` maps a property to the token that produced it.
+`declaredTokens(doc, el?): Map<string, string>` is the other half: every custom property in scope,
+keyed by **name**, nothing dropped for sharing a value. `tokenMap`'s one-name-per-value rule is right
+for reading a value back to its source and wrong for offering a designer their own scale — a page
+where `--space-3` and `--text-xs` are both `12px` must still offer both in the type editor (spec 13).
+
+`resolveTokens(styles, map, fontPx?): Record<string, string>` maps a property to the token that produced it.
 It matches the whole value first, then, for a value of several parts (parentheses respected, so
 `rgb(1, 2, 3)` stays whole), every part — and only reports the property when **every** part resolves,
 joined by a space: `padding` → `--space-3 --space-4`. So `border: 1px solid var(--line)` reports

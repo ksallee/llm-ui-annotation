@@ -8,7 +8,7 @@ Annotate a running UI in the browser and hand the feedback to a coding agent. Po
 - Change a value in the inspector, see it on the page, send the diff with the design token's name.
 - Never mutates your app's DOM — the one exception is a stylesheet it owns, holding the style change you are previewing, removed when you send or clear it.
 
-Status: `0.1.0`, seventeen workstreams landed, not published to npm. 529 unit tests and 54 Playwright
+Status: `0.1.0`, seventeen workstreams landed, not published to npm. 534 unit tests and 54 Playwright
 e2e pass, the e2e suite repeatably. The four packages in `packages/` are private workspace packages; run the demo from
 the repo.
 

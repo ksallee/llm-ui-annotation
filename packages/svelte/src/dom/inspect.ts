@@ -3,7 +3,15 @@
 
 import type { Rect } from '@llm-ui-annotation/core';
 import { contrast } from '@llm-ui-annotation/core/theme';
-import { computedStyles, describeSelector, docRect, elementLabelOf, labelOf, roleOf } from './core-dom.js';
+import {
+  computedStyles,
+  describeSelector,
+  docRect,
+  elementLabelOf,
+  labelOf,
+  roleOf,
+} from './core-dom.js';
+import { namedToken } from './style-edit.js';
 
 export interface Sides {
   top: number;
@@ -37,6 +45,8 @@ export interface CardRow {
   name: string;
   value: string;
   swatch: string | null;
+  /** The custom property the page declares for this value, when there is one. */
+  token: string | null;
 }
 
 export interface ElementCard {
@@ -48,6 +58,8 @@ export interface ElementCard {
 
 export interface Inspection {
   name: string;
+  /** The element's font size in px, the basis for its em and unitless values. */
+  fontPx: number;
   label: NodeLabel;
   a11y: CardRow[];
   selector: string;
@@ -72,11 +84,12 @@ const SCOPED = /^(s|svelte)-[a-z0-9]{6,}$/i;
 const px = (style: CSSStyleDeclaration, prop: string): number =>
   Number.parseFloat(style.getPropertyValue(prop)) || 0;
 
-const row = (name: string, value: string, swatch: string | null = null): CardRow => ({
-  name,
-  value,
-  swatch,
-});
+const row = (
+  name: string,
+  value: string,
+  swatch: string | null = null,
+  token: string | null = null,
+): CardRow => ({ name, value, swatch, token });
 
 function readings(style: CSSStyleDeclaration, props: string[]): Reading[] {
   return props
@@ -193,25 +206,37 @@ export function hexOf(css: string): string {
 }
 
 /** What devtools puts in the tooltip over the element it is highlighting. */
-export function elementCard(el: Element): ElementCard | null {
+export function elementCard(el: Element, tokens?: ReadonlyMap<string, string>): ElementCard | null {
   const view = el.ownerDocument.defaultView;
   const box = boxModel(el);
   if (!view || !box) return null;
   const style = view.getComputedStyle(el);
   const read = (prop: string): string => style.getPropertyValue(prop).trim();
+  const fontPx = Number.parseFloat(read('font-size')) || 0;
+  const named = (prop: string, value: string): string | null =>
+    tokens ? namedToken(prop, value, tokens, fontPx) : null;
 
   const colour = read('color');
   const family = read('font-family').split(',')[0]?.replace(/["']/g, '').trim() ?? '';
   const behind = paintedBackground(el, style);
   const shadow = read('box-shadow');
   const gap = read('gap');
+  const size = read('font-size');
 
-  const rows = [row('Color', hexOf(colour), colour), row('Font', `${read('font-size')} ${family}`)];
-  if (behind) rows.push(row('Background', hexOf(behind), behind));
-  if (!EMPTY.has(shadow)) rows.push(row('Shadow', shadow));
-  rows.push(row('Margin', shorthand(box.margin)), row('Padding', shorthand(box.padding)));
-  if (/flex|grid/.test(read('display')) && !EMPTY.has(gap)) rows.push(row('Gap', gap));
-  rows.push(row('Border', shorthand(box.border)));
+  const rows = [
+    row('Color', hexOf(colour), colour, named('color', colour)),
+    row('Font', `${size} ${family}`, null, named('font-size', size)),
+  ];
+  if (behind) rows.push(row('Background', hexOf(behind), behind, named('background-color', behind)));
+  if (!EMPTY.has(shadow)) rows.push(row('Shadow', shadow, null, named('box-shadow', shadow)));
+  rows.push(
+    row('Margin', shorthand(box.margin), null, named('margin', shorthand(box.margin))),
+    row('Padding', shorthand(box.padding), null, named('padding', shorthand(box.padding))),
+  );
+  if (/flex|grid/.test(read('display')) && !EMPTY.has(gap)) {
+    rows.push(row('Gap', gap, null, named('gap', gap)));
+  }
+  rows.push(row('Border', shorthand(box.border), null, named('border-width', shorthand(box.border))));
 
   if (behind && hasOwnText(el)) {
     const ratio = contrast(colour, behind);
@@ -279,6 +304,7 @@ export function inspectElement(el: Element, withStyles: boolean): Inspection {
   const box = boxModel(el);
   return {
     name: elementLabelOf(el),
+    fontPx: style ? Number.parseFloat(style.getPropertyValue('font-size')) || 0 : 0,
     label: nodeLabel(el),
     a11y: a11yRows(el),
     selector: describeSelector(el).selector,

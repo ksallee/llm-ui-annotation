@@ -38,6 +38,9 @@ function ignorable(el: Element, overlayTag: string): boolean {
   return NEVER_RENDERED.has(el.tagName) || isOverlay(el, overlayTag);
 }
 
+const fontSizeOf = (el: Element): string =>
+  el.ownerDocument.defaultView?.getComputedStyle(el).getPropertyValue('font-size') ?? '';
+
 function isFixed(el: Element): boolean {
   const view = el.ownerDocument.defaultView;
   if (!view) return false;
@@ -102,7 +105,8 @@ export function describeElement(el: Element, opts: DescribeOptions = {}): Elemen
   if (detailed) {
     const styles = computedStyles(el);
     ref.styles = styles;
-    const tokens = resolveTokens(styles, opts.tokens ?? tokenMap(el.ownerDocument, el));
+    const fontPx = Number.parseFloat(fontSizeOf(el)) || 0;
+    const tokens = resolveTokens(styles, opts.tokens ?? tokenMap(el.ownerDocument, el), fontPx);
     if (Object.keys(tokens).length > 0) ref.tokens = tokens;
   }
   if (opts.context !== false) ref.context = contextOf(el, overlayTag);

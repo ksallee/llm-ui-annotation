@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 import { describe, expect, it } from 'vitest';
 import { describeElement } from '../../src/dom/describe.js';
-import { normalizeValue, resolveTokens, tokenMap } from '../../src/dom/tokens.js';
+import { declaredTokens, normalizeValue, resolveTokens, tokenMap } from '../../src/dom/tokens.js';
 import { renderAnnotationMarkdown } from '../../src/protocol/markdown.js';
 import type { Annotation, ElementRef } from '../../src/model/types.js';
 import { annotation } from '../fixtures.js';
@@ -140,6 +140,43 @@ describe('markdown', () => {
     expect(renderAnnotationMarkdown(annotationWith(ref), opts)).not.toContain('var(--');
     expect(renderAnnotationMarkdown(annotationWith(withToken), opts)).toContain(
       'font-size 14px var(--text-sm)',
+    );
+  });
+});
+
+describe('values a page writes against its own font size', () => {
+  const MAP = new Map([
+    ['1.15', '--leading-tight'],
+    ['-0.01em', '--tracking-tight'],
+  ]);
+
+  it('reads a computed line-height and letter-spacing back to the token', () => {
+    const styles = { 'line-height': '41.4px', 'letter-spacing': '-0.36px' };
+    expect(resolveTokens(styles, MAP)).toEqual({});
+    expect(resolveTokens(styles, MAP, 36)).toEqual({
+      'line-height': '--leading-tight',
+      'letter-spacing': '--tracking-tight',
+    });
+  });
+
+  it('leaves a length whose basis it does not know', () => {
+    expect(resolveTokens({ padding: '41.4px' }, MAP, 36)).toEqual({});
+  });
+});
+
+describe('declaredTokens', () => {
+  it('keeps every name, including two that share a value', () => {
+    const el = styled(
+      ':root{--space-3:12px;--text-xs:12px}button.cta{padding:12px}',
+      '<button class="cta" data-target>Go</button>',
+    );
+    const doc = el.ownerDocument;
+    expect([...tokenMap(doc, el).values()]).toEqual(['--space-3']);
+    expect(declaredTokens(doc, el)).toEqual(
+      new Map([
+        ['--space-3', '12px'],
+        ['--text-xs', '12px'],
+      ]),
     );
   });
 });

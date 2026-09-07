@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { describeSelector } from '../dom/core-dom.js';
+  import { declaredTokens, describeSelector } from '../dom/core-dom.js';
   import { EDITABLE, editableValues, sameValue, tokenOptions } from '../dom/style-edit.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import Icon from './Icon.svelte';
@@ -7,6 +7,7 @@
   let { annot, el }: { annot: AnnotState; el: Element } = $props();
 
   const selector = $derived(describeSelector(el).selector);
+  const tokens = $derived(declaredTokens(annot.doc, el));
   const values = $derived(editableValues(el));
   const groups = $derived([...new Set(EDITABLE.map((e) => e.group))]);
   const mine = $derived(annot.styleEdits.filter((e) => e.selector === selector));
@@ -29,7 +30,7 @@
       <span class="group-name">{group}</span>
       {#each EDITABLE.filter((e) => e.group === group) as item (item.property)}
         {@const edit = annot.styleEdit(selector, item.property)}
-        {@const options = tokenOptions(annot.doc, el, item.kind)}
+        {@const options = tokenOptions(tokens, item)}
         <div class="editor" class:edited={edit}>
           <span class="prop">{item.property}</span>
           <input
@@ -38,7 +39,7 @@
             aria-label={item.property}
             onchange={(e) => commit(item.property, e.currentTarget.value, null)}
           />
-          {#if options.length > 0}
+          {#if options.fitting.length + options.others.length > 0}
             <select
               class="field mini tokens"
               aria-label="{item.property} token"
@@ -49,9 +50,16 @@
               }}
             >
               <option value="">token…</option>
-              {#each options as option (option.name)}
+              {#each options.fitting as option (option.name)}
                 <option value={option.name}>{option.name} · {option.value}</option>
               {/each}
+              {#if options.others.length > 0}
+                <optgroup label="other tokens">
+                  {#each options.others as option (option.name)}
+                    <option value={option.name}>{option.name} · {option.value}</option>
+                  {/each}
+                </optgroup>
+              {/if}
             </select>
           {/if}
           {#if edit}

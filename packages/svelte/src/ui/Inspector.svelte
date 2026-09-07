@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolveTokens, tokenMap } from '../dom/core-dom.js';
   import { hexOf, inspectElement, type Reading } from '../dom/inspect.js';
+  import { namedToken } from '../dom/style-edit.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import BoxDiagram from './BoxDiagram.svelte';
   import NodeTitle from './NodeTitle.svelte';
@@ -15,8 +16,8 @@
   const styles = $derived(seen?.styles ?? null);
   const entries = $derived(Object.entries(styles ?? {}));
   // The same call `describeElement` makes, so this is what the annotation carries.
-  const map = $derived(el && styles ? tokenMap(annot.doc, el) : null);
-  const tokens = $derived(map && styles ? resolveTokens(styles, map) : {});
+  const map = $derived(el ? tokenMap(annot.doc, el) : null);
+  const tokens = $derived(map && styles ? resolveTokens(styles, map, seen?.fontPx ?? 0) : {});
   const others = $derived(annot.selection.length - 1);
 
   const size = $derived(
@@ -52,10 +53,12 @@
           <dl class="decls">
             {#each rows as [name, value] (name)}
               {@const colour = SWATCHES.has(name)}
+              {@const token = map ? namedToken(name, value, map, seen.fontPx) : null}
               <dt>{name}</dt>
               <dd>
                 {#if colour}<span class="swatch inline" style="background: {value}"></span>{/if}
                 {colour ? hexOf(value) : value}
+                {#if token}<span class="token">{token}</span>{/if}
               </dd>
             {/each}
           </dl>
