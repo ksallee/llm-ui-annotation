@@ -147,6 +147,10 @@ content column and a drag would appear to do nothing.
   Highlight reaches the host element or the text underneath. This is the whole reason selection lives
   on a tool: a drawing can cover half a page.
 - Approved annotations are not selectable; reopen first.
+- **Status is never painted onto the marks.** The five colours are the drawer's own meaning — red for
+  wrong, green for good — and a status wash behind a rect or an arrow reads as a second outline
+  around it, not as a tint. Status lives on the pin and the panel row; on canvas an approved drawing
+  only settles back in opacity.
 
 `transformStrokes(strokes, from: Rect, to: Rect): Stroke[]` in `packages/core/src/dom/strokes.ts`,
 built on the existing `translateStrokes`, does the geometry for both levels. Spec 10 §2 described

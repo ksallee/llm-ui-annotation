@@ -9,11 +9,12 @@
     status = null,
   }: { strokes: Stroke[]; opacity?: number; status?: Status | null } = $props();
 
-  // The five colours are the drawer's own meaning — red for wrong, green for good — so status
-  // rides behind the marks as a halo instead of repainting them, and approved settles back.
+  // The five colours are the drawer's own meaning — red for wrong, green for good — so status is
+  // never repainted onto the marks. It lives on the pin and the panel row; here it only settles an
+  // approved drawing back. A halo behind the marks reads as a second outline on a rect or an arrow,
+  // which is worse than saying nothing.
   const settled = $derived(status === 'approved');
   const ink = $derived(opacity ?? (settled ? 0.45 : status === 'draft' ? 0.75 : 0.95));
-  const halo = $derived(status ? (settled ? 0.14 : 0.3) : 0);
 </script>
 
 {#snippet marks(tint: string | null, grow: number)}
@@ -87,9 +88,5 @@
     {/if}
   {/each}
 {/snippet}
-
-{#if status && halo > 0}
-  <g opacity={halo}>{@render marks(`var(--annot-${status})`, 7)}</g>
-{/if}
 
 <g opacity={ink}>{@render marks(null, 0)}</g>
