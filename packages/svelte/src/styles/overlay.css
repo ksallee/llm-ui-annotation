@@ -1104,13 +1104,7 @@ kbd {
 }
 
 .editor .field.mini {
-  flex: 1 1 4em;
-  min-width: 0;
-}
-
-/* Without this a select is as wide as its widest option, and the row wraps. */
-.editor select.tokens {
-  flex: 1 1 7em;
+  flex: 1 1 6em;
   min-width: 0;
 }
 

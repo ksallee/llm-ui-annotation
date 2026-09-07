@@ -1,0 +1,66 @@
+/* Flex and grid containers whose gaps are declared every way a page declares them. */
+
+.bay {
+  padding: var(--demo-space-4);
+  border: 1px solid var(--demo-line);
+  border-radius: var(--demo-radius-lg);
+  background: var(--demo-surface);
+}
+
+.tile {
+  padding: var(--demo-space-3);
+  border-radius: var(--demo-radius-md);
+  background: var(--demo-ground);
+  font-size: var(--demo-text-sm);
+}
+
+/* One token, both axes. */
+.row-gap-token {
+  display: flex;
+  gap: var(--demo-space-4);
+}
+
+/* The same gap written in rem, which normalises to the token's px. */
+.row-gap-rem {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Off the system on purpose: no token holds 18px. */
+.row-gap-loose {
+  display: flex;
+  gap: 18px;
+}
+
+.column-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-space-2);
+}
+
+/* Two values: row gap then column gap. */
+.wrap-shelf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--demo-space-2) var(--demo-space-6);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--demo-space-5);
+}
+
+/* The two axes as their own properties, not one shorthand. */
+.split-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  row-gap: var(--demo-space-3);
+  column-gap: var(--demo-space-7);
+}
+
+.nested-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--demo-space-1);
+}

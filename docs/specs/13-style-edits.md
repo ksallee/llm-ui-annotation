@@ -52,8 +52,13 @@ Inheritable properties the element does not set itself are read off the nearest 
 listed after its own and shown in italic: `font-size: var(--demo-text-base)` from `body` is a fact
 about the element even though the element never mentions it.
 
-A row is a text input for the value plus, when the page has tokens that fit, a select of them; a
-value that names a token with no select to hold it shows the name beside it instead. `EDITABLE` is
+A row is **one control**: a text field with the page's tokens on a `datalist`. Type anything, or pick
+a suggestion — and a suggestion is a whole value, never a bare name, so picking one is never
+destructive: on `border: 1px solid var(--demo-line)` the list offers `1px solid var(--demo-accent)`
+and the shape survives. When a value is built round exactly one token the candidates are tokens of
+**that token's** kind, which is how a shorthand the editor knows nothing about still offers the
+colours it is made of. A value that resolves to a token without naming one (`1rem`, matching
+`--demo-space-4`) shows the name beside the field. `EDITABLE` is
 no longer the list of rows — it is what `+ property` offers and where a property's `kind` and family
 come from. Adding one gives it a row marked as an **override** (a rule the source does not have),
 with a `×` that takes it off again.
@@ -100,7 +105,7 @@ different: an old reader that drops the field silently loses half of what the us
 
 - Changing `padding` in the drawer changes the live page, and clearing it puts the page back.
 - The rows are the declarations the stylesheets make, with their authored values.
-- The type editors offer the page's type scale first and its spacing scale under `other tokens`.
+- The suggestions on `border: 1px solid var(--line)` are whole borders, not bare colour tokens.
 - With the drawer on Inspect, clicking an element selects it and does not open a note popup.
 - `+ property`, then `padding-inline`, then a spacing token changes the horizontal padding alone and
   the note carries `padding-inline`; `×` takes the override off and the page with it.

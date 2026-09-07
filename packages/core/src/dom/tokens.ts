@@ -351,6 +351,8 @@ export const TOKEN_FAMILIES: Readonly<Record<string, RegExp>> = {
   padding: /space|spacing|gap|pad|size/,
   margin: /space|spacing|gap|margin|size/,
   gap: /space|spacing|gap|size/,
+  'row-gap': /space|spacing|gap|size/,
+  'column-gap': /space|spacing|gap|size/,
   color: /ink|text|fg|foreground|color|colour/,
   background: /bg|background|surface|ground|fill/,
   'background-color': /bg|background|surface|ground|fill/,

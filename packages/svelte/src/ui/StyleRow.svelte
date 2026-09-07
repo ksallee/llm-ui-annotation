@@ -1,12 +1,6 @@
 <script lang="ts">
   import type { Declaration } from '../dom/declared.js';
-  import {
-    editableFor,
-    namedToken,
-    sameValue,
-    tokensIn,
-    tokenOptions,
-  } from '../dom/style-edit.js';
+  import { editableFor, namedToken, sameValue, tokensIn, tokenOptions } from '../dom/style-edit.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import Icon from './Icon.svelte';
 
@@ -33,18 +27,22 @@
   const item = $derived(editableFor(property));
   const edit = $derived(annot.styleEdit(selector, property));
   const value = $derived(edit?.to ?? declaration.value);
-  const source = $derived(tokensIn(declaration.value) ?? namedToken(property, declaration.value, tokens, fontPx));
+  const source = $derived(
+    tokensIn(declaration.value) ?? namedToken(property, declaration.value, tokens, fontPx),
+  );
   const token = $derived(edit ? edit.token : source);
-  const options = $derived(tokenOptions(tokens, item));
-  const offers = $derived(options.fitting.length + options.others.length > 0);
-  const colour = $derived(item.kind === 'color');
+  const options = $derived(tokenOptions(tokens, item, value));
+  const swatch = $derived(item.kind === 'color' ? value : null);
+  // The value already says `var(--x)`; naming it again beside the field would only repeat it.
+  const chip = $derived(token && !value.includes('var(') ? token : null);
+  const listId = $derived(`annot-tokens-${property}`);
 
-  function commit(to: string, name: string | null): void {
+  function commit(to: string): void {
     const from = declaration.value;
-    const picked = name ?? tokensIn(to);
+    const picked = tokensIn(to);
     // Naming the token a value already comes from changes nothing; naming one it does not is the
     // whole point, even when the two happen to hold the same value.
-    const same = picked ? picked === source : sameValue(to, from);
+    const same = picked ? picked === source && sameValue(to, from) : sameValue(to, from);
     if (same) annot.dropStyleEdit(selector, property);
     else annot.setStyleEdit({ selector, property, from, to: to.trim(), token: picked });
   }
@@ -54,43 +52,23 @@
   <span class="prop" title="{property} — {declaration.inherited ? 'inherited from ' : ''}{declaration.from}"
     >{property}</span
   >
-  {#if colour}<span class="swatch inline" style="background: {value}"></span>{/if}
+  {#if swatch}<span class="swatch inline" style="background: {swatch}"></span>{/if}
   <input
     class="field mini"
     {value}
     aria-label={property}
-    onchange={(e) => commit(e.currentTarget.value, null)}
+    list={options.length > 0 ? listId : undefined}
+    onchange={(e) => commit(e.currentTarget.value)}
   />
-  {#if !offers && token}
-    <span class="token">{token}</span>
-  {/if}
-  {#if offers}
-    <select
-      class="field mini tokens"
-      aria-label="{property} token"
-      value={token ?? ''}
-      onchange={(e) => {
-        const name = e.currentTarget.value;
-        if (name) commit(`var(${name})`, name);
-      }}
-    >
-      <option value="">no token</option>
-      <!-- A value of several parts names several tokens; it can be shown, not picked. -->
-      {#if token?.includes(' ')}
-        <option value={token} disabled>{token}</option>
-      {/if}
-      {#each options.fitting as option (option.name)}
-        <option value={option.name}>{option.name} · {option.value}</option>
+  {#if options.length > 0}
+    <!-- Whole values, not names: picking one is never destructive to the rest of the declaration. -->
+    <datalist id={listId}>
+      {#each options as option (option.name)}
+        <option value={option.insert} label="{option.name} · {option.value}"></option>
       {/each}
-      {#if options.others.length > 0}
-        <optgroup label="other tokens">
-          {#each options.others as option (option.name)}
-            <option value={option.name}>{option.name} · {option.value}</option>
-          {/each}
-        </optgroup>
-      {/if}
-    </select>
+    </datalist>
   {/if}
+  {#if chip}<span class="token">{chip}</span>{/if}
   {#if onremove}
     <button
       class="btn quiet small"

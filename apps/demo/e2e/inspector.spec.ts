@@ -141,11 +141,8 @@ test('the panel shows what the source declares, and a change rides with the note
   await expect(panel(page).locator('input[aria-label="padding"]')).toHaveValue(
     'var(--demo-space-2) var(--demo-space-4)',
   );
-  await expect(panel(page).locator('select[aria-label="padding token"]')).toHaveValue(
-    '--demo-space-2 --demo-space-4',
-  );
-  await expect(panel(page).locator('select[aria-label="border-radius token"]')).toHaveValue(
-    '--demo-radius-md',
+  await expect(panel(page).locator('input[aria-label="border-radius"]')).toHaveValue(
+    'var(--demo-radius-md)',
   );
   // Inherited from body, and marked as such.
   await expect(panel(page).locator('.editor.inherited input[aria-label="font-size"]')).toHaveValue(
@@ -161,11 +158,13 @@ test('the panel shows what the source declares, and a change rides with the note
     .poll(() => page.locator('[data-testid="signup"]').evaluate((el) => getComputedStyle(el).padding))
     .toBe('24px 40px');
 
-  const token = panel(page).locator('select[aria-label="background token"]');
+  const background = panel(page).locator('input[aria-label="background"]');
   // The token it already has changes nothing, and must not be recorded as a change.
-  await token.selectOption('--demo-accent');
+  await background.fill('var(--demo-accent)');
+  await background.blur();
   await expect(panel(page)).toContainText('1 change rides with your next note');
-  await token.selectOption('--demo-surface');
+  await background.fill('var(--demo-surface)');
+  await background.blur();
   await expect(panel(page)).toContainText('2 changes ride with your next note');
 
   await annotate(page, '[data-testid="signup"]');
@@ -210,9 +209,9 @@ test('a property the source never set is added as an override, and taken back of
 
   await panel(page).getByRole('button', { name: 'Add a property' }).click();
   await panel(page).getByRole('button', { name: 'padding-inline', exact: true }).click();
-  await panel(page)
-    .locator('select[aria-label="padding-inline token"]')
-    .selectOption('--demo-space-5');
+  const inlineValue = panel(page).locator('input[aria-label="padding-inline"]');
+  await inlineValue.fill('var(--demo-space-5)');
+  await inlineValue.blur();
 
   // Horizontal only: the vertical padding is untouched.
   await expect
@@ -224,6 +223,49 @@ test('a property the source never set is added as an override, and taken back of
   await expect
     .poll(() => page.locator('[data-testid="signup"]').evaluate((el) => getComputedStyle(el).padding))
     .toBe('8px 16px');
+});
+
+/** Click the gap between the first two children, which is the container and not a child. */
+async function clickGap(page: Page, testid: string): Promise<void> {
+  const at = await page.locator(`[data-testid="${testid}"]`).evaluate((el) => {
+    // Measured after the scroll, in the same turn, so the point is where the gap actually is.
+    el.scrollIntoView({ block: 'center' });
+    const a = el.children[0]!.getBoundingClientRect();
+    const b = el.children[1]!.getBoundingClientRect();
+    const across = b.x > a.right;
+    return {
+      x: across ? (a.right + b.x) / 2 : a.x + 5,
+      y: across ? a.y + 5 : (a.bottom + b.y) / 2,
+    };
+  });
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.click(at.x, at.y);
+}
+
+test('a gap is read back as the stylesheet wrote it, on every kind of container', async ({
+  page,
+  site,
+}) => {
+  await page.goto(`${site}/layout/`);
+  await setMode(page, 'Element');
+  await openPanel(page);
+
+  await clickGap(page, 'split-grid');
+  await expect(panel(page).locator('input[aria-label="row-gap"]')).toHaveValue(
+    'var(--demo-space-3)',
+  );
+  await expect(panel(page).locator('input[aria-label="column-gap"]')).toHaveValue(
+    'var(--demo-space-7)',
+  );
+
+  // One shorthand holding both axes, and the token beside a gap written in rem.
+  await clickGap(page, 'wrap-shelf');
+  await expect(panel(page).locator('input[aria-label="gap"]')).toHaveValue(
+    'var(--demo-space-2) var(--demo-space-6)',
+  );
+  await clickGap(page, 'row-gap-rem');
+  await expect(panel(page).locator('input[aria-label="gap"]')).toHaveValue('1rem');
+  await expect(panel(page).locator('.editor .token')).toHaveText('--demo-space-4');
 });
 
 test('what the inspector shows is what the annotation carries', async ({ page, site, annotDir }) => {

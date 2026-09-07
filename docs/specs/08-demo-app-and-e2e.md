@@ -9,6 +9,10 @@ Four Vite MPA entries, so the paths carry a trailing slash: `/`, `/app/`, `/pros
 - `/` — a marketing-like page: nav, hero, three pricing cards, a feature list with icons, a footer. Uses Tailwind-style utility classes on purpose and Svelte scoped styles, so selector generation is exercised on ugly class soup.
 - `/app/` — a dashboard: sidebar, data table with repeated rows and Edit buttons, a form with labelled inputs, a modal opened by a button, a sticky header, a card grid, a `<video>` and a CSS animation for freeze mode, a component in an open shadow root.
 - `/prose/` — long text with repeated phrases for text-anchoring edge cases.
+- `/layout/` — one flex or grid container per way a page writes a gap: one token for both axes, the
+  same gap in `rem`, a value off the system, a column stack, a wrap with two values, a grid, a grid
+  writing `row-gap` and `column-gap` separately, and a grid nested in a flex item. A container's own
+  corner is its first child, so pointing at the **gap** is how you select the container.
 - `/hostile/` — a page with `* { all: unset }` and a dark `color-scheme` to prove the overlay is isolated and re-themes.
 
 The demo mounts the overlay through the Vite plugin (auto-inject), with an accent picker in its own nav that writes `--annot-accent` on `:root` to prove "follow host" works live.
@@ -42,8 +46,8 @@ limit of `tokenMap` visible.
     switches it back, a closed drawer stays closed, the toggle holds until the selection changes;
     the box model draws devtools' bands at any size and puts the numbers in the card; a value
     changed in the drawer previews on the page, rides with the note into the route file, and is
-    reverted once the note is sent (spec 13); "what the agent will
-    see" matches the `styles` stored on the annotation, key for key.
+    reverted once the note is sent (spec 13); every gap on `/layout/` reads back as its stylesheet
+    wrote it; "what the agent will see" matches the `styles` stored on the annotation, key for key.
 
 ## Harness
 

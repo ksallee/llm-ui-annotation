@@ -21,6 +21,7 @@
   <a href="/" class="text-sm">Home</a>
   <a href="/app/" class="text-sm">Dashboard</a>
   <a href="/prose/" class="text-sm">Prose</a>
+  <a href="/layout/" class="text-sm">Layout</a>
   <a href="/hostile/" class="text-sm">Hostile</a>
   <span class="flex-1"></span>
   <span class="text-xs text-muted uppercase">Accent</span>

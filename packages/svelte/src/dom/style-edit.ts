@@ -19,6 +19,8 @@ export const EDITABLE: readonly Editable[] = [
   { property: 'margin-block', group: 'Spacing', kind: 'length' },
   { property: 'margin-inline', group: 'Spacing', kind: 'length' },
   { property: 'gap', group: 'Spacing', kind: 'length' },
+  { property: 'row-gap', group: 'Spacing', kind: 'length' },
+  { property: 'column-gap', group: 'Spacing', kind: 'length' },
   { property: 'color', group: 'Colour', kind: 'color' },
   { property: 'background', group: 'Colour', kind: 'color' },
   { property: 'background-color', group: 'Colour', kind: 'color' },
@@ -62,9 +64,13 @@ export function namedToken(
 export interface TokenOption {
   name: string;
   value: string;
+  /** The whole declaration value with this token in it, which is what picking one writes. */
+  insert: string;
 }
 
 const ONE_LENGTH = /^-?[\d.]+(px|rem|em|%)?$/;
+const TOKEN_CALL = /var\(\s*(--[^\s,)]+)\s*\)/;
+const TOKEN_CALL_ALL = /var\(\s*--[^\s,)]+\s*\)/g;
 
 /** What an arbitrary CSS value looks like, which is how a token finds the properties it fits. */
 export function kindOf(value: string): EditKind {
@@ -86,18 +92,33 @@ export function kindOf(value: string): EditKind {
 export function tokenOptions(
   declared: ReadonlyMap<string, string>,
   item: Editable,
-): { fitting: TokenOption[]; others: TokenOption[] } {
+  current = '',
+): TokenOption[] {
   const family = TOKEN_FAMILIES[item.property];
   const fitting: TokenOption[] = [];
   const others: TokenOption[] = [];
+  // A value built round one token keeps its shape: `1px solid var(--line)` suggests
+  // `1px solid var(--accent)`, never a bare token that would throw the rest away.
+  const only = current.match(TOKEN_CALL_ALL)?.length === 1 ? TOKEN_CALL.exec(current)?.[1] : null;
+  // Whatever that token is, its replacements are of the same kind — which is how a shorthand the
+  // editor knows nothing about, like `border`, still offers the colours it is built from.
+  const replaced = only === null || only === undefined ? undefined : declared.get(only);
+
   for (const [name, value] of declared) {
     const named = family?.test(name) ?? false;
-    // A free value has no shape to match on, so only the name can vouch for the token.
-    if (item.kind === 'free' ? !named : kindOf(value) !== item.kind) continue;
-    (named ? fitting : others).push({ name, value });
+    const fits =
+      replaced !== undefined
+        ? kindOf(value) === kindOf(replaced)
+        : // A free value has no shape to match on, so only the name can vouch for the token.
+          item.kind === 'free'
+          ? named
+          : kindOf(value) === item.kind;
+    if (!fits) continue;
+    const insert = only ? current.replace(TOKEN_CALL, `var(${name})`) : `var(${name})`;
+    (named ? fitting : others).push({ name, value, insert });
   }
   const byName = (a: TokenOption, b: TokenOption): number => a.name.localeCompare(b.name);
-  return { fitting: fitting.sort(byName), others: others.sort(byName) };
+  return [...fitting.sort(byName), ...others.sort(byName)];
 }
 
 /** The tokens a value names, in order, or null when it names none. */

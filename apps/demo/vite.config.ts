@@ -5,7 +5,13 @@ import { defineConfig, type UserConfig } from 'vite';
 
 export const root = import.meta.dirname;
 
-const PAGES = ['index.html', 'app/index.html', 'prose/index.html', 'hostile/index.html'];
+const PAGES = [
+  'index.html',
+  'app/index.html',
+  'prose/index.html',
+  'layout/index.html',
+  'hostile/index.html',
+];
 
 const page = (name: string): string => resolve(root, name);
 
