@@ -103,8 +103,9 @@ is on this page" view, and it is what makes the rest predictable.
 - **Double-click** steps *inside* a drawing, **from any tool**. It is a navigation gesture, not a
   drawing one, and reaching for Move first to get into something you can see is friction. Inside,
   clicks select individual strokes — an arrow, a caption, one brush stroke — and drag and handles
-  transform only those. Double-clicking a caption edits its text. The one exception is the drawing
-  you are currently adding to: a fast double-tap there is sketching, not navigation.
+  transform only those. Double-clicking a caption edits its text. The one exception is a double-tap with the
+  **brush** on the drawing you are currently adding to, where it is sketching; every other tool makes
+  nothing useful from a double-click, so it is free to mean "go inside".
 - **`Esc` steps out one level** each time: inside → drawing selected → nothing selected → leave Draw.
   The selected drawing's box stays solid while you are inside it, so the level you are on is visible.
 

@@ -159,3 +159,4 @@ Kept so nobody re-files them.
 
 - ~~A sent annotation cannot be deleted~~ — fixed: delete is allowed for any status, and removes the screenshot and attachment directory with it.
 - **`vite-plugin/test/ws.test.ts` is flaky under CPU load** (test). The external-edit case waits on an `fs.watch` debounce of 100 ms; with several agents building in parallel the window is missed. Passes 4/4 in isolation, fails around half the time under load. The debounce should be configurable so the test can widen it.
+- **`apps/demo/e2e/attachments.spec.ts` "a file dropped on a panel row" is occasionally flaky** (test). Fails as a strict-mode violation — `.attachment .att-name` resolving to two elements, i.e. one drop producing two chips. Seen twice under parallel load, then 50/50 clean across four consecutive runs. Not reproduced in isolation; worth pinning down before it is trusted, because a double-post would be a real bug rather than a test artefact.

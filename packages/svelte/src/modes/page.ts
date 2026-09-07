@@ -184,7 +184,10 @@ export function pageMode(state: AnnotState, layer: HTMLElement): () => void {
   const onDouble = (event: MouseEvent): void => {
     const at = { x: event.clientX + state.scroll.x, y: event.clientY + state.scroll.y };
     const hit = state.insideDrawing ?? state.drawingAt(at.x, at.y)?.id ?? null;
-    const id = hit === state.activeDrawingId && state.insideDrawing !== hit ? null : hit;
+    // Only the brush makes a double-tap mean sketching; with every other tool a double-click
+    // produces nothing useful, so it is free to mean "go inside".
+    const sketching = state.drawTool === 'brush' && hit === state.activeDrawingId;
+    const id = sketching && state.insideDrawing !== hit ? null : hit;
     if (!id) return;
     const strokes = state.strokesOf(id);
     const index = strokeAt(strokes, at.x, at.y);
