@@ -113,7 +113,7 @@
 
   {#if annot.styleEdits.length > 0}
     <span class="muted"
-      >carries {annot.styleEdits.length} style change{annot.styleEdits.length === 1 ? '' : 's'}</span
+      >{annot.styleEdits.length} CSS change{annot.styleEdits.length === 1 ? '' : 's'}</span
     >
   {/if}
 

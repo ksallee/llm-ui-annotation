@@ -1,8 +1,8 @@
 // What the overlay binds to the host page — listeners, the key map, the style preview — and the
 // commands its surfaces run. The host page is read-only to all of it.
 
-import type { Rect, Status, Stroke, StyleEdit, Target } from '@llm-ui-annotation/core';
-import { captureRegion, freezeAnimations, isOverlayNode, SHADOW_SEP } from './dom/core-dom.js';
+import type { Rect, Status, Stroke, Target } from '@llm-ui-annotation/core';
+import { captureRegion, freezeAnimations, isOverlayNode } from './dom/core-dom.js';
 import { paintHighlights, supportsHighlights } from './dom/highlights.js';
 import { isTyping, keyAction } from './keyboard.js';
 import { DRAW_TOOLS } from './draw-tools.js';
@@ -66,6 +66,8 @@ export function watchViewport(state: AnnotState): () => void {
     mutationObserver.disconnect();
   };
 }
+
+export { clearStylePreview, previewStyleEdits } from './dom/preview.js';
 
 export interface KeyActions {
   commit(): void;
@@ -332,52 +334,6 @@ export async function commitPopup(state: AnnotState, send = false): Promise<void
 
   state.closePopup();
   state.reanchor();
-}
-
-const PREVIEW_ATTR = 'data-annot-preview';
-
-// A brace ends the rule a selector or value sits in, so one carrying it could write rules of its
-// own into the host page.
-const CLOSES_RULE = /[{}]/;
-
-/** One rule per element, `!important` so a specific host rule does not win over the proposal. */
-function previewCss(edits: readonly StyleEdit[]): string {
-  const bySelector = new Map<string, string[]>();
-  for (const edit of edits) {
-    // A `>>>` selector crosses a shadow boundary, which no stylesheet can do.
-    if (edit.selector.includes(SHADOW_SEP)) continue;
-    if (CLOSES_RULE.test(edit.selector) || CLOSES_RULE.test(edit.to)) continue;
-    const decls = bySelector.get(edit.selector) ?? [];
-    decls.push(`  ${edit.property}: ${edit.to} !important;`);
-    bySelector.set(edit.selector, decls);
-  }
-  return [...bySelector]
-    .map(([selector, decls]) => `${selector} {\n${decls.join('\n')}\n}`)
-    .join('\n');
-}
-
-/**
- * Show the pending edits on the page itself. This is the one thing the overlay puts in the host: a
- * `<style>` of its own, holding what the user asked for, removed the moment the edits are.
- */
-export function previewStyleEdits(state: AnnotState): void {
-  const head = state.doc.head;
-  if (!head) return;
-  const existing = head.querySelector<HTMLStyleElement>(`style[${PREVIEW_ATTR}]`);
-  if (state.styleEdits.length === 0) {
-    existing?.remove();
-    return;
-  }
-  const style = existing ?? state.doc.createElement('style');
-  if (!existing) {
-    style.dataset.annotPreview = '';
-    head.append(style);
-  }
-  style.textContent = previewCss(state.styleEdits);
-}
-
-export function clearStylePreview(doc: Document): void {
-  doc.head?.querySelector(`style[${PREVIEW_ATTR}]`)?.remove();
 }
 
 /** A PNG of the region with its marks drawn on, or null when the backend is missing. */

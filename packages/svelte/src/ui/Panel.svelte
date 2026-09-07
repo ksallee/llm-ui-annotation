@@ -84,6 +84,20 @@
       >
     </div>
 
+    {#if !notes && annot.mode === 'element'}
+      <div class="row inspect-bar">
+        <button
+          class="btn quiet small"
+          aria-label="Point at elements"
+          aria-pressed={annot.picking}
+          onclick={() => (annot.picking = !annot.picking)}
+        >
+          <Icon name="pick" size={14} />
+          {annot.picking ? 'Pointing' : 'Point at elements'}<kbd>C</kbd>
+        </button>
+      </div>
+    {/if}
+
     {#if notes}
       <div class="chips">
         {#each FILTERS as filter (filter.id)}

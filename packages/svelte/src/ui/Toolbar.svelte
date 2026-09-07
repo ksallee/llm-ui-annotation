@@ -83,18 +83,6 @@
       </button>
     {/each}
 
-    {#if annot.mode === 'element'}
-      <button
-        class="icon-btn"
-        aria-pressed={annot.picking}
-        aria-label="Point at elements"
-        onclick={() => (annot.picking = !annot.picking)}
-      >
-        <Icon name="pick" />
-        <span class="tooltip">{annot.picking ? 'Stop pointing' : 'Point at elements'}<kbd>C</kbd></span>
-      </button>
-    {/if}
-
     <span class="divider"></span>
 
     <button class="icon-btn" aria-label="Pin visibility: {annot.prefs.markers}" onclick={() => annot.cycleMarkers()}>
@@ -131,7 +119,7 @@
       aria-label="Toggle the annotations panel"
       onclick={() => annot.togglePanel()}
     >
-      <Icon name="inbox" />
+      <Icon name="panel" />
       {#if annot.needsYou.length > 0}<span class="badge">{annot.needsYou.length}</span>{/if}
       <span class="tooltip">Panel<kbd>I</kbd></span>
     </button>

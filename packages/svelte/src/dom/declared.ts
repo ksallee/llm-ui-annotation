@@ -1,5 +1,7 @@
 // What the page's own stylesheets say about an element, as written rather than as computed.
 
+import { PREVIEW_ATTR } from './preview.js';
+
 /** One declaration the source makes for an element. */
 export interface Declaration {
   property: string;
@@ -47,6 +49,8 @@ function* styleRules(doc: Document): Generator<CSSStyleRule> {
     }
   };
   for (const sheet of Array.from(doc.styleSheets)) {
+    // Our own preview is not something the page declares.
+    if ((sheet.ownerNode as Element | null)?.hasAttribute?.(PREVIEW_ATTR)) continue;
     try {
       yield* walk(sheet.cssRules);
     } catch {

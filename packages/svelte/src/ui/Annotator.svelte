@@ -141,7 +141,7 @@
 
   // The proposal is shown on the page while it is pending, and taken off with it.
   $effect(() => {
-    previewStyleEdits(annot);
+    previewStyleEdits(annot.doc, annot.styleEdits);
     return () => clearStylePreview(annot.doc);
   });
 

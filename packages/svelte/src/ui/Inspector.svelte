@@ -1,6 +1,7 @@
 <script lang="ts">
   import { declaredTokens, describeSelector, resolveDeclared } from '../dom/core-dom.js';
   import { matchedDeclarations, type Declaration } from '../dom/declared.js';
+  import { withoutPreview } from '../dom/preview.js';
   import { inspectElement, type Reading } from '../dom/inspect.js';
   import { EDITABLE } from '../dom/style-edit.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
@@ -11,7 +12,10 @@
   let { annot }: { annot: AnnotState } = $props();
 
   const el = $derived(annot.inspected);
-  const seen = $derived(el ? inspectElement(el, annot.detail !== 'compact') : null);
+  // Read with the proposal off: this is what the annotation carries, and it carries the code.
+  const seen = $derived(
+    el ? withoutPreview(annot.doc, () => inspectElement(el, annot.detail !== 'compact')) : null,
+  );
   const styles = $derived(seen?.styles ?? null);
   const entries = $derived(Object.entries(styles ?? {}));
   // The same call `describeElement` makes, so this is what the annotation carries.
@@ -145,9 +149,7 @@
     {#if pending.length > 0}
       <div class="row">
         <span class="muted"
-          >{pending.length} change{pending.length === 1 ? '' : 's'} ride{pending.length === 1
-            ? 's'
-            : ''} with your next note</span
+          >{pending.length} CSS change{pending.length === 1 ? '' : 's'} in your next note</span
         >
         <span class="spacer"></span>
         <button class="btn quiet small" onclick={() => annot.clearStyleEdits()}>Clear all</button>
@@ -176,6 +178,16 @@
             </dd>
           {/each}
         </dl>
+        {#if pending.length > 0}
+          <!-- The styles above are the code as it stands; the proposal travels beside them. -->
+          <p class="muted">and the CSS changes:</p>
+          <dl class="decls payload">
+            {#each pending as edit (edit.property)}
+              <dt>{edit.property}</dt>
+              <dd>{edit.from} → {edit.to}</dd>
+            {/each}
+          </dl>
+        {/if}
       {/if}
     </section>
   {/if}

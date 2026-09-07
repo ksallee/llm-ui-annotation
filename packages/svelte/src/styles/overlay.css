@@ -973,6 +973,12 @@ kbd {
   box-shadow: var(--annot-shadow);
 }
 
+/* The picker lives with the readings it feeds, not in the pill. */
+.inspect-bar .btn[aria-pressed='true'] {
+  background: var(--annot-accent-soft);
+  color: var(--annot-ink);
+}
+
 .inspect {
   flex: 1;
   min-height: 0;

@@ -124,7 +124,7 @@ test('the CSS details switch takes the box model off the canvas', async ({ page,
   await expect(overlay(page).locator('.element-card')).toBeVisible();
 });
 
-test('the panel shows what the source declares, and a change rides with the note', async ({
+test('the panel shows what the source declares, and a change goes into the note', async ({
   page,
   site,
   annotDir,
@@ -159,13 +159,13 @@ test('the panel shows what the source declares, and a change rides with the note
   // The token it already has changes nothing, and must not be recorded as a change.
   await background.fill('var(--demo-accent)');
   await background.blur();
-  await expect(panel(page)).toContainText('1 change rides with your next note');
+  await expect(panel(page)).toContainText('1 CSS change in your next note');
   await background.fill('var(--demo-surface)');
   await background.blur();
-  await expect(panel(page)).toContainText('2 changes ride with your next note');
+  await expect(panel(page)).toContainText('2 CSS changes in your next note');
 
   await annotate(page, '[data-testid="signup"]');
-  await expect(popup(page)).toContainText('carries 2 style changes');
+  await expect(popup(page)).toContainText('2 CSS changes');
   await commit(page, 'roomier, and on the surface colour');
 
   const stored = (await storedAnnotations(annotDir, '/'))[0]!;
@@ -254,9 +254,48 @@ test('picking stops when you pick, and C starts it again', async ({ page, site }
   await expect(overlay(page).locator('.element-card')).toHaveCount(0);
   await expect(panel(page).locator('.inspect .sel')).toContainText('signup');
 
-  await page.keyboard.press('c');
+  // The picker lives in the inspect bar, with its key on it.
+  const picker = panel(page).getByRole('button', { name: 'Point at elements' });
+  await expect(picker).toHaveAttribute('aria-pressed', 'false');
+  await picker.click();
+  await expect(picker).toHaveAttribute('aria-pressed', 'true');
   await pointAt(page, '[data-plan="Pro"] button');
   await expect(overlay(page).locator('.element-card')).toBeVisible();
+
+  await page.keyboard.press('c');
+  await expect(picker).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('what the agent gets is the code, with the proposal beside it', async ({
+  page,
+  site,
+  annotDir,
+}) => {
+  await page.goto(`${site}/layout/`);
+  await setMode(page, 'Element');
+  await openPanel(page);
+  await clickGap(page, 'card-grid');
+
+  const gap = panel(page).locator('input[aria-label="gap"]');
+  await expect(gap).toHaveValue('var(--demo-space-5)');
+  await gap.fill('var(--demo-space-7)');
+  await gap.blur();
+  await expect
+    .poll(() => page.locator('[data-testid="card-grid"]').evaluate((el) => getComputedStyle(el).gap))
+    .toBe('40px');
+
+  // The payload keeps the code's value; the proposal is listed under it, and travels apart.
+  await expect(panel(page).locator('.decls.payload').first()).toContainText('24px');
+  await expect(panel(page).locator('.decls.payload').last()).toContainText(
+    'var(--demo-space-5) → var(--demo-space-7)',
+  );
+
+  await annotate(page, '[data-testid="card-grid"]');
+  await commit(page, 'more air between the cards');
+  const stored = (await storedAnnotations(annotDir, '/layout/'))[0]!;
+  const target = stored.target as ElementTarget;
+  expect(target.elements[0]!.styles?.['gap']).toBe('24px');
+  expect(stored.styleEdits?.[0]?.to).toBe('var(--demo-space-7)');
 });
 
 test('a gap is read back as the stylesheet wrote it, on every kind of container', async ({

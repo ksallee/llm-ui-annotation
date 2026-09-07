@@ -70,6 +70,12 @@ The one thing the overlay puts into the host page: a single `<style data-annot-p
 proposal has to beat the page's own specificity to be visible. It is written whenever `styleEdits`
 changes and removed the moment the list is empty, which is what "revert on close" means in practice.
 
+**The preview is never read back as fact.** Describing an element for an annotation, and the panel's
+"what the agent will see", both run through `withoutPreview`, which disables the sheet for the length
+of the read. Otherwise the payload would carry the proposal as the element's current styles and
+contradict the diff sitting beside it. `matchedDeclarations` skips the sheet for the same reason: it
+is ours, not something the page declares.
+
 Two limits. A `>>>` selector crosses a shadow boundary, which no stylesheet can do, so those edits
 are recorded but not previewed. And the preview shows the value on the live element only — it does
 not tell you which rule in the source should change. That is the agent's job, and it is why the
