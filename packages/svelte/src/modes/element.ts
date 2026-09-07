@@ -115,6 +115,33 @@ export function elementMode(state: AnnotState, layer: HTMLElement): () => void {
   };
 }
 
+export type Walk = 'parent' | 'child' | 'previous' | 'next';
+
+const walkable = (el: Element | null | undefined): boolean =>
+  Boolean(el) && !isOverlay(el as Element) && !IGNORED.has((el as Element).tagName);
+
+/** The element one step away in the tree, or null when there is none to go to. */
+function step(el: Element, walk: Walk): Element | null {
+  const kin = {
+    parent: [el.parentElement],
+    child: [...el.children],
+    previous: [el.previousElementSibling],
+    next: [el.nextElementSibling],
+  }[walk];
+  return kin.find(walkable) ?? null;
+}
+
+/** Move the selection one step through the DOM, bringing the new element into view. */
+export function walkSelection(state: AnnotState, walk: Walk): void {
+  const from = state.selection[0];
+  if (!from) return;
+  const to = step(from, walk);
+  if (!to) return;
+  state.selection = [to];
+  state.hover = { el: to, rect: docRect(to), label: elementLabelOf(to) };
+  to.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
 /** Open the popup for the current element selection. */
 export function openElementPopup(state: AnnotState): void {
   if (state.selection.length > 0) open(state, state.selection);

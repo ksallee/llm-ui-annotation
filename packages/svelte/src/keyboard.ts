@@ -15,7 +15,11 @@ export type KeyAction =
   | 'help'
   | `tool:${number}`
   | 'tool:move'
-  | 'tool:frame';
+  | 'tool:frame'
+  | 'walk:parent'
+  | 'walk:child'
+  | 'walk:previous'
+  | 'walk:next';
 
 export interface KeyContext {
   mode: Mode | null;
@@ -28,6 +32,8 @@ export interface KeyContext {
   focusedDraft: boolean;
   /** A drawing or its strokes are picked, so delete has something nearer to act on. */
   marksPicked: boolean;
+  /** An element is selected, which is what the arrow keys walk from. */
+  selected: boolean;
   /** The one global binding, as `comboOf` writes it. */
   paletteKey: string;
 }
@@ -113,6 +119,20 @@ export function keyAction(event: KeyboardEvent, ctx: KeyContext): KeyAction | nu
     if (event.key === 'f' || event.key === 'F') return 'tool:frame';
   }
 
+  // The arrows walk the DOM only with something to walk from; otherwise the page keeps its scroll.
+  if (ctx.mode === 'element' && ctx.selected) {
+    switch (event.key) {
+      case 'ArrowUp':
+        return 'walk:parent';
+      case 'ArrowDown':
+        return 'walk:child';
+      case 'ArrowLeft':
+        return 'walk:previous';
+      case 'ArrowRight':
+        return 'walk:next';
+    }
+  }
+
   switch (event.key) {
     case 'e':
     case 'E':
@@ -157,6 +177,8 @@ export const SHORTCUTS: ShortcutEntry[] = [
   { keys: 'F', what: 'Frame: resize the capture box alone', scope: 'in Draw' },
   { keys: '1–6', what: 'Pick a drawing tool', scope: 'in Draw' },
   { keys: '⌘Z / ⇧⌘Z', what: 'Undo / redo a stroke', scope: 'in Draw' },
+  { keys: '↑ ↓', what: 'Walk to the parent or the first child', scope: 'with a selection' },
+  { keys: '← →', what: 'Walk to the previous or next sibling', scope: 'with a selection' },
   { keys: '⌫', what: 'Delete the focused draft', scope: 'in a mode' },
   { keys: '⌘A', what: 'Select every row the filter shows', scope: 'in the panel' },
   { keys: 'Esc', what: 'Exit mode, close popup or panel', scope: 'on a surface' },

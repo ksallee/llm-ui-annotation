@@ -1,7 +1,8 @@
 <script lang="ts">
   import { declaredTokens, describeSelector, resolveDeclared } from '../dom/core-dom.js';
+  import { matchedDeclarations, type Declaration } from '../dom/declared.js';
   import { inspectElement, type Reading } from '../dom/inspect.js';
-  import { EDITABLE, editableValues } from '../dom/style-edit.js';
+  import { EDITABLE } from '../dom/style-edit.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import BoxDiagram from './BoxDiagram.svelte';
   import NodeTitle from './NodeTitle.svelte';
@@ -19,9 +20,33 @@
   const others = $derived(annot.selection.length - 1);
 
   const selector = $derived(el ? describeSelector(el).selector : '');
-  const values = $derived(el ? editableValues(el) : {});
-  const groups = $derived([...new Set(EDITABLE.map((e) => e.group))]);
   const pending = $derived(annot.styleEdits.filter((e) => e.selector === selector));
+
+  let picking = $state(false);
+  let added = $state<string[]>([]);
+
+  const declarations = $derived(el ? matchedDeclarations(el) : []);
+  const own = $derived(new Set(declarations.map((d) => d.property)));
+  // A property the source does not set: what the user put on top, and what `+` still offers.
+  const overrides = $derived(
+    added
+      .concat(pending.map((e) => e.property))
+      .filter((property, i, all) => !own.has(property) && all.indexOf(property) === i)
+      .map((property): Declaration => ({
+        property,
+        value: computed(property),
+        from: 'not set',
+        inherited: false,
+      })),
+  );
+  const offered = $derived(
+    EDITABLE.filter((item) => !own.has(item.property) && !added.includes(item.property)),
+  );
+
+  function computed(property: string): string {
+    const style = el ? annot.doc.defaultView?.getComputedStyle(el) : null;
+    return style?.getPropertyValue(property).trim() ?? '';
+  }
 
   const size = $derived(
     seen?.box ? `${Math.round(seen.box.borderBox.width)} × ${Math.round(seen.box.borderBox.height)}` : '',
@@ -65,16 +90,52 @@
 
     {@render readings('Layout', seen.layout)}
 
-    <p class="muted hint">Change a value or pick a token; it rides with your next note.</p>
+    <section class="sec editors">
+      <h4>Declared <span class="muted">what the stylesheets say, as written</span></h4>
+      {#each declarations as declaration (declaration.property)}
+        <StyleRow
+          {annot}
+          {selector}
+          {declaration}
+          tokens={map ?? new Map()}
+          fontPx={seen.fontPx}
+        />
+      {/each}
 
-    {#each groups as group (group)}
-      <section class="sec editors">
-        <h4>{group}</h4>
-        {#each EDITABLE.filter((e) => e.group === group) as item (item.property)}
-          <StyleRow {annot} {item} {selector} {values} declared={map ?? new Map()} fontPx={seen.fontPx} />
-        {/each}
-      </section>
-    {/each}
+      {#each overrides as declaration (declaration.property)}
+        <StyleRow
+          {annot}
+          {selector}
+          {declaration}
+          tokens={map ?? new Map()}
+          fontPx={seen.fontPx}
+          onremove={() => (added = added.filter((other) => other !== declaration.property))}
+        />
+      {/each}
+
+      <div class="row">
+        <button
+          class="btn quiet small"
+          aria-label="Add a property"
+          aria-expanded={picking}
+          onclick={() => (picking = !picking)}>+ property</button
+        >
+      </div>
+
+      {#if picking}
+        <div class="parts">
+          {#each offered as item (item.property)}
+            <button
+              class="btn quiet small"
+              onclick={() => {
+                added = [...added, item.property];
+                picking = false;
+              }}>{item.property}</button
+            >
+          {/each}
+        </div>
+      {/if}
+    </section>
 
     {@render readings(
       'Accessibility',

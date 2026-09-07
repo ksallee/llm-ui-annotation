@@ -1061,12 +1061,19 @@ kbd {
   gap: 4px;
 }
 
-.editor.part .prop {
-  padding-left: 12px;
+/* Set on an ancestor, not here. */
+.editor.inherited .prop {
+  font-style: italic;
   color: var(--annot-ink-3);
 }
 
-/* The sides a shorthand can be split into, offered under its `+`. */
+/* A property the source does not set, put on top by the user and removable. */
+.editor.added .prop {
+  padding-left: 6px;
+  border-left: 2px solid var(--annot-accent-line);
+}
+
+/* The properties the source does not set, offered under `+`. */
 .parts {
   display: flex;
   flex-wrap: wrap;

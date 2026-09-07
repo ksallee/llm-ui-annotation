@@ -127,7 +127,7 @@ test('the CSS details switch takes the box model off the canvas', async ({ page,
   await expect(overlay(page).locator('.element-card')).toBeVisible();
 });
 
-test('a value changed in the panel previews on the page and rides with the note', async ({
+test('the panel shows what the source declares, and a change rides with the note', async ({
   page,
   site,
   annotDir,
@@ -137,13 +137,19 @@ test('a value changed in the panel previews on the page and rides with the note'
   await openPanel(page);
   await pick(page, '[data-testid="signup"]');
 
-  // The current value's own token, so you can see whether it is on the system before changing it.
+  // As written in the stylesheet, tokens and all — not the computed pixels.
+  await expect(panel(page).locator('input[aria-label="padding"]')).toHaveValue(
+    'var(--demo-space-2) var(--demo-space-4)',
+  );
+  await expect(panel(page).locator('select[aria-label="padding token"]')).toHaveValue(
+    '--demo-space-2 --demo-space-4',
+  );
   await expect(panel(page).locator('select[aria-label="border-radius token"]')).toHaveValue(
     '--demo-radius-md',
   );
-  // A value of several parts names several tokens, shown in the select and not pickable.
-  await expect(panel(page).locator('select[aria-label="padding token"]')).toHaveValue(
-    '--demo-space-2 --demo-space-4',
+  // Inherited from body, and marked as such.
+  await expect(panel(page).locator('.editor.inherited input[aria-label="font-size"]')).toHaveValue(
+    'var(--demo-text-base)',
   );
 
   const padding = panel(page).locator('input[aria-label="padding"]');
@@ -155,7 +161,7 @@ test('a value changed in the panel previews on the page and rides with the note'
     .poll(() => page.locator('[data-testid="signup"]').evaluate((el) => getComputedStyle(el).padding))
     .toBe('24px 40px');
 
-  const token = panel(page).locator('select[aria-label="background-color token"]');
+  const token = panel(page).locator('select[aria-label="background token"]');
   // The token it already has changes nothing, and must not be recorded as a change.
   await token.selectOption('--demo-accent');
   await expect(panel(page)).toContainText('1 change rides with your next note');
@@ -171,14 +177,14 @@ test('a value changed in the panel previews on the page and rides with the note'
     {
       selector: expect.stringContaining('signup'),
       property: 'padding',
-      from: '8px 16px',
+      from: 'var(--demo-space-2) var(--demo-space-4)',
       to: '24px 40px',
       token: null,
     },
     {
       selector: expect.stringContaining('signup'),
-      property: 'background-color',
-      from: 'rgb(44, 138, 133)',
+      property: 'background',
+      from: 'var(--demo-accent)',
       to: 'var(--demo-surface)',
       token: '--demo-surface',
     },
@@ -190,33 +196,34 @@ test('a value changed in the panel previews on the page and rides with the note'
     .toBe('8px 16px');
 });
 
-test('a shorthand splits into the side you ask for', async ({ page, site, annotDir }) => {
+test('a property the source never set is added as an override, and taken back off', async ({
+  page,
+  site,
+}) => {
   await page.goto(`${site}/`);
   await setMode(page, 'Element');
   await openPanel(page);
   await pick(page, '[data-testid="signup"]');
 
-  await panel(page).getByRole('button', { name: 'Add a padding side' }).click();
-  await panel(page).getByRole('button', { name: 'inline', exact: true }).click();
-  await panel(page).locator('select[aria-label="padding-inline token"]').selectOption('--demo-space-5');
+  const inline = panel(page).locator('.editor.added input[aria-label="padding-inline"]');
+  await expect(inline).toHaveCount(0);
+
+  await panel(page).getByRole('button', { name: 'Add a property' }).click();
+  await panel(page).getByRole('button', { name: 'padding-inline', exact: true }).click();
+  await panel(page)
+    .locator('select[aria-label="padding-inline token"]')
+    .selectOption('--demo-space-5');
 
   // Horizontal only: the vertical padding is untouched.
   await expect
     .poll(() => page.locator('[data-testid="signup"]').evaluate((el) => getComputedStyle(el).padding))
     .toBe('8px 24px');
 
-  await annotate(page, '[data-testid="signup"]');
-  await commit(page, 'wider sides');
-  const stored = (await storedAnnotations(annotDir, '/'))[0]!;
-  expect(stored.styleEdits).toEqual([
-    {
-      selector: expect.stringContaining('signup'),
-      property: 'padding-inline',
-      from: '16px',
-      to: 'var(--demo-space-5)',
-      token: '--demo-space-5',
-    },
-  ]);
+  await panel(page).getByRole('button', { name: 'Remove padding-inline' }).click();
+  await expect(inline).toHaveCount(0);
+  await expect
+    .poll(() => page.locator('[data-testid="signup"]').evaluate((el) => getComputedStyle(el).padding))
+    .toBe('8px 16px');
 });
 
 test('what the inspector shows is what the annotation carries', async ({ page, site, annotDir }) => {

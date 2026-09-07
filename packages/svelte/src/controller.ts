@@ -6,7 +6,7 @@ import { captureRegion, freezeAnimations, isOverlayNode, SHADOW_SEP } from './do
 import { paintHighlights, supportsHighlights } from './dom/highlights.js';
 import { isTyping, keyAction } from './keyboard.js';
 import { DRAW_TOOLS } from './draw-tools.js';
-import { openElementPopup, openPagePopup, openTextPopup } from './modes/index.js';
+import { openElementPopup, openPagePopup, openTextPopup, walkSelection, type Walk } from './modes/index.js';
 import { domToCanvas } from './screenshot.js';
 import type { AnnotState } from './state/annot-state.svelte.js';
 import { filesOf, isFileDrag } from './ui/drop.js';
@@ -29,11 +29,18 @@ export function watchViewport(state: AnnotState): () => void {
     });
   };
 
+  // The page moved under a pointer that has not moved: what was hovered no longer is, and the card
+  // would sit over an element it does not describe. The next pointermove says what is under it now.
+  const dropHover = (): void => {
+    if (state.hover.el) state.hover = { el: null, rect: null, label: '' };
+  };
+
   const lazy = (): void => {
     view.clearTimeout(timer);
     timer = view.setTimeout(() => state.reanchor(), 300);
   };
 
+  view.addEventListener('scroll', dropHover, { passive: true, capture: true });
   view.addEventListener('scroll', sync, { passive: true, capture: true });
   view.addEventListener('resize', sync, { passive: true });
 
@@ -52,6 +59,7 @@ export function watchViewport(state: AnnotState): () => void {
   return () => {
     view.cancelAnimationFrame(frame);
     view.clearTimeout(timer);
+    view.removeEventListener('scroll', dropHover, { capture: true });
     view.removeEventListener('scroll', sync, { capture: true });
     view.removeEventListener('resize', sync);
     resizeObserver.disconnect();
@@ -79,9 +87,16 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
       panelOpen: state.prefs.panelOpen,
       focusedDraft: focused?.status === 'draft',
       marksPicked: state.marksPicked,
+      selected: state.selection.length > 0,
       paletteKey: state.prefs.paletteKey,
     });
     if (!action) return;
+
+    if (action.startsWith('walk:')) {
+      walkSelection(state, action.slice(5) as Walk);
+      event.preventDefault();
+      return;
+    }
 
     if (action.startsWith('tool:')) {
       const name = action.slice(5);

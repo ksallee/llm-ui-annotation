@@ -1,3 +1,3 @@
-export { elementMode, openElementPopup } from './element.js';
+export { elementMode, openElementPopup, walkSelection, type Walk } from './element.js';
 export { openTextPopup, textMode } from './text.js';
 export { commitLabel, openPagePopup, pageMode } from './page.js';

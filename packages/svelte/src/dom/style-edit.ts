@@ -8,23 +8,19 @@ export interface Editable {
   property: string;
   group: string;
   kind: EditKind;
-  /** Properties this one splits into, offered under a `+`: the two axes first, then the sides. */
-  parts?: readonly string[];
 }
 
-const SIDES = ['top', 'right', 'bottom', 'left'];
-const AXES = ['block', 'inline'];
-const CORNERS = ['top-left', 'top-right', 'bottom-right', 'bottom-left'];
-
-const partsOf = (make: (part: string) => string): string[] =>
-  [...AXES, ...SIDES].map(make);
-
-/** The properties design feedback is about. Everything else stays read-only. */
+/** The properties worth proposing on an element whose source does not already set them. */
 export const EDITABLE: readonly Editable[] = [
-  { property: 'padding', group: 'Spacing', kind: 'length', parts: partsOf((p) => `padding-${p}`) },
-  { property: 'margin', group: 'Spacing', kind: 'length', parts: partsOf((p) => `margin-${p}`) },
+  { property: 'padding', group: 'Spacing', kind: 'length' },
+  { property: 'padding-block', group: 'Spacing', kind: 'length' },
+  { property: 'padding-inline', group: 'Spacing', kind: 'length' },
+  { property: 'margin', group: 'Spacing', kind: 'length' },
+  { property: 'margin-block', group: 'Spacing', kind: 'length' },
+  { property: 'margin-inline', group: 'Spacing', kind: 'length' },
   { property: 'gap', group: 'Spacing', kind: 'length' },
   { property: 'color', group: 'Colour', kind: 'color' },
+  { property: 'background', group: 'Colour', kind: 'color' },
   { property: 'background-color', group: 'Colour', kind: 'color' },
   { property: 'border-color', group: 'Colour', kind: 'color' },
   { property: 'font-family', group: 'Type', kind: 'family' },
@@ -34,21 +30,18 @@ export const EDITABLE: readonly Editable[] = [
   { property: 'letter-spacing', group: 'Type', kind: 'length' },
   { property: 'text-transform', group: 'Type', kind: 'free' },
   { property: 'text-align', group: 'Type', kind: 'free' },
-  {
-    property: 'border-radius',
-    group: 'Shape',
-    kind: 'length',
-    parts: CORNERS.map((corner) => `border-${corner}-radius`),
-  },
-  {
-    property: 'border-width',
-    group: 'Shape',
-    kind: 'length',
-    parts: partsOf((p) => `border-${p}-width`),
-  },
+  { property: 'border-radius', group: 'Shape', kind: 'length' },
+  { property: 'border-width', group: 'Shape', kind: 'length' },
   { property: 'box-shadow', group: 'Shape', kind: 'shadow' },
   { property: 'opacity', group: 'Shape', kind: 'free' },
 ];
+
+const BY_PROPERTY = new Map(EDITABLE.map((item) => [item.property, item]));
+
+/** The editor for a property, a plain field for anything else the page happens to set. */
+export function editableFor(property: string): Editable {
+  return BY_PROPERTY.get(property) ?? { property, group: 'Other', kind: 'free' };
+}
 
 /**
  * The token behind a value, or null. Family rules live in core: a property only ever matches a token
@@ -107,31 +100,10 @@ export function tokenOptions(
   return { fitting: fitting.sort(byName), others: others.sort(byName) };
 }
 
-/** Computed values of the editable set, shorthand where the browser gives one. */
-export function editableValues(el: Element): Record<string, string> {
-  const view = el.ownerDocument.defaultView;
-  if (!view) return {};
-  const style = view.getComputedStyle(el);
-  const out: Record<string, string> = {};
-  for (const item of EDITABLE) {
-    out[item.property] = style.getPropertyValue(item.property).trim();
-    for (const part of item.parts ?? []) out[part] = style.getPropertyValue(part).trim();
-  }
-  return out;
-}
-
-/** What a part adds to its shorthand: `padding-inline` is `inline`, `border-top-width` is `top`. */
-export function partLabel(shorthand: string, part: string): string {
-  const stem = new Set(shorthand.split('-'));
-  return part
-    .split('-')
-    .filter((word) => !stem.has(word))
-    .join('-');
-}
-
-/** The token a `var(--name)` value names, or null. */
-export function tokenIn(value: string): string | null {
-  return /^var\(\s*(--[^\s,)]+)/.exec(value.trim())?.[1] ?? null;
+/** The tokens a value names, in order, or null when it names none. */
+export function tokensIn(value: string): string | null {
+  const names = [...value.matchAll(/var\(\s*(--[^\s,)]+)/g)].map((m) => m[1]);
+  return names.length > 0 ? names.join(' ') : null;
 }
 
 /** Two values are the same edit when they normalize the same, so `8px` never diffs against `8px `. */

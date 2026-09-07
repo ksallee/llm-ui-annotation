@@ -37,61 +37,26 @@ proposal never survives a reload.
 
 ## The editors
 
-In the drawer, as the readings themselves (spec 12 §3): one row per property, showing its value and
-its token, both changeable. Only the design set gets an editor — `EDITABLE` in `style-edit.ts`:
+In the drawer, as the readings themselves (spec 12 §3), and the rows are **what the source
+declares** — not a fixed list of properties we decided were interesting.
 
-| Group | Properties |
-|-------|------------|
-| Spacing | `padding` `margin` `gap` |
-| Colour | `color` `background-color` `border-color` |
-| Type | `font-family` `font-size` `font-weight` `line-height` `letter-spacing` `text-transform` `text-align` |
-| Shape | `border-radius` `border-width` `box-shadow` `opacity` |
+`matchedDeclarations(el)` walks the page's stylesheets for every rule whose selector matches the
+element, reads `rule.style.cssText`, and keeps the last declaration per property, inline style last.
+So a row shows the value **as written**: `padding: var(--demo-space-2) var(--demo-space-4)`, not the
+computed `8px 16px`. If the page writes `padding-inline`, that is the row; if it writes
+`padding-left`, that is the row. The panel reflects, it does not restructure. Cascade order without
+specificity — the last matching rule wins, which is right for the flat stylesheets a page ships and
+can differ from the browser on a contrived one.
 
-Every row shows the computed value even when it is `none` or `normal`, so a shadow or a gap can be
-proposed where the page has neither. A row is a text input for the value plus, when the page has
-tokens that fit, a select of them; a row whose property has no candidate token shows the input alone.
-`text-align` and the other free-form properties match a token by **name** only, since their values
-have no shape to match on.
+Inheritable properties the element does not set itself are read off the nearest ancestor that does,
+listed after its own and shown in italic: `font-size: var(--demo-text-base)` from `body` is a fact
+about the element even though the element never mentions it.
 
-### A property with sides
-
-`padding`, `margin`, `border-width` and `border-radius` hold up to four values, and a select holds
-one name. Rather than four permanent rows, the row carries a `+` offering its `parts`: the two axes
-first — `padding-block`, `padding-inline` — then the four sides, or the four corners for a radius.
-Picking one adds a row of its own, with its own value and its own token select, and the edit it makes
-is that longhand: `padding-inline: 16px → var(--space-5)`, not a shorthand pretending to carry two
-tokens. Vertical and horizontal are the common case and each is one value, which is what makes them
-worth naming; a single side is a click further and rarely needed.
-
-The axes are the logical properties, so they follow the writing mode, and they compute to a single
-value that a token resolves against like any other. Setting the shorthand drops its parts' edits,
-because that is what the shorthand does to them in CSS.
-
-### Nothing is an edit
-
-Picking the token a value **already comes from** is not a change: the row keeps its token and no edit
-is recorded. Picking a token whose value merely happens to match is a real instruction — "stop
-hard-coding this, use the token" — and is recorded, even though the rendered result is identical.
-Typing the value back by hand drops the edit the same way.
-
-Tokens come from `declaredTokens(doc, el)` — every custom property in scope for that element, by
-name. Not `tokenMap`: that keeps one name per value, and a page where `--space-3` and `--text-xs` are
-both `12px` must offer both here.
-
-Two filters decide what a row shows. `kindOf` classifies each token's value as `color`, `length`,
-`shadow`, `family` or `free`, and a row offers only its own kind — a colour row never offers a
-spacing token. Then `TOKEN_FAMILIES` (spec 12 §4) puts the tokens named for that property first and
-the rest under an `other tokens` group. A designer looking for their type scale should not have to
-read past the spacing scale to find it.
-
-**The select shows the value's current token**, not an empty prompt: `namedToken` resolves what the
-element already computes, so the row says `--demo-radius-md` before anything is changed. Seeing that
-a value is *not* on the system is half of what the panel is for. A value of several parts names
-several tokens, which no select can hold, so that case prints under the row instead:
-`--demo-space-2 --demo-space-4`.
-
-Picking a token writes `to: var(--name)` and `token: --name`; typing writes the raw value and
-`token: null`. Colour rows carry a swatch and show their value as hex.
+A row is a text input for the value plus, when the page has tokens that fit, a select of them; a
+value that names a token with no select to hold it shows the name beside it instead. `EDITABLE` is
+no longer the list of rows — it is what `+ property` offers and where a property's `kind` and family
+come from. Adding one gives it a row marked as an **override** (a rule the source does not have),
+with a `×` that takes it off again.
 
 ## The preview
 
@@ -134,10 +99,11 @@ different: an old reader that drops the field silently loses half of what the us
 ## Acceptance criteria
 
 - Changing `padding` in the drawer changes the live page, and clearing it puts the page back.
+- The rows are the declarations the stylesheets make, with their authored values.
 - The type editors offer the page's type scale first and its spacing scale under `other tokens`.
 - With the drawer on Inspect, clicking an element selects it and does not open a note popup.
-- `+` on padding, then `inline`, then a spacing token changes the horizontal padding alone, and the
-  note carries `padding-inline`.
+- `+ property`, then `padding-inline`, then a spacing token changes the horizontal padding alone and
+  the note carries `padding-inline`; `×` takes the override off and the page with it.
 - Picking the token a value already has leaves the pending count where it was.
 - A colour row offers the page's colour tokens and no others; picking one writes `var(--name)` and the token name.
 - The note created next carries both edits; the route file on disk holds them; the page reverts on commit.

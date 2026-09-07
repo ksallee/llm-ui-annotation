@@ -20,8 +20,23 @@ const ctx = (over: Partial<KeyContext> = {}): KeyContext => ({
   panelOpen: false,
   focusedDraft: false,
   marksPicked: false,
+  selected: false,
   paletteKey: DEFAULT_PALETTE_KEY,
   ...over,
+});
+
+describe('walking the tree', () => {
+  it('takes the arrows only in element mode with something selected', () => {
+    const walking = ctx({ selected: true });
+    expect(keyAction(key({ key: 'ArrowUp' }), walking)).toBe('walk:parent');
+    expect(keyAction(key({ key: 'ArrowDown' }), walking)).toBe('walk:child');
+    expect(keyAction(key({ key: 'ArrowLeft' }), walking)).toBe('walk:previous');
+    expect(keyAction(key({ key: 'ArrowRight' }), walking)).toBe('walk:next');
+
+    // Nothing selected, or another mode: the page keeps its scroll.
+    expect(keyAction(key({ key: 'ArrowUp' }), ctx())).toBeNull();
+    expect(keyAction(key({ key: 'ArrowUp' }), ctx({ selected: true, mode: 'page' }))).toBeNull();
+  });
 });
 
 describe('isTyping', () => {

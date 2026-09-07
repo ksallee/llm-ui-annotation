@@ -69,8 +69,6 @@ export interface Inspection {
   chain: string[];
   box: BoxModel | null;
   layout: Reading[];
-  type: Reading[];
-  colour: Reading[];
   /** The subset the annotation carries, or null when the detail level sends none. */
   styles: Record<string, string> | null;
 }
@@ -276,15 +274,6 @@ function layoutOf(style: CSSStyleDeclaration): Reading[] {
   return out.filter(([, value]) => value !== '');
 }
 
-function colourOf(el: Element, style: CSSStyleDeclaration, box: BoxModel | null): Reading[] {
-  const props = ['color', 'box-shadow'];
-  if (box && hasSide(box.border)) props.splice(1, 0, 'border-color');
-  const out = readings(style, props).filter(([, value]) => value !== 'rgba(0, 0, 0, 0)');
-  const background = paintedBackground(el, style);
-  if (background) out.splice(1, 0, ['background-color', background]);
-  return out;
-}
-
 /** Ancestor tags from `body` down, piercing open shadow roots. */
 function chainOf(el: Element): string[] {
   const out: string[] = [];
@@ -313,17 +302,6 @@ export function inspectElement(el: Element, withStyles: boolean): Inspection {
     chain: chainOf(el),
     box,
     layout: style ? layoutOf(style) : [],
-    type: style
-      ? readings(style, [
-          'font-family',
-          'font-size',
-          'font-weight',
-          'line-height',
-          'letter-spacing',
-          'color',
-        ])
-      : [],
-    colour: style ? colourOf(el, style, box) : [],
     styles: withStyles ? computedStyles(el) : null,
   };
 }
