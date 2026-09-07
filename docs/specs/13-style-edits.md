@@ -53,6 +53,27 @@ tokens that fit, a select of them; a row whose property has no candidate token s
 `text-align` and the other free-form properties match a token by **name** only, since their values
 have no shape to match on.
 
+### A property with sides
+
+`padding`, `margin`, `border-width` and `border-radius` hold up to four values, and a select holds
+one name. Rather than four permanent rows, the row carries a `+` offering its `parts`: the two axes
+first — `padding-block`, `padding-inline` — then the four sides, or the four corners for a radius.
+Picking one adds a row of its own, with its own value and its own token select, and the edit it makes
+is that longhand: `padding-inline: 16px → var(--space-5)`, not a shorthand pretending to carry two
+tokens. Vertical and horizontal are the common case and each is one value, which is what makes them
+worth naming; a single side is a click further and rarely needed.
+
+The axes are the logical properties, so they follow the writing mode, and they compute to a single
+value that a token resolves against like any other. Setting the shorthand drops its parts' edits,
+because that is what the shorthand does to them in CSS.
+
+### Nothing is an edit
+
+Picking the token a value **already comes from** is not a change: the row keeps its token and no edit
+is recorded. Picking a token whose value merely happens to match is a real instruction — "stop
+hard-coding this, use the token" — and is recorded, even though the rendered result is identical.
+Typing the value back by hand drops the edit the same way.
+
 Tokens come from `declaredTokens(doc, el)` — every custom property in scope for that element, by
 name. Not `tokenMap`: that keeps one name per value, and a page where `--space-3` and `--text-xs` are
 both `12px` must offer both here.
@@ -115,6 +136,9 @@ different: an old reader that drops the field silently loses half of what the us
 - Changing `padding` in the drawer changes the live page, and clearing it puts the page back.
 - The type editors offer the page's type scale first and its spacing scale under `other tokens`.
 - With the drawer on Inspect, clicking an element selects it and does not open a note popup.
+- `+` on padding, then `inline`, then a spacing token changes the horizontal padding alone, and the
+  note carries `padding-inline`.
+- Picking the token a value already has leaves the pending count where it was.
 - A colour row offers the page's colour tokens and no others; picking one writes `var(--name)` and the token name.
 - The note created next carries both edits; the route file on disk holds them; the page reverts on commit.
 - `annot pending` prints the diff block above the comment, at every detail level.

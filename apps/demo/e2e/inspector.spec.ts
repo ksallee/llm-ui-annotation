@@ -156,12 +156,15 @@ test('a value changed in the panel previews on the page and rides with the note'
     .toBe('24px 40px');
 
   const token = panel(page).locator('select[aria-label="background-color token"]');
+  // The token it already has changes nothing, and must not be recorded as a change.
   await token.selectOption('--demo-accent');
+  await expect(panel(page)).toContainText('1 change rides with your next note');
+  await token.selectOption('--demo-surface');
   await expect(panel(page)).toContainText('2 changes ride with your next note');
 
   await annotate(page, '[data-testid="signup"]');
   await expect(popup(page)).toContainText('carries 2 style changes');
-  await commit(page, 'roomier, and on the accent');
+  await commit(page, 'roomier, and on the surface colour');
 
   const stored = (await storedAnnotations(annotDir, '/'))[0]!;
   expect(stored.styleEdits).toEqual([
@@ -176,8 +179,8 @@ test('a value changed in the panel previews on the page and rides with the note'
       selector: expect.stringContaining('signup'),
       property: 'background-color',
       from: 'rgb(44, 138, 133)',
-      to: 'var(--demo-accent)',
-      token: '--demo-accent',
+      to: 'var(--demo-surface)',
+      token: '--demo-surface',
     },
   ]);
 
@@ -185,6 +188,35 @@ test('a value changed in the panel previews on the page and rides with the note'
   await expect
     .poll(() => page.locator('[data-testid="signup"]').evaluate((el) => getComputedStyle(el).padding))
     .toBe('8px 16px');
+});
+
+test('a shorthand splits into the side you ask for', async ({ page, site, annotDir }) => {
+  await page.goto(`${site}/`);
+  await setMode(page, 'Element');
+  await openPanel(page);
+  await pick(page, '[data-testid="signup"]');
+
+  await panel(page).getByRole('button', { name: 'Add a padding side' }).click();
+  await panel(page).getByRole('button', { name: 'inline', exact: true }).click();
+  await panel(page).locator('select[aria-label="padding-inline token"]').selectOption('--demo-space-5');
+
+  // Horizontal only: the vertical padding is untouched.
+  await expect
+    .poll(() => page.locator('[data-testid="signup"]').evaluate((el) => getComputedStyle(el).padding))
+    .toBe('8px 24px');
+
+  await annotate(page, '[data-testid="signup"]');
+  await commit(page, 'wider sides');
+  const stored = (await storedAnnotations(annotDir, '/'))[0]!;
+  expect(stored.styleEdits).toEqual([
+    {
+      selector: expect.stringContaining('signup'),
+      property: 'padding-inline',
+      from: '16px',
+      to: 'var(--demo-space-5)',
+      token: '--demo-space-5',
+    },
+  ]);
 });
 
 test('what the inspector shows is what the annotation carries', async ({ page, site, annotDir }) => {

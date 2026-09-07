@@ -195,6 +195,15 @@ describe('resolveDeclared', () => {
     expect(resolveDeclared({ padding: '8px' }, DECLARED)).toEqual({ padding: '--space-2' });
   });
 
+  it('gives a longhand its shorthand’s family', () => {
+    expect(resolveDeclared({ 'padding-left': '8px' }, DECLARED)).toEqual({
+      'padding-left': '--space-2',
+    });
+    expect(resolveDeclared({ 'border-top-left-radius': '8px' }, DECLARED)).toEqual({
+      'border-top-left-radius': '--radius-md',
+    });
+  });
+
   it('refuses a name that belongs to another family, and keeps one that belongs to none', () => {
     const spacingOnly = new Map([['--space-2', '8px']]);
     expect(resolveDeclared({ 'border-radius': '8px' }, spacingOnly)).toEqual({});

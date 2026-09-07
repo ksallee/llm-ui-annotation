@@ -376,6 +376,12 @@ function suits(name: string, family: RegExp | undefined): boolean {
   return !FAMILIES.some((other) => other !== family && other.test(name));
 }
 
+const SIDE = /-(top|right|bottom|left|block|inline)(?=-|$)/g;
+
+/** `padding-inline` is padding, `border-top-left-radius` is border-radius: same family, same tokens. */
+const familyOf = (property: string): RegExp | undefined =>
+  TOKEN_FAMILIES[property] ?? TOKEN_FAMILIES[property.replace(SIDE, '')];
+
 /** Value to name, the first suitable name per value. `declared` is already in winning order. */
 function familyMap(declared: ReadonlyMap<string, string>, family: RegExp | undefined): TokenMap {
   const out = new Map<string, string>();
@@ -401,7 +407,7 @@ export function resolveDeclared(
   const maps = new Map<RegExp | undefined, TokenMap>();
   const out: Record<string, string> = {};
   for (const [prop, value] of Object.entries(styles)) {
-    const family = TOKEN_FAMILIES[prop];
+    const family = familyOf(prop);
     let map = maps.get(family);
     if (!map) maps.set(family, (map = familyMap(declared, family)));
     const found = resolveTokens({ [prop]: value }, map, fontPx)[prop];

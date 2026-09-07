@@ -1061,6 +1061,19 @@ kbd {
   gap: 4px;
 }
 
+.editor.part .prop {
+  padding-left: 12px;
+  color: var(--annot-ink-3);
+}
+
+/* The sides a shorthand can be split into, offered under its `+`. */
+.parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px 0 4px calc(6.5em + 4px);
+}
+
 .editor .prop {
   flex: 0 0 6.5em;
   font-family: var(--annot-font-mono);
