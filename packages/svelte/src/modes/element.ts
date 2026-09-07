@@ -1,11 +1,5 @@
 import type { Rect } from '@llm-ui-annotation/core';
-import {
-  describeElement,
-  describeSelector,
-  docRect,
-  elementLabelOf,
-  isOverlay,
-} from '../dom/core-dom.js';
+import { describeElement, docRect, elementLabelOf, isOverlay } from '../dom/core-dom.js';
 import { coverage, docPoint, rectFromPoints, unionRects } from '../dom/geometry.js';
 import { withoutPreview } from '../dom/preview.js';
 import type { AnnotState } from '../state/annot-state.svelte.js';
@@ -158,9 +152,7 @@ export function openElementPopup(state: AnnotState): void {
 
 function open(state: AnnotState, elements: Element[]): void {
   const refs = withoutPreview(state.doc, () =>
-    elements.map((el) =>
-      describeElement(el, { styles: state.sendsStyles(describeSelector(el).selector) }),
-    ),
+    elements.map((el) => describeElement(el, { styles: state.detail !== 'compact' })),
   );
   const anchor: Rect = unionRects(refs.map((ref) => ref.rect)) ?? refs[0]!.rect;
   state.openPopup('element', { kind: 'element', elements: refs }, anchor);

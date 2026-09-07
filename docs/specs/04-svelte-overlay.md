@@ -74,7 +74,7 @@ Nothing above the note: the card is the field and two buttons.
 ink-2), the quote or first element text, and the selector(s), rect and styles subset the agent will
 see. Escape cancels. Clicking outside cancels only if the textarea is empty; otherwise it stays.
 
-After Add in batch mode: the pin appears with dashed `draft` styling, badge increments, popup closes, the mode stays active. **Send** does the same and then sends that one note as a batch of one, without going through the send dialog. In immediate mode Add and Send are the same thing, so only Send is shown.
+After Add in Manual mode: the pin appears with dashed `draft` styling, badge increments, popup closes, the mode stays active. A note that goes out at once — Review or Auto, or **Send** in Manual — toasts "Sent. Waiting for the agent.": the pin turning solid is easy to miss, and silence after sending reads as nothing having happened. **Send** does the same and then sends that one note as a batch of one, without going through the send dialog. In immediate mode Add and Send are the same thing, so only Send is shown.
 
 ## Pins and hover cards
 

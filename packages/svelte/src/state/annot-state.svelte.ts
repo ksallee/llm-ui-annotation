@@ -301,17 +301,6 @@ export class AnnotState {
     this.styleEdits = [];
   }
 
-  /**
-   * Whether an element's computed styles go to the agent: when the user changed something on it, so
-   * the diff has its surroundings, or when they asked for everything. A note that says what to do
-   * carries the selector and the words; twenty computed properties beside them are noise.
-   */
-  sendsStyles(selector: string): boolean {
-    return (
-      this.prefs.detail === 'detailed' ||
-      this.styleEdits.some((edit) => edit.selector === selector)
-    );
-  }
 
   /** The element the inspector reads. */
   readonly inspected = $derived(this.mode === 'element' ? (this.selection[0] ?? null) : null);
@@ -466,6 +455,12 @@ export class AnnotState {
     }
     for (const a of rows) await this.deleteNote(a.id);
     this.batchToast(`Deleted ${rows.length}`, null);
+  }
+
+  /** One note has gone out. The pin turning solid is easy to miss; this is not. */
+  noteSent(): void {
+    this.announce('Sent 1 annotation');
+    this.toast('Sent. Waiting for the agent.');
   }
 
   batchToast(text: string, undo: (() => void) | null): void {
@@ -686,7 +681,7 @@ export class AnnotState {
           summary: null,
           questions: this.prefs.questions,
         });
-        this.announce('Sent 1 annotation');
+        this.noteSent();
       }
       return saved;
     } catch {
@@ -951,7 +946,7 @@ export class AnnotState {
     await this.editComment(id, comment);
     if (this.autoSends) {
       await this.sendOne(id);
-      this.announce('Sent 1 annotation');
+      this.noteSent();
     }
     return this.annotations.get(id)!;
   }

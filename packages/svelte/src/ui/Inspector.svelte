@@ -14,7 +14,7 @@
   const el = $derived(annot.inspected);
   // Read with the proposal off: this is what the annotation carries, and it carries the code.
   const seen = $derived(
-    el ? withoutPreview(annot.doc, () => inspectElement(el, annot.sendsStyles(selector))) : null,
+    el ? withoutPreview(annot.doc, () => inspectElement(el, annot.detail !== 'compact')) : null,
   );
   const styles = $derived(seen?.styles ?? null);
   const entries = $derived(Object.entries(styles ?? {}));
@@ -156,36 +156,37 @@
       </div>
     {/if}
 
-    {#if pending.length > 0 || styles}
-      <section class="sec">
-        <h4>What the agent will see</h4>
-        {#if pending.length > 0}
-          <dl class="decls payload">
-            {#each pending as edit (edit.property)}
-              <dt>{edit.property}</dt>
-              <dd>{edit.from} → {edit.to}</dd>
-            {/each}
-          </dl>
+    <section class="sec">
+      <h4>What the agent will see</h4>
+      {#if pending.length > 0}
+        <dl class="decls payload">
+          {#each pending as edit (edit.property)}
+            <dt>{edit.property}</dt>
+            <dd>{edit.from} → {edit.to}</dd>
+          {/each}
+        </dl>
+      {/if}
+      {#if !styles}
+        <p class="muted">
+          Detail level is <b>compact</b>, so no styles are sent. Settings has the other two.
+        </p>
+      {:else}
+        {#if entries.length <= 2}
+          <p class="warn">
+            {entries.length === 0 ? 'No properties' : `Only ${entries.length}`} — an element styled by
+            global tag rules comes back nearly empty, and the agent gets this much and no more.
+          </p>
         {/if}
-        {#if styles}
-          <!-- The element's own styles go with a change, as the ground the diff stands on. -->
-          {#if entries.length <= 2}
-            <p class="warn">
-              {entries.length === 0 ? 'No properties' : `Only ${entries.length}`} — an element styled
-              by global tag rules comes back nearly empty, and the agent gets this much and no more.
-            </p>
-          {/if}
-          <dl class="decls payload">
-            {#each entries as [name, value] (name)}
-              <dt>{name}</dt>
-              <dd>
-                {value}
-                {#if tokens[name]}<span class="token">{tokens[name]}</span>{/if}
-              </dd>
-            {/each}
-          </dl>
-        {/if}
-      </section>
-    {/if}
+        <dl class="decls payload">
+          {#each entries as [name, value] (name)}
+            <dt>{name}</dt>
+            <dd>
+              {value}
+              {#if tokens[name]}<span class="token">{tokens[name]}</span>{/if}
+            </dd>
+          {/each}
+        </dl>
+      {/if}
+    </section>
   {/if}
 </div>

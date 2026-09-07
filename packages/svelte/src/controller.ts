@@ -323,7 +323,7 @@ export async function commitPopup(state: AnnotState, send = false): Promise<void
 
   if (send && state.annotations.get(created.id)?.status === 'draft') {
     await state.sendOne(created.id);
-    state.announce('Sent 1 annotation');
+    state.noteSent();
   }
 
   if (popup.mode === 'element') state.selection = [];

@@ -65,11 +65,9 @@ Devtools' Elements panel, in our drawer. One list for the selected element, in t
 - **Layout** — `display`, `position`, and when it is flex or grid, the direction, alignment, template and `gap`. Read-only: these are facts about the element, not design decisions to hand an agent.
 - **Declared** — every declaration the page's own stylesheets make for this element, in cascade order, with the value **as authored**, then the inheritable ones from the nearest ancestor that sets them, in italic. Each row is editable (spec 13). There is no separate "propose a change" section and no invented rows: the panel reflects the source, and `+ property` adds an override where the source says nothing.
 - **Accessibility** — name, role, keyboard-focusable.
-- **What the agent will see** — the pending changes as `from → to`, then the `styles` subset when
-  one goes with them, read with the preview off so it is the code and not the proposal. The section
-  is absent when neither exists, which is the common case: a note that says what to do carries the
-  selector and the words. Styles ride with a change, as the ground the diff stands on, or at the
-  `detailed` level, which sends them regardless.
+- **What the agent will see** — the pending changes as `from → to` first, since that is the part the
+  user wrote, then the `styles` subset the payload carries, read with the preview off so it is the
+  code and not the proposal.
 
 Declarations are written the way devtools writes them: mono on both sides, a swatch on every colour. The region is a scroll container, so it carries `tabindex="0"` — a scrollable
 region has to be reachable by keyboard.

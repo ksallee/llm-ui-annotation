@@ -298,22 +298,6 @@ test('what the agent gets is the code, with the proposal beside it', async ({
   expect(stored.styleEdits?.[0]?.to).toBe('var(--demo-space-7)');
 });
 
-test('a note with no CSS change carries no CSS', async ({ page, site, annotDir }) => {
-  await page.goto(`${site}/`);
-  await setMode(page, 'Element');
-  await openPanel(page);
-  await pick(page, '[data-testid="signup"]');
-
-  // Nothing changed, so there is nothing for the agent to read but the selector and the words.
-  await expect(panel(page).locator('.decls.payload')).toHaveCount(0);
-
-  await annotate(page, '[data-testid="signup"]');
-  await commit(page, 'make this say Start free');
-  const target = (await storedAnnotations(annotDir, '/'))[0]!.target as ElementTarget;
-  expect(target.elements[0]!.styles).toBeUndefined();
-  expect(target.elements[0]!.selector).toContain('signup');
-});
-
 test('a gap is read back as the stylesheet wrote it, on every kind of container', async ({
   page,
   site,
@@ -342,10 +326,6 @@ test('a gap is read back as the stylesheet wrote it, on every kind of container'
 
 test('what the inspector shows is what the annotation carries', async ({ page, site, annotDir }) => {
   await page.goto(`${site}/`);
-  // `detailed` is the level that sends an element's styles without a change to hang them on.
-  const settings = await openSettings(page);
-  await settings.getByRole('button', { name: 'detailed', exact: true }).click();
-  await page.keyboard.press('Escape');
   await setMode(page, 'Element');
   await openPanel(page);
 

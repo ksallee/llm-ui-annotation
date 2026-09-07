@@ -62,6 +62,8 @@ test('send and approve needs nothing from the user once the agent is done', asyn
 
   await setMode(page, 'Element');
   await annotateElement(page, '[data-testid="save"]', 'tighten this');
+  // Sending is not silent: the pin turning solid is easy to miss, the toast is not.
+  await expect(overlay(page).locator('.toast')).toContainText('Sent. Waiting for the agent.');
 
   // No review step: the agent reports done and the note is approved without being touched.
   await expect
