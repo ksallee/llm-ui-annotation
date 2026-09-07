@@ -165,6 +165,17 @@ export async function marquee(
 
 export const popup = (page: Page): Locator => overlay(page).locator('.card.popup');
 
+/**
+ * Select a host element and open its popup. With the drawer on Inspect a click only selects, so the
+ * note comes from the Annotate chip.
+ */
+export async function annotate(page: Page, selector: string): Promise<void> {
+  await clickHost(page, selector);
+  if (await popup(page).isVisible()) return;
+  await overlay(page).locator('.chip', { hasText: 'Annotate' }).first().click();
+  await expect(popup(page)).toBeVisible();
+}
+
 /** Type a comment into the open popup and press the primary button. */
 export async function commit(page: Page, comment: string): Promise<void> {
   const card = popup(page);

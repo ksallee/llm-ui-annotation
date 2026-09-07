@@ -212,14 +212,14 @@
       </span>
     {/if}
 
-    {#if annot.mode === 'element' && annot.selection.length > 1 && !annot.popup}
+    {#if annot.mode === 'element' && annot.selection.length > 0 && !annot.popup && (annot.selection.length > 1 || annot.inspecting)}
       {@const box = annot.selection[0].getBoundingClientRect()}
       <button
         class="chip"
         style="left: {box.left}px; top: {box.top - 26}px"
         onclick={() => openElementPopup(annot)}
       >
-        Annotate {annot.selection.length}
+        Annotate{annot.selection.length > 1 ? ` ${annot.selection.length}` : ''}
       </button>
     {/if}
 

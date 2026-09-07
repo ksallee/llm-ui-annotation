@@ -83,7 +83,7 @@ export function elementMode(state: AnnotState, layer: HTMLElement): () => void {
     if (dragged) {
       const picked = marqueeSelection(state, box);
       state.selection = picked;
-      if (picked.length > 0) open(state, picked);
+      if (picked.length > 0 && !state.inspecting) open(state, picked);
       return;
     }
 
@@ -99,7 +99,8 @@ export function elementMode(state: AnnotState, layer: HTMLElement): () => void {
       return;
     }
     state.selection = [el];
-    open(state, [el]);
+    // Inspecting is its own activity: the note comes from the chip or ⌘↵, not from every click.
+    if (!state.inspecting) open(state, [el]);
   };
 
   layer.addEventListener('pointermove', onMove);

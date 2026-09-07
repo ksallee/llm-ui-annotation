@@ -307,6 +307,12 @@ export class AnnotState {
   /** Selecting an element switches an open drawer to Inspect; it never opens a closed one. */
   readonly channel = $derived<Channel>(this.channelPin ?? (this.inspected ? 'inspect' : 'notes'));
 
+  /**
+   * Reading an element rather than annotating it. True with the drawer open on anything but Notes,
+   * including before the first selection, so a click behaves the same way every time.
+   */
+  readonly inspecting = $derived(this.prefs.panelOpen && this.channelPin !== 'notes');
+
   setChannel(channel: Channel): void {
     this.channelPin = channel;
   }

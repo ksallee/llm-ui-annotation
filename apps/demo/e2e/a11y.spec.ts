@@ -3,12 +3,11 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.js';
 import {
   annotateElement,
-  clickHost,
+  annotate,
   dropFile,
   openPanel,
   panel,
   PNG_FILE,
-  popup,
   ready,
   setMode,
 } from './overlay.js';
@@ -77,8 +76,7 @@ test('the overlay has no serious axe violations with the popup and panel open', 
   const row = panel(page).locator('.entry').first();
   await dropFile(page, row, 'mock-v2.png', 'image/png', PNG_FILE);
   await expect(row.locator('.attachment .att-name')).toHaveText('mock-v2.png');
-  await clickHost(page, 'article[data-plan="Pro"]');
-  await expect(popup(page)).toBeVisible();
+  await annotate(page, 'article[data-plan="Pro"]');
 
   await settled(page);
   const { serious, checked } = await scanOverlay(page);

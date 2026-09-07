@@ -75,11 +75,14 @@ export function tokenOptions(
   declared: ReadonlyMap<string, string>,
   item: Editable,
 ): { fitting: TokenOption[]; others: TokenOption[] } {
+  const family = TOKEN_FAMILIES[item.property];
   const fitting: TokenOption[] = [];
   const others: TokenOption[] = [];
   for (const [name, value] of declared) {
-    if (item.kind !== 'free' && kindOf(value) !== item.kind) continue;
-    (TOKEN_FAMILIES[item.property]?.test(name) ? fitting : others).push({ name, value });
+    const named = family?.test(name) ?? false;
+    // A free value has no shape to match on, so only the name can vouch for the token.
+    if (item.kind === 'free' ? !named : kindOf(value) !== item.kind) continue;
+    (named ? fitting : others).push({ name, value });
   }
   const byName = (a: TokenOption, b: TokenOption): number => a.name.localeCompare(b.name);
   return { fitting: fitting.sort(byName), others: others.sort(byName) };

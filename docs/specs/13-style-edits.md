@@ -37,8 +37,8 @@ proposal never survives a reload.
 
 ## The editors
 
-In the drawer, under the readings, as **Propose a change**. Only the design set gets an editor —
-`EDITABLE` in `style-edit.ts`:
+In the drawer, as the readings themselves (spec 12 §3): one row per property, showing its value and
+its token, both changeable. Only the design set gets an editor — `EDITABLE` in `style-edit.ts`:
 
 | Group | Properties |
 |-------|------------|
@@ -48,8 +48,10 @@ In the drawer, under the readings, as **Propose a change**. Only the design set 
 | Shape | `border-radius` `border-width` `box-shadow` `opacity` |
 
 Every row shows the computed value even when it is `none` or `normal`, so a shadow or a gap can be
-proposed where the page has neither. A row is a text input plus, when the page has tokens that fit,
-a select of them.
+proposed where the page has neither. A row is a text input for the value plus, when the page has
+tokens that fit, a select of them; a row whose property has no candidate token shows the input alone.
+`text-align` and the other free-form properties match a token by **name** only, since their values
+have no shape to match on.
 
 Tokens come from `declaredTokens(doc, el)` — every custom property in scope for that element, by
 name. Not `tokenMap`: that keeps one name per value, and a page where `--space-3` and `--text-xs` are
@@ -112,6 +114,7 @@ different: an old reader that drops the field silently loses half of what the us
 
 - Changing `padding` in the drawer changes the live page, and clearing it puts the page back.
 - The type editors offer the page's type scale first and its spacing scale under `other tokens`.
+- With the drawer on Inspect, clicking an element selects it and does not open a note popup.
 - A colour row offers the page's colour tokens and no others; picking one writes `var(--name)` and the token name.
 - The note created next carries both edits; the route file on disk holds them; the page reverts on commit.
 - `annot pending` prints the diff block above the comment, at every detail level.

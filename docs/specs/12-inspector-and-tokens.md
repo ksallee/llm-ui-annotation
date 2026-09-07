@@ -13,6 +13,9 @@ The right drawer is 360px and already belongs to the annotations panel. It gains
 - A **closed** drawer stays closed. Selecting an element must not force chrome open. The channel is a function of the selection, not an event, so a drawer opened later with the element still selected opens on Inspect.
 - The toggle overrides the automatic switch until the selection changes, so you can read a note while an element is selected.
 - Deselecting is a click on empty space, or `Esc` — which now clears the selection before it closes the panel.
+- While the drawer is open on anything but Notes, `state.inspecting` is true and a click on the page
+  selects **without** opening the note popup; an Annotate chip appears over the selection instead, and
+  `⌘↵` still opens it. The panel is where you work on an element; a note is a separate decision.
 
 ## 2. On canvas: the box model
 
@@ -46,14 +49,13 @@ back the quiet version: the 2 px outline and the small name chip.
 
 ## 3. In the drawer: the inspector
 
-Devtools' Elements panel, in our drawer. For the selected element, in this order:
+Devtools' Elements panel, in our drawer. One list for the selected element, in this order:
 
 - the **node title** of §2 with the border-box size, then the tag chain to `body` and the selector, both mono.
 - the **box diagram** — devtools' nested bands, `margin` outside `border` outside `padding` outside the content box, each labelled, with its four numbers on the edges they belong to and the content size in the middle. `−` for a zero side. This is the used box, read off the element; the payload's `width`/`height` are the computed CSS values and honour `box-sizing`, so the two disagree on a border-box element. Both are true.
-- **Layout** — `display`, `position`, and when it is flex or grid, the direction, alignment, template and `gap`.
-- **Text** — family, size, weight, line-height, letter-spacing, and the resolved text colour.
-- **Appearance** — text colour, background, border colour, shadow. The background is the element's own, or the first ancestor that paints one when it is transparent: that is the colour the eye reads, and the one the contrast figure uses.
-- **Accessibility** — name, role, keyboard-focusable, as in the card.
+- **Layout** — `display`, `position`, and when it is flex or grid, the direction, alignment, template and `gap`. Read-only: these are facts about the element, not design decisions to hand an agent.
+- **Spacing**, **Colour**, **Type** and **Shape** — the editable set of spec 13, every row a value and its token. There is no separate "propose a change" section: a property is read and changed in the same row, because two lists of the same properties, one of them dead, is what made people ask why the font family was not editable.
+- **Accessibility** — name, role, keyboard-focusable.
 - **What the agent will see** — the exact `styles` subset that goes into the payload, verbatim.
 
 Declarations are written the way devtools writes them: mono on both sides, a swatch on every colour,

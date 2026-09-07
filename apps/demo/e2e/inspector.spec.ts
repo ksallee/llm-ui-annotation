@@ -2,9 +2,9 @@ import type { ElementTarget } from '@llm-ui-annotation/core';
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.js';
 import {
+  annotate,
   centre,
   commit,
-  clickHost,
   popup,
   openPanel,
   openSettings,
@@ -141,7 +141,8 @@ test('a value changed in the panel previews on the page and rides with the note'
   await expect(panel(page).locator('select[aria-label="border-radius token"]')).toHaveValue(
     '--demo-radius-md',
   );
-  await expect(panel(page).locator('.editor .token.spans')).toContainText(
+  // A value of several parts names several tokens, shown in the select and not pickable.
+  await expect(panel(page).locator('select[aria-label="padding token"]')).toHaveValue(
     '--demo-space-2 --demo-space-4',
   );
 
@@ -156,9 +157,9 @@ test('a value changed in the panel previews on the page and rides with the note'
 
   const token = panel(page).locator('select[aria-label="background-color token"]');
   await token.selectOption('--demo-accent');
-  await expect(panel(page)).toContainText('2 changes pending');
+  await expect(panel(page)).toContainText('2 changes ride with your next note');
 
-  await clickHost(page, '[data-testid="signup"]');
+  await annotate(page, '[data-testid="signup"]');
   await expect(popup(page)).toContainText('carries 2 style changes');
   await commit(page, 'roomier, and on the accent');
 
@@ -197,7 +198,7 @@ test('what the inspector shows is what the annotation carries', async ({ page, s
   const tokens = await panel(page).locator('.token').allTextContents();
   expect(tokens).toContain('--demo-accent');
 
-  await clickHost(page, '[data-testid="signup"]');
+  await annotate(page, '[data-testid="signup"]');
   await commit(page, 'make this say Start free');
   await sendBatch(page);
 

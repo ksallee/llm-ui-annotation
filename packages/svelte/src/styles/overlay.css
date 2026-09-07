@@ -1045,16 +1045,13 @@ kbd {
 }
 
 /* Propose a change: the design set, each row a value and the tokens the page already has for it. */
-.editors .editor-group {
-  display: flex;
-  flex-direction: column;
+.sec.editors {
   gap: 2px;
-  margin-top: var(--annot-space-1);
 }
 
-.editors .group-name {
+.inspect .hint {
+  margin: 0;
   font-size: var(--annot-text-xs);
-  color: var(--annot-ink-3);
 }
 
 .editor {
@@ -1062,12 +1059,6 @@ kbd {
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-}
-
-/* Under the row it belongs to: several tokens for one value do not fit the select. */
-.editor .token.spans {
-  flex: 1 0 100%;
-  margin-left: calc(6.5em + 4px);
 }
 
 .editor .prop {

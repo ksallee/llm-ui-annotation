@@ -1,15 +1,13 @@
 <script lang="ts">
-  import { declaredTokens, resolveDeclared } from '../dom/core-dom.js';
-  import { hexOf, inspectElement, type Reading } from '../dom/inspect.js';
-  import { namedToken } from '../dom/style-edit.js';
+  import { declaredTokens, describeSelector, resolveDeclared } from '../dom/core-dom.js';
+  import { inspectElement, type Reading } from '../dom/inspect.js';
+  import { EDITABLE, editableValues } from '../dom/style-edit.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import BoxDiagram from './BoxDiagram.svelte';
   import NodeTitle from './NodeTitle.svelte';
-  import StyleEditors from './StyleEditors.svelte';
+  import StyleRow from './StyleRow.svelte';
 
   let { annot }: { annot: AnnotState } = $props();
-
-  const SWATCHES = new Set(['color', 'background-color', 'border-color']);
 
   const el = $derived(annot.inspected);
   const seen = $derived(el ? inspectElement(el, annot.detail !== 'compact') : null);
@@ -20,6 +18,11 @@
   const tokens = $derived(map && styles ? resolveDeclared(styles, map, seen?.fontPx ?? 0) : {});
   const others = $derived(annot.selection.length - 1);
 
+  const selector = $derived(el ? describeSelector(el).selector : '');
+  const values = $derived(el ? editableValues(el) : {});
+  const groups = $derived([...new Set(EDITABLE.map((e) => e.group))]);
+  const pending = $derived(annot.styleEdits.filter((e) => e.selector === selector));
+
   const size = $derived(
     seen?.box ? `${Math.round(seen.box.borderBox.width)} × ${Math.round(seen.box.borderBox.height)}` : '',
   );
@@ -28,7 +31,7 @@
 <!-- tabindex 0, not -1: the readings scroll, and a scroll region has to be reachable by keyboard. -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div class="inspect" role="region" aria-label="Inspector" tabindex="0">
-  {#if !seen}
+  {#if !seen || !el}
     <p class="muted empty">
       Nothing selected. In Element mode, click an element to read its box, type and colour.
     </p>
@@ -46,36 +49,48 @@
       <BoxDiagram box={seen.box} />
     {/if}
 
-    {#snippet group(title: string, rows: Reading[])}
+    {#snippet readings(title: string, rows: Reading[])}
       {#if rows.length > 0}
         <section class="sec">
           <h4>{title}</h4>
           <dl class="decls">
             {#each rows as [name, value] (name)}
-              {@const colour = SWATCHES.has(name)}
-              {@const token = map ? namedToken(name, value, map, seen.fontPx) : null}
               <dt>{name}</dt>
-              <dd>
-                {#if colour}<span class="swatch inline" style="background: {value}"></span>{/if}
-                {colour ? hexOf(value) : value}
-                {#if token}<span class="token">{token}</span>{/if}
-              </dd>
+              <dd>{value}</dd>
             {/each}
           </dl>
         </section>
       {/if}
     {/snippet}
 
-    {@render group('Layout', seen.layout)}
-    {@render group('Text', seen.type)}
-    {@render group('Appearance', seen.colour)}
-    {@render group(
+    {@render readings('Layout', seen.layout)}
+
+    <p class="muted hint">Change a value or pick a token; it rides with your next note.</p>
+
+    {#each groups as group (group)}
+      <section class="sec editors">
+        <h4>{group}</h4>
+        {#each EDITABLE.filter((e) => e.group === group) as item (item.property)}
+          <StyleRow {annot} {item} {selector} {values} declared={map ?? new Map()} fontPx={seen.fontPx} />
+        {/each}
+      </section>
+    {/each}
+
+    {@render readings(
       'Accessibility',
       seen.a11y.map((r): Reading => [r.name, r.value]),
     )}
 
-    {#if el}
-      <StyleEditors {annot} {el} />
+    {#if pending.length > 0}
+      <div class="row">
+        <span class="muted"
+          >{pending.length} change{pending.length === 1 ? '' : 's'} ride{pending.length === 1
+            ? 's'
+            : ''} with your next note</span
+        >
+        <span class="spacer"></span>
+        <button class="btn quiet small" onclick={() => annot.clearStyleEdits()}>Clear all</button>
+      </div>
     {/if}
 
     <section class="sec">
@@ -100,12 +115,6 @@
             </dd>
           {/each}
         </dl>
-        {#if map && map.skipped > 0}
-          <p class="muted">
-            {map.skipped} stylesheet{map.skipped === 1 ? '' : 's'} could not be read (cross-origin),
-            so a token declared there will not resolve.
-          </p>
-        {/if}
       {/if}
     </section>
   {/if}
