@@ -100,9 +100,11 @@ is on this page" view, and it is what makes the rest predictable.
 - **Click** a drawing with **Move** (`V`) selects the whole drawing: handles on its box, drag moves
   marks and box together, handles scale everything inside it. `⌘`/`⇧`-click adds another drawing to
   the selection.
-- **Double-click** steps *inside* that drawing. Now clicks select individual strokes — an arrow, a
-  caption, one brush stroke — and drag and handles transform only those. Double-clicking a caption
-  edits its text.
+- **Double-click** steps *inside* a drawing, **from any tool**. It is a navigation gesture, not a
+  drawing one, and reaching for Move first to get into something you can see is friction. Inside,
+  clicks select individual strokes — an arrow, a caption, one brush stroke — and drag and handles
+  transform only those. Double-clicking a caption edits its text. The one exception is the drawing
+  you are currently adding to: a fast double-tap there is sketching, not navigation.
 - **`Esc` steps out one level** each time: inside → drawing selected → nothing selected → leave Draw.
   The selected drawing's box stays solid while you are inside it, so the level you are on is visible.
 

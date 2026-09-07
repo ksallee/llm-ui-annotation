@@ -176,11 +176,15 @@ export function pageMode(state: AnnotState, layer: HTMLElement): () => void {
     dragging = null;
   };
 
-  /** Double-click steps inside a drawing, or opens the caption under the cursor. */
+  /**
+   * Double-click steps inside a drawing, or opens the caption under the cursor — from any tool,
+   * because it is a navigation gesture and having to reach for Move first is friction. The one
+   * exception is the drawing you are currently adding to: a fast double-tap there is sketching.
+   */
   const onDouble = (event: MouseEvent): void => {
-    if (state.drawTool !== 'move') return;
     const at = { x: event.clientX + state.scroll.x, y: event.clientY + state.scroll.y };
-    const id = state.insideDrawing ?? state.drawingAt(at.x, at.y)?.id ?? null;
+    const hit = state.insideDrawing ?? state.drawingAt(at.x, at.y)?.id ?? null;
+    const id = hit === state.activeDrawingId && state.insideDrawing !== hit ? null : hit;
     if (!id) return;
     const strokes = state.strokesOf(id);
     const index = strokeAt(strokes, at.x, at.y);
