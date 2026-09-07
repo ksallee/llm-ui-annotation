@@ -3,24 +3,25 @@
   import { comboOf, formatCombo } from '../keyboard.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import { trapFocus } from './focus.js';
-  import RadioGroup from './RadioGroup.svelte';
   import Switch from './Switch.svelte';
   import type { Density, DetailLevel, MarkerVisibility, SchemeOption, SendMode } from '../options.js';
 
   let { annot, version }: { annot: AnnotState; version: string } = $props();
 
-  const SEND: { value: SendMode; title: string; note: string }[] = [
-    { value: 'manual', title: 'Manual', note: 'notes wait as drafts until you send them' },
-    { value: 'review', title: 'Send, then review', note: 'sent as written; you approve the work' },
-    { value: 'auto', title: 'Send and approve', note: 'sent as written; done is done' },
+  const SEND: { value: SendMode; label: string; note: string }[] = [
+    { value: 'manual', label: 'Manual', note: 'Notes wait as drafts until you send them.' },
+    { value: 'review', label: 'Review', note: 'Auto send notes. You approve changes.' },
+    { value: 'auto', label: 'Auto', note: 'Auto send notes. Auto approved.' },
   ];
 
   const QUESTIONS = [
-    { level: 0, note: 'none — the agent decides and says what it chose' },
-    { level: 1, note: 'only when it is blocked' },
-    { level: 2, note: 'when the answer would change what it builds' },
-    { level: 3, note: 'freely' },
+    { label: 'None', note: 'The agent decides, and says what it chose.' },
+    { label: 'Rarely', note: 'Only when it is blocked.' },
+    { label: 'Sometimes', note: 'When the answer would change the work.' },
+    { label: 'Freely', note: 'Anything it is unsure of.' },
   ] as const;
+
+  const sendNote = $derived(SEND.find((option) => option.value === annot.prefs.sendMode)?.note ?? '');
   const SCHEMES: SchemeOption[] = ['auto', 'light', 'dark'];
   const DETAIL: DetailLevel[] = ['compact', 'standard', 'detailed'];
   const MARKERS: MarkerVisibility[] = ['all', 'dots', 'none'];
@@ -59,21 +60,26 @@
 {/snippet}
 
 <div class="card popover" {style} role="dialog" aria-label="Overlay settings" use:trapFocus>
-  <RadioGroup
-    label="Send mode"
-    options={SEND}
-    value={annot.prefs.sendMode}
-    onpick={(v) => annot.setPref('sendMode', v)}
-  />
+  <div class="setting">
+    <span class="title">Send mode</span>
+    <div class="segment">
+      {#each SEND as option (option.value)}
+        <button
+          aria-pressed={annot.prefs.sendMode === option.value}
+          onclick={() => annot.setPref('sendMode', option.value)}>{option.label}</button
+        >
+      {/each}
+    </div>
+    <span class="muted">{sendNote}</span>
+  </div>
 
   <div class="setting">
     <span class="title">Questions the agent may ask</span>
     <div class="segment">
-      {#each QUESTIONS as option (option.level)}
+      {#each QUESTIONS as option, level (option.label)}
         <button
-          aria-label="Questions {option.level}"
-          aria-pressed={annot.prefs.questions === option.level}
-          onclick={() => annot.setPref('questions', option.level)}>{option.level}</button
+          aria-pressed={annot.prefs.questions === level}
+          onclick={() => annot.setPref('questions', level as 0 | 1 | 2 | 3)}>{option.label}</button
         >
       {/each}
     </div>

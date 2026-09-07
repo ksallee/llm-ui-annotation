@@ -301,6 +301,18 @@ export class AnnotState {
     this.styleEdits = [];
   }
 
+  /**
+   * Whether an element's computed styles go to the agent: when the user changed something on it, so
+   * the diff has its surroundings, or when they asked for everything. A note that says what to do
+   * carries the selector and the words; twenty computed properties beside them are noise.
+   */
+  sendsStyles(selector: string): boolean {
+    return (
+      this.prefs.detail === 'detailed' ||
+      this.styleEdits.some((edit) => edit.selector === selector)
+    );
+  }
+
   /** The element the inspector reads. */
   readonly inspected = $derived(this.mode === 'element' ? (this.selection[0] ?? null) : null);
 

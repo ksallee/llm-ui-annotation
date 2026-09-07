@@ -284,11 +284,11 @@ test('what the agent gets is the code, with the proposal beside it', async ({
     .poll(() => page.locator('[data-testid="card-grid"]').evaluate((el) => getComputedStyle(el).gap))
     .toBe('40px');
 
-  // The payload keeps the code's value; the proposal is listed under it, and travels apart.
-  await expect(panel(page).locator('.decls.payload').first()).toContainText('24px');
-  await expect(panel(page).locator('.decls.payload').last()).toContainText(
+  // The change is what the agent is shown first; the styles under it keep the code's value.
+  await expect(panel(page).locator('.decls.payload').first()).toContainText(
     'var(--demo-space-5) → var(--demo-space-7)',
   );
+  await expect(panel(page).locator('.decls.payload').last()).toContainText('24px');
 
   await annotate(page, '[data-testid="card-grid"]');
   await commit(page, 'more air between the cards');
@@ -296,6 +296,22 @@ test('what the agent gets is the code, with the proposal beside it', async ({
   const target = stored.target as ElementTarget;
   expect(target.elements[0]!.styles?.['gap']).toBe('24px');
   expect(stored.styleEdits?.[0]?.to).toBe('var(--demo-space-7)');
+});
+
+test('a note with no CSS change carries no CSS', async ({ page, site, annotDir }) => {
+  await page.goto(`${site}/`);
+  await setMode(page, 'Element');
+  await openPanel(page);
+  await pick(page, '[data-testid="signup"]');
+
+  // Nothing changed, so there is nothing for the agent to read but the selector and the words.
+  await expect(panel(page).locator('.decls.payload')).toHaveCount(0);
+
+  await annotate(page, '[data-testid="signup"]');
+  await commit(page, 'make this say Start free');
+  const target = (await storedAnnotations(annotDir, '/'))[0]!.target as ElementTarget;
+  expect(target.elements[0]!.styles).toBeUndefined();
+  expect(target.elements[0]!.selector).toContain('signup');
 });
 
 test('a gap is read back as the stylesheet wrote it, on every kind of container', async ({
@@ -326,6 +342,10 @@ test('a gap is read back as the stylesheet wrote it, on every kind of container'
 
 test('what the inspector shows is what the annotation carries', async ({ page, site, annotDir }) => {
   await page.goto(`${site}/`);
+  // `detailed` is the level that sends an element's styles without a change to hang them on.
+  const settings = await openSettings(page);
+  await settings.getByRole('button', { name: 'detailed', exact: true }).click();
+  await page.keyboard.press('Escape');
   await setMode(page, 'Element');
   await openPanel(page);
 

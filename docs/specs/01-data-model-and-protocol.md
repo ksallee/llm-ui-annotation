@@ -38,7 +38,7 @@ export interface ElementRef {
   rect: Rect;
   fixed: boolean;              // inside position: fixed/sticky ancestor
   attrs: Record<string, string>;      // id, class, data-*, name, type, href, src, aria-* (values trimmed to 100)
-  styles?: Record<string, string>;    // subset, see spec 02; omitted in compact payloads
+  styles?: Record<string, string>;   // subset (spec 02), sent when the user changed CSS here, or at `detailed`
   tokens?: Record<string, string>;    // property → custom property name, see spec 12 §4; absent when none resolve
   context?: { parent: string | null; prev: string | null; next: string | null };  // names of neighbours
 }

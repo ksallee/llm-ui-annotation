@@ -55,7 +55,7 @@ export interface ElementRef {
   /** Inside a position fixed/sticky ancestor. */
   fixed: boolean;
   attrs: Record<string, string>;
-  /** Omitted in compact payloads. */
+  /** Present when the user changed CSS on the element, or when the level asks for everything. */
   styles?: Record<string, string>;
   /** Property to the custom property that produced it; absent when none resolve. */
   tokens?: Record<string, string>;

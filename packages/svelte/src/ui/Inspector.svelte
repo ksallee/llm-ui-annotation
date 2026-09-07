@@ -14,7 +14,7 @@
   const el = $derived(annot.inspected);
   // Read with the proposal off: this is what the annotation carries, and it carries the code.
   const seen = $derived(
-    el ? withoutPreview(annot.doc, () => inspectElement(el, annot.detail !== 'compact')) : null,
+    el ? withoutPreview(annot.doc, () => inspectElement(el, annot.sendsStyles(selector))) : null,
   );
   const styles = $derived(seen?.styles ?? null);
   const entries = $derived(Object.entries(styles ?? {}));
@@ -156,31 +156,10 @@
       </div>
     {/if}
 
-    <section class="sec">
-      <h4>What the agent will see</h4>
-      {#if !styles}
-        <p class="muted">
-          Detail level is <b>compact</b>, so no styles are sent. Settings has the other two.
-        </p>
-      {:else}
-        {#if entries.length <= 2}
-          <p class="warn">
-            {entries.length === 0 ? 'No properties' : `Only ${entries.length}`} — an element styled by
-            global tag rules comes back nearly empty, and the agent gets this much and no more.
-          </p>
-        {/if}
-        <dl class="decls payload">
-          {#each entries as [name, value] (name)}
-            <dt>{name}</dt>
-            <dd>
-              {value}
-              {#if tokens[name]}<span class="token">{tokens[name]}</span>{/if}
-            </dd>
-          {/each}
-        </dl>
+    {#if pending.length > 0 || styles}
+      <section class="sec">
+        <h4>What the agent will see</h4>
         {#if pending.length > 0}
-          <!-- The styles above are the code as it stands; the proposal travels beside them. -->
-          <p class="muted">and the CSS changes:</p>
           <dl class="decls payload">
             {#each pending as edit (edit.property)}
               <dt>{edit.property}</dt>
@@ -188,7 +167,25 @@
             {/each}
           </dl>
         {/if}
-      {/if}
-    </section>
+        {#if styles}
+          <!-- The element's own styles go with a change, as the ground the diff stands on. -->
+          {#if entries.length <= 2}
+            <p class="warn">
+              {entries.length === 0 ? 'No properties' : `Only ${entries.length}`} — an element styled
+              by global tag rules comes back nearly empty, and the agent gets this much and no more.
+            </p>
+          {/if}
+          <dl class="decls payload">
+            {#each entries as [name, value] (name)}
+              <dt>{name}</dt>
+              <dd>
+                {value}
+                {#if tokens[name]}<span class="token">{tokens[name]}</span>{/if}
+              </dd>
+            {/each}
+          </dl>
+        {/if}
+      </section>
+    {/if}
   {/if}
 </div>

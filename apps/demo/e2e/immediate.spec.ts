@@ -18,9 +18,9 @@ test('immediate mode sends on Add and keeps the badge on agent activity', async 
 }) => {
   await page.goto(`${site}/app/`);
   const settings = await openSettings(page);
-  const send = settings.getByRole('radio', { name: /Send, then review/ });
+  const send = settings.getByRole('button', { name: 'Review', exact: true });
   await send.click();
-  await expect(send).toHaveAttribute('aria-checked', 'true');
+  await expect(send).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('Escape');
 
   await setMode(page, 'Element');
@@ -56,7 +56,7 @@ test('send and approve needs nothing from the user once the agent is done', asyn
 }) => {
   await page.goto(`${site}/app/`);
   const settings = await openSettings(page);
-  await settings.getByRole('radio', { name: /Send and approve/ }).click();
+  await settings.getByRole('button', { name: 'Auto', exact: true }).click();
   await page.keyboard.press('Escape');
   agent.start();
 
@@ -74,7 +74,7 @@ test('send and approve needs nothing from the user once the agent is done', asyn
 test('the popup primary button reads Send in immediate mode', async ({ page, site }) => {
   await page.goto(`${site}/app/`);
   const settings = await openSettings(page);
-  await settings.getByRole('radio', { name: /Send, then review/ }).click();
+  await settings.getByRole('button', { name: 'Review', exact: true }).click();
   await page.keyboard.press('Escape');
   await setMode(page, 'Element');
 
