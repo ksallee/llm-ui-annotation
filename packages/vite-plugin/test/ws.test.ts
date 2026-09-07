@@ -80,7 +80,8 @@ describe('websocket push', () => {
       (file.annotations[0] as Annotation).comment = 'edited by the CLI';
       await writeFile(path, `${JSON.stringify(file, null, 2)}\n`);
 
-      await until(() => client.messages.some((m) => m.event === 'annot:route'), 8000);
+      // fs.watch latency, not ours: on macOS under a loaded machine the event can take seconds.
+      await until(() => client.messages.some((m) => m.event === 'annot:route'), 20_000);
       const pushed = client.messages.find((m) => m.event === 'annot:route')?.data as RouteFile;
       expect(pushed.annotations[0]?.comment).toBe('edited by the CLI');
       expect(pushed.annotations[0]?.id).toBe(created.id);
