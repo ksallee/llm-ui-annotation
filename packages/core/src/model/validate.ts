@@ -143,6 +143,23 @@ function typeName(v: unknown): string {
   return typeof v;
 }
 
+function checkSource(p: Problems, v: unknown, path: string): void {
+  if (!p.rec(v, path)) return;
+  p.capped(v['file'], `${path}.file`, LIMITS.selector);
+  for (const key of ['line', 'column']) {
+    if (v[key] !== undefined) p.num(v[key], `${path}.${key}`);
+  }
+}
+
+function checkDeclaration(p: Problems, v: unknown, path: string): void {
+  if (!p.rec(v, path)) return;
+  p.capped(v['property'], `${path}.property`, LIMITS.selector);
+  p.capped(v['value'], `${path}.value`, LIMITS.quote);
+  p.capped(v['from'], `${path}.from`, LIMITS.selector);
+  p.bool(v['inherited'], `${path}.inherited`);
+  if (v['file'] !== undefined) p.capped(v['file'], `${path}.file`, LIMITS.selector);
+}
+
 function checkElementRef(p: Problems, v: unknown, path: string): void {
   if (!p.rec(v, path)) return;
   p.capped(v['selector'], `${path}.selector`, LIMITS.selector);
@@ -156,6 +173,10 @@ function checkElementRef(p: Problems, v: unknown, path: string): void {
   p.rect(v['rect'], `${path}.rect`);
   p.bool(v['fixed'], `${path}.fixed`);
   p.stringMap(v['attrs'], `${path}.attrs`);
+  if (v['source'] !== undefined) checkSource(p, v['source'], `${path}.source`);
+  if (v['declared'] !== undefined && p.arr(v['declared'], `${path}.declared`)) {
+    v['declared'].forEach((d, i) => checkDeclaration(p, d, `${path}.declared[${i}]`));
+  }
   if (v['styles'] !== undefined) p.stringMap(v['styles'], `${path}.styles`);
   if (v['tokens'] !== undefined) p.stringMap(v['tokens'], `${path}.tokens`);
   if (v['context'] !== undefined && p.rec(v['context'], `${path}.context`)) {
@@ -298,6 +319,12 @@ function checkStyleEdit(p: Problems, v: unknown, path: string): void {
   }
   if (v['token'] !== null && p.str(v['token'], `${path}.token`)) {
     if (!(v['token'] as string).startsWith('--')) p.add(`${path}.token: expected a custom property`);
+  }
+  if (v['rule'] !== undefined && p.rec(v['rule'], `${path}.rule`)) {
+    p.capped(v['rule']['selector'], `${path}.rule.selector`, LIMITS.selector);
+    if (v['rule']['file'] !== undefined) {
+      p.capped(v['rule']['file'], `${path}.rule.file`, LIMITS.selector);
+    }
   }
 }
 

@@ -41,6 +41,30 @@ Colors are reported as `oklch()` strings via `toOklch()` from `core/theme` so th
 
 Also export `resolveSelector(root, selector): Element | null` (handles `>>>`) and `findElementsInRect(doc, rect, opts): ElementRef[]` for page mode: elements whose rect intersects `rect` by ≥ 30% of their own area, excluding the overlay host and its descendants, `html`, `body`, elements smaller than 8×8 or larger than 90% of the region unless nothing else matches; sort by intersection area desc; dedupe ancestors that add nothing (if a child covers ≥ 80% of the parent's intersection, drop the parent); cap at 12; compact (no styles).
 
+## 2.1b Locating: the file, and the rule
+
+A selector is a place in the DOM, and an agent's first job is to turn it into a place in the source.
+Two things the page already knows make that a lookup instead of a search, and `describeElement`
+carries both.
+
+**`source`** — a dev build records where an element was written: Svelte 5 puts `{ file, line, column }`
+on `el.__svelte_meta.loc`, React on the fiber's `_debugSource`. `sourceOf(el)` reads either, defensively,
+and returns nothing for a production build or a hand-written page. A payload with
+`source: src/Home.svelte:35:4` needs no grep at all.
+
+**`declared`** — `matchedDeclarations(el)` walks the page's stylesheets for every rule whose selector
+matches the element, in cascade order, keeping the last declaration per property and the inline style
+last, then adds the inheritable ones from the nearest ancestor that sets them. Each carries the value
+**as authored** (`var(--space-7)`, not `40px`), the selector that set it, and the stylesheet it lives
+in — the dev server's `data-vite-dev-id` when there is one, else the sheet's URL. So the agent is told
+`gap: var(--demo-space-7)   .gap-10   src/utilities.css` rather than working it out. Sheets the
+overlay owns are skipped by their `data-annot-*` attribute; cascade order ignores specificity, which
+is right for the flat stylesheets a page ships and can differ from the browser on a contrived one.
+
+The same reading gives `StyleEdit.rule`: the rule a proposed change replaces a value in. Without it
+an agent reads `div.cards { gap: … }` and writes a new rule for `.cards`, when the value it should
+change lives in a utility class three files away and is shared by everything else on the page.
+
 ## 2.2 Text anchoring → `describeRange(range): DescribeRangeResult` and `anchorText(doc, target): { range: Range; state: 'exact'|'moved' } | null`
 
 `describeRange` returns `{ ok: true; target: TextTarget }` or `{ ok: false; reason: 'empty' | 'no-container' }`, so the refusal reason travels with the refusal. `prefix` and `suffix` are 32 normalized characters.

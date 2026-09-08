@@ -4,6 +4,33 @@ import { isOverlay } from '../../src/dom/ancestors.js';
 import { describeElement, findElementsInRect } from '../../src/dom/describe.js';
 import { allElements, FIXTURES, loadFixture, rect, setRect } from './helpers.js';
 
+describe('where an element came from', () => {
+  it('reads the location a dev build attached, and shrugs when there is none', () => {
+    document.body.innerHTML = '<button id="go">Save</button>';
+    const el = document.querySelector('#go') as Element;
+    expect(describeElement(el).source).toBeUndefined();
+
+    (el as unknown as Record<string, unknown>)['__svelte_meta'] = {
+      loc: { file: 'src/Home.svelte', line: 35, column: 4 },
+    };
+    expect(describeElement(el).source).toEqual({ file: 'src/Home.svelte', line: 35, column: 4 });
+  });
+});
+
+describe('what the stylesheets declare', () => {
+  it('carries the rule and the file each value comes from', () => {
+    document.head.innerHTML = '<style>.cards{gap:var(--space-7)}</style>';
+    document.body.innerHTML = '<div class="cards"></div>';
+    const declared = describeElement(document.querySelector('.cards') as Element).declared ?? [];
+    expect(declared).toContainEqual({
+      property: 'gap',
+      value: 'var(--space-7)',
+      from: '.cards',
+      inherited: false,
+    });
+  });
+});
+
 describe('describeElement', () => {
   it('names elements the way the spec spells them', () => {
     const form = loadFixture('form');

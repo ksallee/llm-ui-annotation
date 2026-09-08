@@ -1,7 +1,7 @@
 <script lang="ts">
   import { declaredTokens, describeSelector, resolveDeclared } from '../dom/core-dom.js';
   import { sendStyleEdits } from '../controller.js';
-  import { matchedDeclarations, type Declaration } from '../dom/declared.js';
+  import { matchedDeclarations, type Declaration } from '../dom/core-dom.js';
   import { withoutPreview } from '../dom/preview.js';
   import { inspectElement, type Reading } from '../dom/inspect.js';
   import { EDITABLE } from '../dom/style-edit.js';

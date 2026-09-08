@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Declaration } from '../dom/declared.js';
+  import type { Declaration } from '../dom/core-dom.js';
   import { editableFor, namedToken, sameValue, tokensIn, tokenOptions } from '../dom/style-edit.js';
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import Icon from './Icon.svelte';
@@ -44,7 +44,18 @@
     // whole point, even when the two happen to hold the same value.
     const same = picked ? picked === source && sameValue(to, from) : sameValue(to, from);
     if (same) annot.dropStyleEdit(selector, property);
-    else annot.setStyleEdit({ selector, property, from, to: to.trim(), token: picked });
+    else
+      annot.setStyleEdit({
+        selector,
+        property,
+        from,
+        to: to.trim(),
+        token: picked,
+        // Which rule holds this today, so the agent edits that one instead of hunting for it.
+        ...(declaration.from === 'not set'
+          ? {}
+          : { rule: { selector: declaration.from, ...(declaration.file ? { file: declaration.file } : {}) } }),
+      });
   }
 </script>
 

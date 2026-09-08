@@ -3,8 +3,10 @@ export { collapse, escapeIdent, isStableClass, isUtilityClass, quoteValue, trunc
 export { isOverlay } from './ancestors.js';
 export { describeElement, findElementsInRect, type DescribeOptions } from './describe.js';
 export { describeSelector, fullPath, resolveSelector, SHADOW_SEP, type SelectorRef } from './selector.js';
+export { matchedDeclarations, parseDeclarations, type Declaration } from './declared.js';
 export { describeName, isIconOnly, labelOf, visibleText } from './name.js';
 export { roleOf } from './roles.js';
+export { sourceOf, type SourceLoc } from './source.js';
 export {
   area,
   clientRectsOf,

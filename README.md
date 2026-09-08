@@ -6,6 +6,7 @@ Annotate a running UI in the browser and hand the feedback to a coding agent. Po
 - No MCP, no cloud: a Vite plugin writes `.annotations/`, a small `annot` CLI is what the agent runs.
 - One accent in, a coherent light and dark palette out (oklch). Highlights, pins, popups and panel all follow it.
 - Change a value in the inspector, see it on the page, send the diff with the design token's name.
+- The agent is told where to look: the file and line the element was written at, and the rule and stylesheet each value comes from.
 - Never mutates your app's DOM — the one exception is a stylesheet it owns, holding the style change you are previewing, removed when you send or clear it.
 
 Status: `0.1.0`, seventeen workstreams landed, not published to npm. 549 unit tests and 59 Playwright

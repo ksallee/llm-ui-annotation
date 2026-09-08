@@ -192,6 +192,49 @@ describe('renderReopenMarkdown', () => {
   });
 });
 
+describe('where to make the change', () => {
+  const located = annotation({
+    target: {
+      kind: 'element',
+      elements: [
+        {
+          ...elementRef(),
+          source: { file: '/repo/src/Home.svelte', line: 35, column: 4 },
+          declared: [
+            { property: 'gap', value: 'var(--space-4)', from: '.gap-4', file: '/repo/src/util.css', inherited: false },
+            { property: 'color', value: 'var(--ink)', from: 'body', file: '/repo/src/util.css', inherited: true },
+          ],
+        },
+      ],
+    },
+    styleEdits: [
+      {
+        selector: 'div.cards',
+        property: 'gap',
+        from: 'var(--space-4)',
+        to: 'var(--space-7)',
+        token: '--space-7',
+        rule: { selector: '.gap-4', file: '/repo/src/util.css' },
+      },
+    ],
+  });
+
+  const md = renderAnnotationMarkdown(located, { level: 'standard', dir: '/repo/.annotations' });
+
+  it('names the file the element was written in, relative to the project', () => {
+    expect(md).toContain('source: src/Home.svelte:35:4');
+  });
+
+  it('lists the rules that style it, and marks what is inherited', () => {
+    expect(md).toContain('gap: var(--space-4)   .gap-4   src/util.css');
+    expect(md).toContain('color: var(--ink)   inherited   body   src/util.css');
+  });
+
+  it('says which rule holds the value a change replaces', () => {
+    expect(md).toContain('-   gap: var(--space-4);   /* .gap-4 in src/util.css */');
+  });
+});
+
 describe('the question budget', () => {
   it('opens the batch with what the user allowed, and says nothing when they set none', () => {
     const asked = renderBatchMarkdown({ ...BATCH, questions: 1 }, ALL_ANNOTATIONS, {

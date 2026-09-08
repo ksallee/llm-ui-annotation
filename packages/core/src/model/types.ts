@@ -43,6 +43,25 @@ export interface ElementContext {
   next: string | null;
 }
 
+/** One CSS declaration that reaches an element, as the source wrote it. */
+export interface Declaration {
+  property: string;
+  value: string;
+  /** The selector that set it, or `style` for an inline declaration. */
+  from: string;
+  /** The stylesheet it lives in, when the page says where that is. */
+  file?: string;
+  /** Set on an ancestor and inherited by this element. */
+  inherited: boolean;
+}
+
+/** A place in the project's source, as a framework's dev build records it. */
+export interface SourceLoc {
+  file: string;
+  line?: number;
+  column?: number;
+}
+
 export interface ElementRef {
   /** `a >>> b` crosses an open shadow root. */
   selector: string;
@@ -55,6 +74,10 @@ export interface ElementRef {
   /** Inside a position fixed/sticky ancestor. */
   fixed: boolean;
   attrs: Record<string, string>;
+  /** Where the element was written, when the dev build says so. */
+  source?: SourceLoc;
+  /** What the page's stylesheets declare for it, as authored, with the rule each came from. */
+  declared?: Declaration[];
   /** Omitted in compact payloads. */
   styles?: Record<string, string>;
   /** Property to the custom property that produced it; absent when none resolve. */
@@ -156,6 +179,8 @@ export interface StyleEdit {
   to: string;
   /** The custom property `to` came from, when it was picked from the page's tokens. */
   token: string | null;
+  /** The rule that declares the property today, and the file it lives in. */
+  rule?: { selector: string; file?: string };
 }
 
 export interface Annotation {

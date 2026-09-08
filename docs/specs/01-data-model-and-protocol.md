@@ -10,7 +10,7 @@ Give every other workstream a single vocabulary: what an annotation is, how it i
 
 - `id`: 26-char Crockford base32 ULID-like string generated client-side (10-char time prefix + 16 random). Provide `newId(now = Date.now())`. Sortable, no dependency; ids made in the same millisecond increment the random part so the order is strict. Also `isId`, `idTime`, `compareIds`, `nowIso`.
 - All timestamps ISO 8601 UTC strings (`2026-09-05T18:24:41.048Z`).
-- `protocolVersion: 3` (`PROTOCOL_VERSION`). Readers accept every version in `SUPPORTED_PROTOCOL_VERSIONS` — `[1, 2, 3]` — so files written before multi-block highlights keep loading; a v1 text target simply has no `blocks`, a v2 annotation no `styleEdits`. `validateAnnotation` is the one place that decides. `attachments` (spec 11 §1) did **not** bump it: the field is additive and optional, so a v2 reader that predates it sees an annotation without attachments, which is a state it already handles. `tokens` on `ElementRef` (spec 12 §4) does not bump it either, for the same reason. `styleEdits` (spec 13) **does** bump it, on a different ground: it is not more description of what is there, it is an instruction, and a reader that drops it silently loses half of what the user said. `Batch.questions` does not bump it, by the same test read the other way: a reader that ignores it delivers every word the user wrote, and the agent merely asks a question it need not have asked.
+- `protocolVersion: 3` (`PROTOCOL_VERSION`). Readers accept every version in `SUPPORTED_PROTOCOL_VERSIONS` — `[1, 2, 3]` — so files written before multi-block highlights keep loading; a v1 text target simply has no `blocks`, a v2 annotation no `styleEdits`. `validateAnnotation` is the one place that decides. `attachments` (spec 11 §1) did **not** bump it: the field is additive and optional, so a v2 reader that predates it sees an annotation without attachments, which is a state it already handles. `tokens` on `ElementRef` (spec 12 §4) does not bump it either, for the same reason. `source`, `declared` and `StyleEdit.rule` (spec 02 §Locating) do not bump it either: they say where something already is, and a reader that drops them loses nothing the user wrote — only the agent's shortcut to the file. `styleEdits` (spec 13) **does** bump it, on a different ground: it is not more description of what is there, it is an instruction, and a reader that drops it silently loses half of what the user said. `Batch.questions` does not bump it, by the same test read the other way: a reader that ignores it delivers every word the user wrote, and the agent merely asks a question it need not have asked.
 
 ## Types (TypeScript, exported from `@llm-ui-annotation/core`)
 
@@ -38,6 +38,8 @@ export interface ElementRef {
   rect: Rect;
   fixed: boolean;              // inside position: fixed/sticky ancestor
   attrs: Record<string, string>;      // id, class, data-*, name, type, href, src, aria-* (values trimmed to 100)
+  source?: { file: string; line?: number; column?: number };   // where it was written, from the dev build
+  declared?: Declaration[];          // what the stylesheets say for it, with the rule and file each came from
   styles?: Record<string, string>;   // subset, see spec 02; omitted in compact payloads
   tokens?: Record<string, string>;    // property → custom property name, see spec 12 §4; absent when none resolve
   context?: { parent: string | null; prev: string | null; next: string | null };  // names of neighbours
@@ -94,12 +96,21 @@ export interface Attachment {
   by: Actor;
 }
 
+export interface Declaration {
+  property: string;
+  value: string;              // as authored, so a token reads as var(--space-5)
+  from: string;               // the selector that set it, or `style` for an inline one
+  file?: string;              // the stylesheet it lives in, when the page says where that is
+  inherited: boolean;         // set on an ancestor and inherited by this element
+}
+
 export interface StyleEdit {
   selector: string;            // the element it applies to, an ElementRef.selector of this annotation
   property: string;            // CSS property name
   from: string;                // computed value before the edit
   to: string;                  // proposed value, `var(--token)` when picked from the page's tokens
   token: string | null;        // the custom property `to` came from, else null
+  rule?: { selector: string; file?: string };   // the rule that holds the value today
 }
 
 export interface Annotation {

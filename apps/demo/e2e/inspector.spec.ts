@@ -176,6 +176,8 @@ test('the panel shows what the source declares, and a change goes into the note'
       from: 'var(--demo-space-2) var(--demo-space-4)',
       to: '24px 40px',
       token: null,
+      // The rule that holds the value today, so the agent edits that one.
+      rule: { selector: '.btn', file: expect.stringContaining('src/utilities.css') },
     },
     {
       selector: expect.stringContaining('signup'),
@@ -183,8 +185,16 @@ test('the panel shows what the source declares, and a change goes into the note'
       from: 'var(--demo-accent)',
       to: 'var(--demo-surface)',
       token: '--demo-surface',
+      rule: { selector: '.btn-primary', file: expect.stringContaining('src/utilities.css') },
     },
   ]);
+
+  // And where the element itself was written, straight from the dev build.
+  const target = stored.target as ElementTarget;
+  expect(target.elements[0]!.source?.file).toBe('src/Home.svelte');
+  expect(target.elements[0]!.declared?.some((d) => d.property === 'padding' && d.from === '.btn')).toBe(
+    true,
+  );
 
   // Sent means done: the page goes back to what the code says.
   await expect

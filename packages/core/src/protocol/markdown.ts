@@ -68,8 +68,35 @@ function styleText(el: ElementRef): string {
     .join(' · ');
 }
 
-function elementLines(el: ElementRef, level: RenderLevel): string[] {
+/** Paths as the project sees them: the dev server reports absolutes, the frameworks relatives. */
+function shortPath(file: string, dir: string): string {
+  const root = `${dirOf(dir)}/`;
+  return file.startsWith(root) ? file.slice(root.length) : file;
+}
+
+const dirOf = (path: string): string => path.replace(/\/+$/, '').replace(/\/[^/]*$/, '');
+
+/** Where the element was written, when the dev build said so. */
+function sourceLine(el: ElementRef, dir: string): string {
+  const at = el.source!;
+  const place = at.line === undefined ? '' : `:${at.line}${at.column === undefined ? '' : `:${at.column}`}`;
+  return `source: ${shortPath(at.file, dir)}${place}`;
+}
+
+/** The rules that style the element, as authored, so a change lands where the value lives. */
+function declaredLines(el: ElementRef, dir: string): string[] {
+  return [
+    'declared:',
+    ...el.declared!.map((d) => {
+      const where = d.file === undefined ? d.from : `${d.from}   ${shortPath(d.file, dir)}`;
+      return `  ${d.property}: ${oneLine(d.value)}${d.inherited ? '   inherited' : ''}   ${where}`;
+    }),
+  ];
+}
+
+function elementLines(el: ElementRef, level: RenderLevel, dir: string): string[] {
   const lines = [`selector: ${el.selector}`];
+  if (el.source) lines.push(sourceLine(el, dir));
 
   const facts: string[] = [];
   if (el.text) facts.push(`text: ${oneLine(el.text)}`);
@@ -83,6 +110,9 @@ function elementLines(el: ElementRef, level: RenderLevel): string[] {
     const name = (value: string | null): string => (value === null ? 'null' : oneLine(value));
     lines.push(`context: parent ${name(parent)}, prev ${name(prev)}, next ${name(next)}`);
   }
+  if (level !== 'compact' && el.declared && el.declared.length > 0) {
+    lines.push(...declaredLines(el, dir));
+  }
   if (level !== 'compact' && el.styles && Object.keys(el.styles).length > 0) {
     lines.push(`styles: ${styleText(el)}`);
   }
@@ -93,7 +123,7 @@ function elementLines(el: ElementRef, level: RenderLevel): string[] {
   return lines;
 }
 
-function textLines(t: TextTarget, level: RenderLevel): string[] {
+function textLines(t: TextTarget, level: RenderLevel, dir: string): string[] {
   const lines: string[] = [];
   const quote = `quote: ${JSON.stringify(t.quote)}`;
   if (level === 'compact') {
@@ -101,6 +131,7 @@ function textLines(t: TextTarget, level: RenderLevel): string[] {
   } else {
     lines.push(`${quote}   prefix: ${JSON.stringify(t.prefix)}   suffix: ${JSON.stringify(t.suffix)}`);
     lines.push(`container: ${t.container.selector}   offsets: ${t.start}-${t.end}`);
+    if (t.container.source) lines.push(sourceLine(t.container, dir));
   }
   if (level !== 'compact' && t.blocks) {
     lines.push(`blocks: ${t.blocks.map((b) => b.selector).join(', ')}`);
@@ -164,7 +195,7 @@ function attachmentLines(list: readonly Attachment[], dir: string): string[] {
  * The user's own edits as a CSS diff, one block per element. These are a proposal read off the live
  * page, not a patch: the selector is where it was seen, not necessarily where the rule lives.
  */
-function styleEditLines(edits: readonly StyleEdit[]): string[] {
+function styleEditLines(edits: readonly StyleEdit[], dir: string): string[] {
   const bySelector = new Map<string, StyleEdit[]>();
   for (const edit of edits) {
     const list = bySelector.get(edit.selector);
@@ -176,7 +207,11 @@ function styleEditLines(edits: readonly StyleEdit[]): string[] {
   for (const [selector, list] of bySelector) {
     lines.push(`  ${selector} {`);
     for (const e of list) {
-      lines.push(`-   ${e.property}: ${e.from};`);
+      // The rule that holds the value today: the change belongs there, not in a new rule.
+      const where = e.rule
+        ? `   /* ${e.rule.selector}${e.rule.file ? ` in ${shortPath(e.rule.file, dir)}` : ''} */`
+        : '';
+      lines.push(`-   ${e.property}: ${e.from};${where}`);
       lines.push(`+   ${e.property}: ${e.to};${e.token ? `   /* ${e.token} */` : ''}`);
     }
     lines.push('  }');
@@ -197,11 +232,11 @@ export function renderAnnotationMarkdown(a: Annotation, opts: RenderOptions): st
     case 'element':
       a.target.elements.forEach((el, i) => {
         if (a.target.kind === 'element' && a.target.elements.length > 1) lines.push(`element ${i + 1}:`);
-        lines.push(...elementLines(el, opts.level));
+        lines.push(...elementLines(el, opts.level, opts.dir));
       });
       break;
     case 'text':
-      lines.push(...textLines(a.target, opts.level));
+      lines.push(...textLines(a.target, opts.level, opts.dir));
       break;
     case 'page':
       lines.push(...pageLines(a.target, opts.level, opts.dir));
@@ -216,7 +251,7 @@ export function renderAnnotationMarkdown(a: Annotation, opts: RenderOptions): st
     lines.push(...attachmentLines(a.attachments, opts.dir));
   }
 
-  if (a.styleEdits && a.styleEdits.length > 0) lines.push(...styleEditLines(a.styleEdits));
+  if (a.styleEdits && a.styleEdits.length > 0) lines.push(...styleEditLines(a.styleEdits, opts.dir));
 
   lines.push(`> ${oneLine(a.comment)}`);
 

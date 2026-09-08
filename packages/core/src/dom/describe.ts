@@ -6,6 +6,8 @@ import { area, intersect, rectOf } from './rect.js';
 import { roleOf } from './roles.js';
 import { describeSelector } from './selector.js';
 import { computedStyles } from './styles.js';
+import { matchedDeclarations } from './declared.js';
+import { sourceOf } from './source.js';
 import { declaredTokens, resolveDeclared } from './tokens.js';
 
 const DEFAULT_MAX_TEXT = 200;
@@ -102,12 +104,15 @@ export function describeElement(el: Element, opts: DescribeOptions = {}): Elemen
     fixed: isFixed(el),
     attrs: attrsOf(el, detailed),
   };
+  const source = sourceOf(el);
+  if (source) ref.source = source;
   if (detailed) {
+    const declarations = matchedDeclarations(el);
+    if (declarations.length > 0) ref.declared = declarations;
     const styles = computedStyles(el);
     ref.styles = styles;
     const fontPx = Number.parseFloat(fontSizeOf(el)) || 0;
-    const declared = opts.declared ?? declaredTokens(el.ownerDocument, el);
-    const tokens = resolveDeclared(styles, declared, fontPx);
+    const tokens = resolveDeclared(styles, opts.declared ?? declaredTokens(el.ownerDocument, el), fontPx);
     if (Object.keys(tokens).length > 0) ref.tokens = tokens;
   }
   if (opts.context !== false) ref.context = contextOf(el, overlayTag);

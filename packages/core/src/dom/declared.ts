@@ -1,6 +1,7 @@
 // What the page's own stylesheets say about an element, as written rather than as computed.
 
-import { PREVIEW_ATTR } from './preview.js';
+/** Sheets the overlay owns, which are not part of what the page declares. */
+const OURS = /^data-annot-/;
 
 /** One declaration the source makes for an element. */
 export interface Declaration {
@@ -9,8 +10,17 @@ export interface Declaration {
   value: string;
   /** The selector that set it, or `style` for an inline declaration. */
   from: string;
+  /** The stylesheet it lives in, when the page says where that is. */
+  file?: string;
   /** Set on an ancestor and inherited by this element. */
   inherited: boolean;
+}
+
+/** Where a stylesheet came from: the dev server's own id for it, else its URL. */
+function fileOf(sheet: CSSStyleSheet): string | undefined {
+  const owner = sheet.ownerNode as Element | null;
+  const id = owner?.getAttribute?.('data-vite-dev-id') ?? undefined;
+  return id ?? sheet.href ?? undefined;
 }
 
 /** Properties that reach an element from its ancestors when it declares none of its own. */
@@ -49,8 +59,9 @@ function* styleRules(doc: Document): Generator<CSSStyleRule> {
     }
   };
   for (const sheet of Array.from(doc.styleSheets)) {
-    // Our own preview is not something the page declares.
-    if ((sheet.ownerNode as Element | null)?.hasAttribute?.(PREVIEW_ATTR)) continue;
+    // Our own sheets — the preview, the highlight styles — are not what the page declares.
+    const owner = sheet.ownerNode as Element | null;
+    if (owner?.getAttributeNames?.().some((name) => OURS.test(name))) continue;
     try {
       yield* walk(sheet.cssRules);
     } catch {
@@ -89,16 +100,18 @@ export function parseDeclarations(cssText: string): [string, string][] {
 /** Own declarations in cascade order, one entry per property, the last to win kept. */
 function ownDeclarations(el: Element): Map<string, Declaration> {
   const out = new Map<string, Declaration>();
-  const take = (from: string, cssText: string, inherited: boolean): void => {
+  const take = (from: string, file: string | undefined, cssText: string): void => {
     for (const [property, value] of parseDeclarations(cssText)) {
       out.delete(property);
-      out.set(property, { property, value, from, inherited });
+      out.set(property, { property, value, from, inherited: false, ...(file ? { file } : {}) });
     }
   };
   for (const rule of styleRules(el.ownerDocument)) {
-    if (matches(el, rule.selectorText)) take(rule.selectorText, rule.style.cssText, false);
+    if (matches(el, rule.selectorText)) {
+      take(rule.selectorText, rule.parentStyleSheet ? fileOf(rule.parentStyleSheet) : undefined, rule.style.cssText);
+    }
   }
-  take('style', (el as HTMLElement).style?.cssText ?? '', false);
+  take('style', undefined, (el as HTMLElement).style?.cssText ?? '');
   return out;
 }
 
