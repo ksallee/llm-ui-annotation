@@ -31,10 +31,10 @@
   </p>
 
   <blockquote id="quote" class="border rounded-lg bg-surface p-4">
-    A block quote lives in its own container, and so does the greyhound, who considers this
-    correct. Selecting from the paragraph above into this one crosses a block boundary and becomes
-    a single annotation naming both blocks, which is the sort of thing the greyhound would call a
-    fuss about nothing.
+    The greyhound has one opinion and gives it at length: a dog described three times is still one
+    dog, and would like the window opened. The beagle, asleep since the second paragraph, declines
+    to comment. The terriers are not available for quotation, and the retrievers have gone to get
+    the ball nobody threw.
   </blockquote>
 
   <p id="tail" class="body">
