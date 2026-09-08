@@ -200,6 +200,18 @@ describe('AnnotState writes', () => {
   });
 });
 
+describe('the thread', () => {
+  it('opens with the note, and stays empty until there is one', async () => {
+    const { state } = make();
+    const written = await state.add('element', elementTarget(), 'tighten this');
+    expect(written.thread.map((m) => m.text)).toEqual(['tighten this']);
+
+    // A drawing is saved before it is described: no words yet, so no entry yet.
+    const drawn = await state.add('page', pageTarget(), '');
+    expect(drawn.thread).toEqual([]);
+  });
+});
+
 describe('send modes', () => {
   it('sends on add and leaves the agent\u2019s work for review', async () => {
     const { state, client } = make();

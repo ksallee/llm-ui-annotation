@@ -664,7 +664,9 @@ export class AnnotState {
       target,
       comment,
       status: immediate ? 'sent' : 'draft',
-      thread: [{ id: newId(), role: 'user', kind: 'comment', text: comment, at }],
+      // A drawing is saved before it is described, so its first words arrive as an edit. An empty
+      // opening entry would be a blank line in the thread the agent reads.
+      thread: comment ? [{ id: newId(), role: 'user', kind: 'comment', text: comment, at }] : [],
       batch: null,
       number: this.nextNumber,
       viewport: this.viewport(),
