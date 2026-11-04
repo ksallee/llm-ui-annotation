@@ -50,7 +50,7 @@ describe('pending', () => {
     expect(res.code).toBe(0);
     expect(res.out).toContain('## /pricing');
     expect(res.out).toContain('### #4 · element · button "Choose Pro"');
-    expect(res.out).toContain('### #6 · page');
+    expect(res.out).toContain('### #6 · element');
     expect(res.out).not.toContain('Hero copy');
     expect(res.out).toContain('annot ack <id…>');
   });
@@ -114,7 +114,7 @@ describe('show', () => {
     const res = await annot(dir, 'show', '#6', '--route', '/pricing');
     expect(res.out).toContain('thread:');
     expect(res.out).toContain('status: acknowledged');
-    expect(res.out).toContain(`screenshot: ${dir}/screenshots/${IDS.c}.png`);
+    expect(res.out).toContain('main > h2');
   });
 
   it('takes several ids at once', async () => {
@@ -184,7 +184,7 @@ describe('lifecycle verbs', () => {
   });
 });
 
-describe('routes, screenshot, doctor', () => {
+describe('routes, doctor', () => {
   it('lists routes with counts', async () => {
     const { dir } = await makeFixture();
     const res = await annot(dir, 'routes');
@@ -194,13 +194,6 @@ describe('routes, screenshot, doctor', () => {
       routes: { route: string; counts: Record<string, number> }[];
     };
     expect(asJson.routes.map((r) => r.route)).toEqual(['/', '/pricing']);
-  });
-
-  it('prints an absolute screenshot path, and fails when there is none', async () => {
-    const { dir } = await makeFixture();
-    const res = await annot(dir, 'screenshot', IDS.c);
-    expect(res.out.trim()).toBe(`${dir}/screenshots/${IDS.c}.png`);
-    expect((await annot(dir, 'screenshot', IDS.a)).code).toBe(1);
   });
 
   it('reports the setup', async () => {

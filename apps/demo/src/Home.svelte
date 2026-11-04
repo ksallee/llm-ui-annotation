@@ -10,7 +10,6 @@
   const FEATURES = [
     { icon: '◉', title: 'Point at an element', body: 'Hover, click, say what should change.' },
     { icon: '❝', title: 'Select a run of text', body: 'Anchored by quote, prefix and suffix.' },
-    { icon: '✎', title: 'Draw on the page', body: 'Strokes go to the agent as a screenshot.' },
   ];
 </script>
 
@@ -46,7 +45,7 @@
 
   <section class="features mb-8" aria-labelledby="features-heading">
     <h2 id="features-heading" class="text-2xl font-semibold mb-4">What you get</h2>
-    <ul class="grid grid-cols-3 gap-10">
+    <ul class="grid grid-cols-2 gap-10">
       {#each FEATURES as feature (feature.title)}
         <li class="feature flex gap-3 items-start border rounded-lg bg-surface p-4">
           <span class="icon text-lg" aria-hidden="true">{feature.icon}</span>

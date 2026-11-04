@@ -10,7 +10,6 @@ import {
   type HealthResponse,
   type RouteFile,
   type RoutesResponse,
-  type Target,
   type TransitionRequest,
 } from '@llm-ui-annotation/core';
 
@@ -80,13 +79,6 @@ export class AnnotClient {
     });
   }
 
-  patchTarget(id: string, target: Target): Promise<Annotation> {
-    return this.#json<Annotation>(`/annotations/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ target }),
-    });
-  }
-
   async remove(id: string): Promise<void> {
     await this.#json<{ ok: true }>(`/annotations/${id}`, { method: 'DELETE' });
   }
@@ -104,25 +96,6 @@ export class AnnotClient {
 
   events(since: number): Promise<{ events: Event[] }> {
     return this.#json<{ events: Event[] }>(`/events?since=${since}`);
-  }
-
-  /** An object URL for a stored screenshot, or null when the server has none. */
-  async screenshotUrl(id: string): Promise<string | null> {
-    try {
-      const response = await this.#fetch(`${this.basePath}/screenshots/${id}`);
-      if (!response.ok) return null;
-      return URL.createObjectURL(await response.blob());
-    } catch {
-      return null;
-    }
-  }
-
-  screenshot(id: string, png: Blob): Promise<{ path: string }> {
-    return this.#json<{ path: string }>(`/screenshots/${id}`, {
-      method: 'POST',
-      headers: { 'content-type': 'image/png' },
-      body: png,
-    });
   }
 
   /** Post one file to an annotation that already exists server-side. */

@@ -24,7 +24,6 @@ export function demoConfig(dir?: string): UserConfig {
     // Explicit, so nothing is discovered lazily and reloads the page mid-test.
     optimizeDeps: {
       entries: PAGES.map((name) => page(name)),
-      include: ['modern-screenshot'],
     },
     build: {
       rollupOptions: {

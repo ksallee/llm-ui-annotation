@@ -39,7 +39,6 @@ worktrees never write over each other. An explicit `dir` wins over it.
   routes/<slug>.json    { route, updatedAt, nextNumber, annotations }
   batches/<id>.json     Batch
   events.jsonl          append-only, one Event per line, `seq` read from the tail at startup
-  screenshots/<id>.png
   attachments/<annotationId>/<attachmentId>.<ext>
 ```
 
@@ -59,12 +58,11 @@ Every path is relative to `basePath`. JSON in and out, same origin, errors `{ er
 | POST | `/batches` | `{ route, annotationIds, summary }` | `Batch`, 201 |
 | GET | `/events?since=` | | `{ events: Event[] }` |
 | GET | `/events/stream?since=` | | SSE, `id: <seq>` + one `Event` per frame, `: ping` every 15 s |
-| POST | `/screenshots/:id` | `image/png` (20 MB cap) | `{ path }`, 201 |
 | POST | `/annotations/:id/attachments?name=&by=` | the file bytes (20 MB cap) | `Attachment`, 201 |
 | DELETE | `/annotations/:id/attachments/:attachmentId` | | `{ ok: true }` |
 | GET | `/attachments/:id/:attachmentId` | | the file, `nosniff` + sandbox CSP |
 
-Bodies are capped at 1 MB except screenshots and attachments. An illegal transition is 409 with the allowed statuses
+Bodies are capped at 1 MB except attachments. An illegal transition is 409 with the allowed statuses
 in `problems`. `resolution: { kind: 'changed' \| 'declined', summary }` is written as a `summary` or
 `decline` message on the thread; `message` wins when both are given. Reopening (`review|approved →
 sent` by the user) clears the resolution and creates a fresh batch, so a `batch.sent` follows the
@@ -82,8 +80,8 @@ files and a client cannot invent an entry.
 
 Every endpoint that takes a body refuses the CORS-simple content types (`text/plain`,
 `multipart/form-data`, `application/x-www-form-urlencoded`) with 415 and a foreign `Origin` or
-`Sec-Fetch-Site` with 403, so a page on another origin cannot write into the project the way the first
-version of `POST /screenshots/:id` allowed. Send the real MIME or `application/octet-stream`.
+`Sec-Fetch-Site` with 403, so a page on another origin cannot write into the project. Send the real
+MIME or `application/octet-stream`.
 
 ## Websocket
 
@@ -91,7 +89,7 @@ Custom events on Vite's HMR socket, for the overlay:
 
 | Event | Payload |
 |---|---|
-| `annot:annotation` | `Annotation` — created, updated, patched, transitioned, screenshot attached |
+| `annot:annotation` | `Annotation` — created, updated, patched, transitioned |
 | `annot:deleted` | `{ id, route }` |
 | `annot:route` | `RouteFile` — a batch, or a file another writer changed |
 
@@ -103,11 +101,6 @@ scheme }` and `globalThis.__ANNOT_HOT__ = import.meta.hot` — that second globa
 overlay on the websocket instead of the 2 s poll — and then imports
 `@llm-ui-annotation/svelte/auto`; when that package does not resolve it warns instead, so an app
 without the overlay still boots.
-
-When `modern-screenshot` resolves from the app, the module imports it too and sets
-`globalThis.__ANNOT_DOM_TO_CANVAS__`, which is how page-mode screenshots get a backend. The overlay
-cannot import the optional peer itself: a bare specifier it does not have breaks the host's module
-graph, and one it does have never resolves in the browser.
 
 ## Test
 

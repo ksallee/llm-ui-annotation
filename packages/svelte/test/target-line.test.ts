@@ -53,20 +53,4 @@ describe('targetLine', () => {
     expect(line.name).toBe('"Cancel anytime"');
     expect(line.where).toBe('across p.lede, blockquote.pull');
   });
-
-  it('names a drawing by what it covers, and by its strokes when it covers nothing', () => {
-    const region = { x: 0, y: 0, width: 100, height: 100 };
-    expect(
-      targetLine({ kind: 'page', region, strokes: [], screenshot: null, elements: [ref(), ref()] }).name,
-    ).toBe('drawing over 2 elements');
-    expect(
-      targetLine({
-        kind: 'page',
-        region,
-        strokes: [{ tool: 'rect', rect: region, color: '#000', width: 3 }],
-        screenshot: null,
-        elements: [],
-      }).name,
-    ).toBe('drawing, 1 stroke');
-  });
 });

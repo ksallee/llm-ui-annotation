@@ -7,7 +7,6 @@ import type {
   Batch,
   ElementRef,
   Message,
-  PageTarget,
   Rect,
   StyleEdit,
   TextTarget,
@@ -18,7 +17,7 @@ export type RenderLevel = 'compact' | 'standard' | 'detailed';
 
 export interface RenderOptions {
   level: RenderLevel;
-  /** Annotations dir, absolute where the reader is expected to open screenshots. */
+  /** Annotations dir, absolute where the reader is expected to open attachments. */
   dir: string;
 }
 
@@ -142,27 +141,6 @@ function textLines(t: TextTarget, level: RenderLevel, dir: string): string[] {
   return lines;
 }
 
-function pageLines(t: PageTarget, level: RenderLevel, dir: string): string[] {
-  const lines: string[] = [];
-  if (t.screenshot) {
-    lines.push(`screenshot: ${joinPath(dir, t.screenshot)}  (${sizeText(t.region)})`);
-  } else {
-    lines.push(`screenshot: none (capture failed)   region: ${rectText(t.region)}`);
-  }
-  if (t.elements.length > 0) {
-    lines.push(
-      `elements: ${t.elements.map((e) => `${elementLabel(e)} (${e.selector})`).join(', ')}`,
-    );
-  }
-  // The words the user wrote onto the drawing are feedback, not decoration.
-  const captions = t.strokes.filter((s) => s.tool === 'label').map((s) => s.text.trim()).filter(Boolean);
-  if (captions.length > 0) lines.push(`captions: ${captions.map((c) => `"${c}"`).join(', ')}`);
-  if (level === 'detailed') {
-    lines.push(`strokes: ${t.strokes.map((s) => s.tool).join(', ') || 'none'}`);
-  }
-  return lines;
-}
-
 function headerLabel(a: Annotation): string {
   switch (a.target.kind) {
     case 'element': {
@@ -176,8 +154,6 @@ function headerLabel(a: Annotation): string {
       return a.target.blocks
         ? `across ${a.target.blocks.map((b) => b.selector).join(', ')}`
         : `in ${a.target.container.selector}`;
-    case 'page':
-      return `drawing over ${a.target.elements.map(elementLabel).join(', ') || `${a.target.strokes.length} strokes`}`;
   }
 }
 
@@ -237,9 +213,6 @@ export function renderAnnotationMarkdown(a: Annotation, opts: RenderOptions): st
       break;
     case 'text':
       lines.push(...textLines(a.target, opts.level, opts.dir));
-      break;
-    case 'page':
-      lines.push(...pageLines(a.target, opts.level, opts.dir));
       break;
   }
 

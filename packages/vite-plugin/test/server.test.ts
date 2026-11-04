@@ -1,4 +1,4 @@
-import { readFile, stat } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   parseEvents,
@@ -10,7 +10,6 @@ import {
   type HealthResponse,
   type RouteFile,
   type RoutesResponse,
-  type ScreenshotResponse,
   type ServerInfo,
 } from '@llm-ui-annotation/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -18,8 +17,6 @@ import {
   readSse,
   exists,
   makeAnnotation,
-  pageAnnotation,
-  PNG,
   startHarness,
   until,
   type Harness,
@@ -139,6 +136,17 @@ describe('annotations', () => {
     expect(patched.comment).toBe('and align it left');
     expect(patched.thread.at(-1)).toMatchObject({ role: 'user', kind: 'comment', text: 'and align it left' });
     expect((await readEventLog()).at(-1)?.type).toBe('thread.message');
+  });
+
+  it('refuses a patch without a comment', async () => {
+    const created = await post<Annotation>('/__annot/annotations', makeAnnotation());
+    const res = await h.raw(`/__annot/annotations/${created.id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ target: created.target }),
+    });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'comment: expected string' });
   });
 
   it('deletes a note whatever its status', async () => {
@@ -323,44 +331,6 @@ describe('events', () => {
     await post<Annotation>('/__annot/annotations', makeAnnotation());
     const events = await readSse(`${h.url}/__annot/events/stream?since=1`, 1).events;
     expect(events.map((e) => e.seq)).toEqual([2]);
-  });
-});
-
-describe('screenshots', () => {
-  it('round-trips a PNG and attaches it to a page annotation', async () => {
-    const created = await post<Annotation>('/__annot/annotations', pageAnnotation());
-    const res = await h.api<ScreenshotResponse>(`/__annot/screenshots/${created.id}`, {
-      method: 'POST',
-      headers: { 'content-type': 'image/png' },
-      body: PNG,
-    });
-    expect(res.path).toBe(`screenshots/${created.id}.png`);
-    expect(await readFile(join(h.dir, res.path))).toEqual(PNG);
-
-    const file = await routeOf('/pricing');
-    const target = file.annotations[0]?.target;
-    expect(target?.kind === 'page' && target.screenshot).toBe(res.path);
-  });
-
-  it('rejects a body that is not a PNG', async () => {
-    const created = await post<Annotation>('/__annot/annotations', pageAnnotation());
-    const res = await h.raw(`/__annot/screenshots/${created.id}`, {
-      method: 'POST',
-      headers: { 'content-type': 'image/png' },
-      body: Buffer.from('not a png at all'),
-    });
-    expect(res.status).toBe(400);
-  });
-
-  it('removes the screenshot when its draft is deleted', async () => {
-    const created = await post<Annotation>('/__annot/annotations', pageAnnotation());
-    await h.api(`/__annot/screenshots/${created.id}`, {
-      method: 'POST',
-      headers: { 'content-type': 'image/png' },
-      body: PNG,
-    });
-    await h.api(`/__annot/annotations/${created.id}`, { method: 'DELETE' });
-    await expect(stat(join(h.dir, 'screenshots', `${created.id}.png`))).rejects.toThrow();
   });
 });
 

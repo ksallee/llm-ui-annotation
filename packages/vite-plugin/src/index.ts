@@ -4,13 +4,13 @@ import { DEFAULT_DIR, nowIso, PROTOCOL_VERSION } from '@llm-ui-annotation/core';
 import { readTextOrNull, removeServerInfo, serverInfoPath, writeServerInfo } from '@llm-ui-annotation/core/node';
 import type { Plugin } from 'vite';
 import { createApi } from './api.js';
-import { AUTO_MODULE, autoModuleSource, RESOLVED_VIRTUAL_ID, SCREENSHOT_MODULE, scriptSrc, VIRTUAL_ID } from './inject.js';
+import { AUTO_MODULE, autoModuleSource, RESOLVED_VIRTUAL_ID, scriptSrc, VIRTUAL_ID } from './inject.js';
 import { matchGlob, resolveOptions, type AnnotationsOptions, type ResolvedOptions } from './options.js';
 import { Store } from './store.js';
 import { startWatching } from './watch.js';
 
 export type { AnnotationsOptions, ResolvedOptions, Scheme, WatchMode } from './options.js';
-export { GLOBAL_CAPTURE, GLOBAL_HOT, GLOBAL_OPTIONS, VIRTUAL_ID, type OverlayOptions } from './inject.js';
+export { GLOBAL_HOT, GLOBAL_OPTIONS, VIRTUAL_ID, type OverlayOptions } from './inject.js';
 
 /** Dev-server side of llm-ui-annotation: storage, HTTP API, SSE, websocket push and overlay injection. */
 export function annotations(options: AnnotationsOptions = {}): Plugin {
@@ -39,9 +39,7 @@ export function annotations(options: AnnotationsOptions = {}): Plugin {
     async load(id) {
       if (id !== RESOLVED_VIRTUAL_ID) return null;
       const available = (await this.resolve(AUTO_MODULE, undefined, { skipSelf: true })) !== null;
-      const screenshots =
-        (await this.resolve(SCREENSHOT_MODULE, undefined, { skipSelf: true })) !== null;
-      return autoModuleSource(resolved, available, screenshots);
+      return autoModuleSource(resolved, available);
     },
 
     transformIndexHtml: {

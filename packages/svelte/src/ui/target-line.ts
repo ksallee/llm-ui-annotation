@@ -32,16 +32,5 @@ export function targetLine(target: Target): TargetLine {
         : `in ${target.container.selector}`;
       return { name: `"${clip(target.quote, 56)}"`, where: tail(where) };
     }
-    case 'page': {
-      const n = target.elements.length;
-      if (n === 0) {
-        const s = target.strokes.length;
-        return { name: `drawing, ${s} stroke${s === 1 ? '' : 's'}`, where: '' };
-      }
-      return {
-        name: `drawing over ${n} element${n === 1 ? '' : 's'}`,
-        where: tail(target.elements.slice(0, 3).map(elementLabel).join(', ')),
-      };
-    }
   }
 }

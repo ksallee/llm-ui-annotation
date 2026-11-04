@@ -16,10 +16,16 @@ quote: "Cancel anytime, no questions asked"
 > Typo: should be "no questions asked." with a period, and drop the comma before it.
 id: 01JBZZZZZZ0000000000000011
 
-### #6 · page · drawing over h2 "Pricing", section.pricing, article "Free"
-screenshot: /repo/.annotations/screenshots/01JBZZZZZZZZZZZZZZZZZZZZZZ.png  (1180×640)
-elements: h2 "Pricing" (main > h2), section.pricing (section.pricing), article "Free" (article:nth-of-type(1))
-captions: "gaps uneven here"
+### #6 · element · 3 elements: article "Free", article "Pro", article "Team"
+element 1:
+selector: article:nth-of-type(1)
+text: Free   rect: 612,940 220×44
+element 2:
+selector: article:nth-of-type(2)
+text: Pro   rect: 612,940 220×44
+element 3:
+selector: article:nth-of-type(3)
+text: Team   rect: 612,940 220×44
 > The three cards should be visually one group, the gaps are uneven.
 id: 01JBZZZZZZ0000000000000012
 
@@ -55,11 +61,28 @@ thread:
 - user comment (2026-09-05T18:24:41.048Z): Typo: should be "no questions asked." with a period, and drop the comma before it.
 id: 01JBZZZZZZ0000000000000011
 
-### #6 · page · drawing over h2 "Pricing", section.pricing, article "Free"
-screenshot: /repo/.annotations/screenshots/01JBZZZZZZZZZZZZZZZZZZZZZZ.png  (1180×640)
-elements: h2 "Pricing" (main > h2), section.pricing (section.pricing), article "Free" (article:nth-of-type(1))
-captions: "gaps uneven here"
-strokes: brush, arrow, label
+### #6 · element · 3 elements: article "Free", article "Pro", article "Team"
+element 1:
+selector: article:nth-of-type(1)
+text: Free   rect: 612,940 220×44
+context: parent article "Pro", prev p "$29 / month", next null
+styles: font-size 14px · padding 10px 18px · background-color oklch(0.55 0.15 250)
+fallbacks: [data-testid=choose-pro] | button.cta
+attrs: class cta · data-testid choose-pro
+element 2:
+selector: article:nth-of-type(2)
+text: Pro   rect: 612,940 220×44
+context: parent article "Pro", prev p "$29 / month", next null
+styles: font-size 14px · padding 10px 18px · background-color oklch(0.55 0.15 250)
+fallbacks: [data-testid=choose-pro] | button.cta
+attrs: class cta · data-testid choose-pro
+element 3:
+selector: article:nth-of-type(3)
+text: Team   rect: 612,940 220×44
+context: parent article "Pro", prev p "$29 / month", next null
+styles: font-size 14px · padding 10px 18px · background-color oklch(0.55 0.15 250)
+fallbacks: [data-testid=choose-pro] | button.cta
+attrs: class cta · data-testid choose-pro
 status: sent
 > The three cards should be visually one group, the gaps are uneven.
 thread:
@@ -90,10 +113,22 @@ container: p.lede   offsets: 17-51
 > Typo: should be "no questions asked." with a period, and drop the comma before it.
 id: 01JBZZZZZZ0000000000000011
 
-### #6 · page · drawing over h2 "Pricing", section.pricing, article "Free"
-screenshot: /repo/.annotations/screenshots/01JBZZZZZZZZZZZZZZZZZZZZZZ.png  (1180×640)
-elements: h2 "Pricing" (main > h2), section.pricing (section.pricing), article "Free" (article:nth-of-type(1))
-captions: "gaps uneven here"
+### #6 · element · 3 elements: article "Free", article "Pro", article "Team"
+element 1:
+selector: article:nth-of-type(1)
+text: Free   rect: 612,940 220×44
+context: parent article "Pro", prev p "$29 / month", next null
+styles: font-size 14px · padding 10px 18px · background-color oklch(0.55 0.15 250)
+element 2:
+selector: article:nth-of-type(2)
+text: Pro   rect: 612,940 220×44
+context: parent article "Pro", prev p "$29 / month", next null
+styles: font-size 14px · padding 10px 18px · background-color oklch(0.55 0.15 250)
+element 3:
+selector: article:nth-of-type(3)
+text: Team   rect: 612,940 220×44
+context: parent article "Pro", prev p "$29 / month", next null
+styles: font-size 14px · padding 10px 18px · background-color oklch(0.55 0.15 250)
 > The three cards should be visually one group, the gaps are uneven.
 id: 01JBZZZZZZ0000000000000012
 

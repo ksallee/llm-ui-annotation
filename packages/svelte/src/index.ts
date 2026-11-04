@@ -32,7 +32,6 @@ export {
   type Connection,
   type Filter,
   type HoverState,
-  type PendingDrawing,
   type PopupState,
   type TextChip,
   type Toast,
@@ -56,11 +55,8 @@ export {
   place,
   rectFromPoints,
   relativeTime,
-  sample,
-  smoothPath,
   unionRects,
   type Point,
   type Size,
 } from './dom/geometry.js';
 export { ICONS, type IconName } from './icons.js';
-export { domToCanvas, provideDomToCanvas, type DomToCanvas } from './screenshot.js';

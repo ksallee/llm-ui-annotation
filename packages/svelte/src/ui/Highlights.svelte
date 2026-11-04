@@ -1,9 +1,8 @@
 <script lang="ts">
-  // The SVG layer: annotation highlights, the selection, the hover box and every drawing.
+  // The SVG layer: annotation highlights, the selection and the hover box.
   import type { AnnotState } from '../state/annot-state.svelte.js';
   import { boxModel } from '../dom/inspect.js';
   import BoxModel from './BoxModel.svelte';
-  import Strokes from './Strokes.svelte';
 
   let {
     annot,
@@ -57,8 +56,6 @@
               onmouseenter={() => annot.showCard(a.id)}
             />
           {/each}
-        {:else if a.target.kind === 'page' && !annot.hiddenDrawings.has(a.id)}
-          <Strokes strokes={a.target.strokes} status={a.status} />
         {/if}
       {/if}
     {/each}
@@ -122,60 +119,6 @@
         stroke-width="1"
         stroke-dasharray="4 3"
       />
-    {/if}
-
-    {#each annot.drawings as d (d.id)}
-      <Strokes strokes={d.strokes} />
-    {/each}
-
-    {#if annot.mode === 'page'}
-      {#each annot.routeDrawings as d (d.id)}
-        {@const picked = annot.selectedDrawings.has(d.id)}
-        {@const within = annot.insideDrawing === d.id}
-        {#if within}
-          <rect
-            x={d.region.x - 3}
-            y={d.region.y - 3}
-            width={d.region.width + 6}
-            height={d.region.height + 6}
-            rx="8"
-            fill="none"
-            stroke="var(--annot-accent)"
-            stroke-width="5"
-            opacity="0.22"
-          />
-        {/if}
-        <rect
-          x={d.region.x}
-          y={d.region.y}
-          width={d.region.width}
-          height={d.region.height}
-          rx="6"
-          fill="none"
-          stroke={picked ? 'var(--annot-accent)' : 'var(--annot-page)'}
-          stroke-width={picked ? 2 : 1}
-          stroke-dasharray={picked ? undefined : '4 4'}
-          opacity={picked ? 1 : annot.insideDrawing ? 0.25 : 0.55}
-        />
-      {/each}
-
-      {#each [...annot.selectedStrokes] as index (index)}
-        {@const box = annot.strokeBoxAt(index)}
-        {#if box}
-          <rect
-            x={box.x}
-            y={box.y}
-            width={box.width}
-            height={box.height}
-            rx="3"
-            fill="var(--annot-accent-soft)"
-            fill-opacity="0.18"
-            stroke="var(--annot-accent)"
-            stroke-width="1"
-            stroke-dasharray="3 3"
-          />
-        {/if}
-      {/each}
     {/if}
   </g>
 </svg>

@@ -6,7 +6,6 @@ export const DEFAULT_BASE_PATH = '/__annot';
 
 export const ROUTES_DIR = 'routes';
 export const BATCHES_DIR = 'batches';
-export const SCREENSHOTS_DIR = 'screenshots';
 export const EVENTS_FILE = 'events.jsonl';
 export const SERVER_FILE = 'server.json';
 
@@ -38,11 +37,6 @@ export function routeFileFromSlug(routeSlug: string): string {
 /** `batches/<id>.json`, relative to the annotations dir. */
 export function batchFile(id: string): string {
   return `${BATCHES_DIR}/${id}.json`;
-}
-
-/** `screenshots/<id>.png`, relative to the annotations dir. */
-export function screenshotFile(id: string): string {
-  return `${SCREENSHOTS_DIR}/${id}.png`;
 }
 
 export function emptyRouteFile(route: string, updatedAt: string): RouteFile {

@@ -2,7 +2,7 @@
 
 ## What we are building
 
-A dev-time overlay for web UIs. You switch it on, point at things (an element, a run of text, or anything you can draw around), say what should change, and send. A coding agent running in the same repo picks the batch up, does the work, replies or asks, and marks each item for review. You approve, the highlight disappears. Everything is files in the project plus a small CLI. No MCP, no cloud.
+A dev-time overlay for web UIs. You switch it on, point at things (an element or a run of text), say what should change, and send. A coding agent running in the same repo picks the batch up, does the work, replies or asks, and marks each item for review. You approve, the highlight disappears. Everything is files in the project plus a small CLI. No MCP, no cloud.
 
 Primary host: a Svelte 5 app running under Vite. Secondary host: a markdown document in the bundled reader app.
 
@@ -14,7 +14,7 @@ Primary host: a Svelte 5 app running under Vite. Secondary host: a markdown docu
  │ host DOM (never mutated)     │                │ .annotations/            │          │ $ annot watch        │
  │                              │  HTTP  ┌─────┐ │   routes/<slug>.json    │  read    │   (blocks, exits     │
  │ <annot-overlay> shadow DOM   │───────▶│vite │─┼─▶ events.jsonl          │─────────▶│    when batch lands) │
- │  toolbar · modes · popup     │◀───────│plug-│ │   screenshots/<id>.png  │          │ $ annot ack/ask/done │
+ │  toolbar · modes · popup     │◀───────│plug-│ │   attachments/<id>/     │          │ $ annot ack/ask/done │
  │  markers · panel · threads   │  ws    │ in  │◀┼── server.json (port)    │◀─────────│   (HTTP if server up,│
  └──────────────────────────────┘        └─────┘ └──────────────────────────┘  write   │    else writes files)│
                                                                                        └──────────────────────┘
@@ -22,7 +22,7 @@ Primary host: a Svelte 5 app running under Vite. Secondary host: a markdown docu
 
 - `packages/core` owns the vocabulary: types, the file protocol, selector generation, text anchoring, element description, theming math. Pure functions, no runtime deps.
 - `packages/svelte` is the overlay. One custom element, shadow DOM, Svelte 5 runes. Talks to the plugin over `fetch` and Vite's websocket.
-- `packages/vite-plugin` is the single writer of `.annotations/` while the dev server runs. Serves the HTTP API, pushes changes over the websocket, injects the overlay in dev, saves screenshots.
+- `packages/vite-plugin` is the single writer of `.annotations/` while the dev server runs. Serves the HTTP API, pushes changes over the websocket, injects the overlay in dev, stores attachments.
 - `packages/cli` is what the agent runs. `annot watch` is the wake-up call; the rest are verbs that move an annotation through its lifecycle.
 - `apps/reader` renders a markdown file and mounts the overlay in text mode. `apps/demo` is a Svelte playground with every kind of element, used for manual testing and Playwright e2e.
 
@@ -64,7 +64,7 @@ session with the overlay and split into two agents, so it supersedes the conflic
 | WS | Spec | Package | Depends on | Size |
 |----|------|---------|------------|------|
 | 01 | Data model and protocol | `packages/core` (types, schema, protocol helpers) | none | S, do first, freezes the contract |
-| 02 | Core algorithms | `packages/core` (selectors, text anchoring, element info, screenshot helpers) | 01 types | M |
+| 02 | Core algorithms | `packages/core` (selectors, text anchoring, element info) | 01 types | M |
 | 03 | Theming and design system | `packages/core/theme` + `packages/svelte/src/theme` | 01 | S |
 | 04 | Svelte overlay | `packages/svelte` | 01, 02, 03 (can start on 01 with stubs) | L |
 | 05 | Vite plugin | `packages/vite-plugin` | 01 | M |
@@ -72,7 +72,7 @@ session with the overlay and split into two agents, so it supersedes the conflic
 | 07 | Reader app | `apps/reader` | 04, 05 | S |
 | 08 | Demo app and e2e | `apps/demo` | 04, 05, 06 | M |
 | 09 | Multi-block text, protocol 2 (spec 09 §5) | `packages/core` model + `src/dom/text.ts` | 02, 04 | S, bumps `protocolVersion` to 2 |
-| 10 | Interaction rework (spec 09 §1–4, §6–11) | `packages/svelte` | 04, 08 | M |
+| 10 | Interaction rework (spec 09 §1–4, §6–10) | `packages/svelte` | 04, 08 | M |
 | 13 | Style edits, protocol 3 | `packages/svelte` (editors, preview) + `packages/core` model | 04, 12 | M, bumps `protocolVersion` to 3 |
 
 Phase 1: WS 01 alone, one agent, merge to `main`. Everything downstream imports its types.

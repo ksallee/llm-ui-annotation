@@ -72,7 +72,6 @@ Semantic hues are fixed but take L and C from the accent, so they read as one fa
 |---------------|-----|-------|
 | element mode highlight | `H` | the accent itself |
 | text mode highlight | `H + 40` | a sibling hue, so text and element annotations can be told apart |
-| page mode strokes default | `H - 40` | drawing palette offers `H`, `H±40`, `H+180`, and neutral ink |
 | `draft` | `H`, dashed outline, C×0.6 | quiet |
 | `sent` | `H`, solid | |
 | `acknowledged` | `H`, solid, slow 2 s pulse on the marker | the agent is on it |
@@ -84,8 +83,7 @@ Semantic hues are fixed but take L and C from the accent, so they read as one fa
 For each: `--annot-<name>` (line/marker color, L 0.55 light / 0.75 dark), `--annot-<name>-fill` (highlight
 fill, alpha 0.18 light / 0.28 dark), `--annot-<name>-wash` (the same color at alpha 0.08 light / 0.12 dark),
 `--annot-<name>-ink` (text on the solid color). Highlights on text use `fill` only; element outlines use the
-line 2 px plus `wash`. The drawing palette is `--annot-stroke-1` … `--annot-stroke-5` (`H`, `H+40`, `H-40`,
-`H+180`, neutral ink).
+line 2 px plus `wash`.
 
 All computed once per theme change and written as CSS custom properties on the overlay's shadow root host.
 Export `computeTheme(input, prefersDark, prefersReducedMotion?): Record<TokenName, string>` and
@@ -109,7 +107,7 @@ Export `computeTheme(input, prefersDark, prefersReducedMotion?): Record<TokenNam
 - Popups are cards, `--annot-surface`, 1 px `--annot-line`, `--annot-shadow`, 12 px padding, max width 360, anchored to the target with an 8 px offset and flipped when out of viewport. The breadcrumb `› button "Save"` is mono, inside the details pane (spec 04).
 - Pins (markers) are 22 px circles with the number, `--annot-<status>` background, `--annot-<status>-ink` text, 2 px `--annot-surface` ring; multi-select markers show a small stacked-squares glyph instead of the number when hovered.
 - Panel is a right drawer, 360 px, same surface, header with route and counts, filter chips, list of rows with a 3 px left bar in the status color. Nothing bounces.
-- Icons: a small inline SVG set drawn on a 20 px grid, 1.5 px stroke, round caps. Names: logo, element, text (highlighter), page (scribble), brush, arrow, rect, ellipse, caption, eraser, undo, redo, pause, play, eye, eye-off, send, inbox, check, check-all, reopen, chat, gear, grip, close, chevron, search, more, fit, locate (map pin), edit, trash, warn. No glyph carries two meanings: the pencil is `edit` only, the speech bubble is `chat` only. No icon library dependency.
+- Icons: a small inline SVG set drawn on a 20 px grid, 1.5 px stroke, round caps. Names: logo, element, text (highlighter), undo, pause, play, eye, eye-off, send, inbox, check, check-all, reopen, chat, gear, grip, close, chevron, search, more, locate (map pin), edit, trash, warn. No glyph carries two meanings: the pencil is `edit` only, the speech bubble is `chat` only. No icon library dependency.
 
 ## Deliverables
 

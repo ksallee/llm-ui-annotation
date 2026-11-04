@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { batchFile, isSlug, routeFile, screenshotFile, slug } from '../src/index.js';
+import { batchFile, isSlug, routeFile, slug } from '../src/index.js';
 
 describe('slug', () => {
   it.each([
@@ -43,7 +43,6 @@ describe('paths', () => {
     expect(routeFile('/pricing')).toBe('routes/__pricing.json');
     expect(routeFile('/')).toBe('routes/index.json');
     expect(batchFile('01JB')).toBe('batches/01JB.json');
-    expect(screenshotFile('01JB')).toBe('screenshots/01JB.png');
   });
 });
 

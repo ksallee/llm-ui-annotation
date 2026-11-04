@@ -90,7 +90,6 @@ interface SignalSpec {
 const SIGNALS: Record<SignalName, SignalSpec> = {
   element: { hue: 0, chroma: 1 },
   text: { hue: 40, chroma: 1 },
-  page: { hue: -40, chroma: 1 },
   draft: { hue: 0, chroma: 0.6 },
   sent: { hue: 0, chroma: 1 },
   acknowledged: { hue: 0, chroma: 1 },
@@ -191,14 +190,6 @@ export function computeTheme(
   set('--annot-box-border', 'rgba(255, 229, 153, 0.66)');
   set('--annot-box-margin', 'rgba(246, 178, 107, 0.66)');
   set('--annot-box-ink', 'rgba(26, 26, 26, 0.92)');
-
-  const stroke = (dh: number): string =>
-    formatOklch(clampToGamut({ l: spec.signalL, c, h: h + dh, alpha: 1 }));
-  set('--annot-stroke-1', stroke(0));
-  set('--annot-stroke-2', stroke(40));
-  set('--annot-stroke-3', stroke(-40));
-  set('--annot-stroke-4', stroke(180));
-  set('--annot-stroke-5', formatOklch(neutral(i1, spec.neutralChroma)));
 
   const scale = input.density === 'compact' ? 0.8 : 1;
   const radius = input.radius ?? DEFAULT_RADIUS;

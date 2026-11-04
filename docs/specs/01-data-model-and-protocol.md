@@ -10,12 +10,12 @@ Give every other workstream a single vocabulary: what an annotation is, how it i
 
 - `id`: 26-char Crockford base32 ULID-like string generated client-side (10-char time prefix + 16 random). Provide `newId(now = Date.now())`. Sortable, no dependency; ids made in the same millisecond increment the random part so the order is strict. Also `isId`, `idTime`, `compareIds`, `nowIso`.
 - All timestamps ISO 8601 UTC strings (`2026-09-05T18:24:41.048Z`).
-- `protocolVersion: 3` (`PROTOCOL_VERSION`). Readers accept every version in `SUPPORTED_PROTOCOL_VERSIONS` — `[1, 2, 3]` — so files written before multi-block highlights keep loading; a v1 text target simply has no `blocks`, a v2 annotation no `styleEdits`. `validateAnnotation` is the one place that decides. `attachments` (spec 11 §1) did **not** bump it: the field is additive and optional, so a v2 reader that predates it sees an annotation without attachments, which is a state it already handles. `tokens` on `ElementRef` (spec 12 §4) does not bump it either, for the same reason. `source`, `declared` and `StyleEdit.rule` (spec 02 §Locating) do not bump it either: they say where something already is, and a reader that drops them loses nothing the user wrote — only the agent's shortcut to the file. `styleEdits` (spec 13) **does** bump it, on a different ground: it is not more description of what is there, it is an instruction, and a reader that drops it silently loses half of what the user said. `Batch.questions` does not bump it, by the same test read the other way: a reader that ignores it delivers every word the user wrote, and the agent merely asks a question it need not have asked.
+- `protocolVersion: 4` (`PROTOCOL_VERSION`). Readers accept every version in `SUPPORTED_PROTOCOL_VERSIONS` — `[1, 2, 3, 4]` — so files written before multi-block highlights keep loading; a v1 text target simply has no `blocks`, a v2 annotation no `styleEdits`. `validateAnnotation` is the one place that decides. `attachments` (spec 11 §1) did **not** bump it: the field is additive and optional, so a v2 reader that predates it sees an annotation without attachments, which is a state it already handles. `tokens` on `ElementRef` (spec 12 §4) does not bump it either, for the same reason. `source`, `declared` and `StyleEdit.rule` (spec 02 §Locating) do not bump it either: they say where something already is, and a reader that drops them loses nothing the user wrote — only the agent's shortcut to the file. `styleEdits` (spec 13) **does** bump it, on a different ground: it is not more description of what is there, it is an instruction, and a reader that drops it silently loses half of what the user said. `Batch.questions` does not bump it, by the same test read the other way: a reader that ignores it delivers every word the user wrote, and the agent merely asks a question it need not have asked. v4 removes the `page` target kind: a v1–3 file may still hold a `page` annotation, which loads, and which a v4 writer refuses (`validateAnnotation` rejects kind `page`).
 
 ## Types (TypeScript, exported from `@llm-ui-annotation/core`)
 
 ```ts
-export type Mode = 'element' | 'text' | 'page';
+export type Mode = 'element' | 'text';
 
 export type Status =
   | 'draft'        // exists only in the browser until sent (immediate mode skips this)
@@ -59,23 +59,7 @@ export interface TextTarget {
   blocks?: ElementRef[];       // v2: the blocks the range spans, document order, compact; absent when it spans one
 }
 
-export type Stroke =
-  | { tool: 'brush'; points: [number, number][]; color: string; width: number }
-  | { tool: 'arrow'; from: [number, number]; to: [number, number]; color: string; width: number }
-  | { tool: 'rect'; rect: Rect; color: string; width: number }
-  | { tool: 'ellipse'; rect: Rect; color: string; width: number }
-  | { tool: 'label'; at: [number, number]; text: string; color: string; size: number };
-// all coordinates in document CSS px; color is an oklch() or hex string as drawn
-
-export interface PageTarget {
-  kind: 'page';
-  region: Rect;                // bounding box of all strokes plus padding
-  strokes: Stroke[];
-  screenshot: string | null;   // screenshots/<id>.png, relative to .annotations/; null if capture failed
-  elements: ElementRef[];      // elements intersecting the region, largest coverage first, max 12, compact (no styles)
-}
-
-export type Target = ElementTarget | TextTarget | PageTarget;
+export type Target = ElementTarget | TextTarget;
 
 export type MessageKind = 'comment' | 'question' | 'answer' | 'summary' | 'decline' | 'reopen';
 export interface Message {
@@ -115,7 +99,7 @@ export interface StyleEdit {
 
 export interface Annotation {
   id: string;
-  protocolVersion: 1 | 2 | 3;
+  protocolVersion: 1 | 2 | 3 | 4;
   route: string;               // pathname (+ search if the host opts in), used as file key
   url: string;                 // full URL at creation
   mode: Mode;
@@ -149,16 +133,16 @@ export interface Batch {
 
 Provide `isAnnotation(x): x is Annotation` and `validateAnnotation(x): string[]` (list of problems, each prefixed with its path) hand-written, no zod in core.
 
-Validation is also a boundary, not only a shape check. Two rules exist because the values cross into
-places that act on them:
+Validation is also a boundary, not only a shape check, because the values cross into places that act
+on them:
 
-- `PageTarget.screenshot` must be `screenshots/<id>.png` — the same discipline `Attachment.path`
-  already had. The CLI joins it onto the annotations dir and hands it to `open`, and the agent is
-  told to read it, so an arbitrary string there is a file-read primitive.
-- `LIMITS` (exported) caps what a page can grow: 10 000 chars for a comment, message, caption or
+- `Attachment.path` must be `attachments/<annotationId>/<attachmentId>.<ext>`. The CLI joins it onto
+  the annotations dir and the agent is told to read it, so an arbitrary string there is a file-read
+  primitive.
+- `LIMITS` (exported) caps what a page can grow: 10 000 chars for a comment, message or
   summary, 5 000 for a quote or an element's name and text, 1 000 for a selector, 1 000 entries in
-  any array, 20 000 points in a brush stroke. Generous by design — they exist because the store
-  rewrites a route file whole on every mutation, not to shape real input. Same for `isBatch` / `validateBatch`. Also `summarizeTarget(target): string` returning one line like `button "Save" (form > .actions > button)` or `text "…quote…" in p.lede` — `text "…quote…" across p.lede, blockquote, p` when the run spans blocks — or `drawing over 3 elements: h2 "Pricing", …`.
+  any array. Generous by design — they exist because the store
+  rewrites a route file whole on every mutation, not to shape real input. Same for `isBatch` / `validateBatch`. Also `summarizeTarget(target): string` returning one line like `button "Save" (form > .actions > button)` or `text "…quote…" in p.lede`, or `text "…quote…" across p.lede, blockquote, p` when the run spans blocks.
 
 ## State machine
 
@@ -180,7 +164,7 @@ Every transition appends a `Message` when one is given. The resolution comes fro
 
 Also exported: `allowedTransitions(from, by)`, `IllegalTransitionError` (carries `allowed`), `makeMessage`.
 
-Deletion is allowed for **any** status. `.annotations/` is a scratch directory, not an audit log: a note sent by mistake has to be removable, and approving it to hide it claims the agent did work it never did. Deleting removes the annotation, its screenshot and its attachment directory.
+Deletion is allowed for **any** status. `.annotations/` is a scratch directory, not an audit log: a note sent by mistake has to be removable, and approving it to hide it claims the agent did work it never did. Deleting removes the annotation and its attachment directory.
 
 ## Files on disk
 
@@ -192,17 +176,16 @@ Root: `<project>/.annotations/` (configurable via plugin option `dir`). Gitignor
   routes/<slug>.json          { route, updatedAt, nextNumber, annotations: Annotation[] }
   batches/<batchId>.json      Batch
   events.jsonl                append-only, one Event per line
-  screenshots/<id>.png
   attachments/<annotationId>/<attachmentId>.<ext>
 ```
 
 `slug(route)`: `/` and `''` → `index`; otherwise lowercase, `/` → `__`, remaining non `[a-z0-9_-]` → `-`, collapse runs of `-` to one and runs of `_` to `__`, strip leading and trailing `-`, `index` if nothing is left. Never longer than 120 chars: a longer slug is cut to 111 and given `-` plus an 8-char FNV-1a hash of the full route.
 
-Path helpers (`routeFile`, `batchFile`, `screenshotFile`, `attachmentDir`, `attachmentFile`) return paths relative to the annotations dir. `RouteFile` and `ServerInfo` are exported types.
+Path helpers (`routeFile`, `batchFile`, `attachmentDir`, `attachmentFile`) return paths relative to the annotations dir. `RouteFile` and `ServerInfo` are exported types.
 
 Writes are atomic: write a sibling tmp file (`<file>.<pid>.<n>.tmp`) then rename. Readers tolerate a missing or unparseable file as empty.
 
-Node helpers, exported from `@llm-ui-annotation/core/node`: `readRoute`, `readRouteBySlug`, `writeRoute`, `listRouteSlugs`, `listRoutes`, `readAllAnnotations`, `readBatch`, `writeBatch`, `appendEvent`, `readEvents`, `lastEventSeq`, `readServerInfo`, `writeServerInfo`, `removeServerInfo`, `writeScreenshot`, `removeScreenshot`, `screenshotPath`, `writeAttachment`, `readAttachment`, `removeAttachment`, `removeAttachments`, `attachmentPath`, `attachmentDirPath`, `eventsPath`, `routePath`, `initDir`, `findAnnotationsDir`, plus `writeFileAtomic`, `readJsonOrNull`, `readTextOrNull`, `writeJson`, `appendLine`, `ensureDir`, `isEnoent`.
+Node helpers, exported from `@llm-ui-annotation/core/node`: `readRoute`, `readRouteBySlug`, `writeRoute`, `listRouteSlugs`, `listRoutes`, `readAllAnnotations`, `readBatch`, `writeBatch`, `appendEvent`, `readEvents`, `lastEventSeq`, `readServerInfo`, `writeServerInfo`, `removeServerInfo`, `writeAttachment`, `readAttachment`, `removeAttachment`, `removeAttachments`, `attachmentPath`, `attachmentDirPath`, `eventsPath`, `routePath`, `initDir`, `findAnnotationsDir`, plus `writeFileAtomic`, `readJsonOrNull`, `readTextOrNull`, `writeJson`, `appendLine`, `ensureDir`, `isEnoent`.
 
 ## Events
 
@@ -231,21 +214,19 @@ export interface Event {
 
 ## Wire API (served by the plugin, used by the overlay and by the CLI when the server is up)
 
-Base path `/__annot`. JSON in and out. CORS off (same origin). Errors `{ error: string, problems?: string[] }`. Request and response shapes are exported as types from core (`HealthResponse`, `RoutesResponse`, `CreateBatchRequest`, `TransitionRequest`, `EventsResponse`, `ScreenshotResponse`, …).
+Base path `/__annot`. JSON in and out. CORS off (same origin). Errors `{ error: string, problems?: string[] }`. Request and response shapes are exported as types from core (`HealthResponse`, `RoutesResponse`, `CreateBatchRequest`, `TransitionRequest`, `EventsResponse`, …).
 
 ```
 GET    /__annot/health                          → { ok: true, protocolVersion, dir }
 GET    /__annot/routes                          → { routes: string[] }
 GET    /__annot/routes/:slug                    → RouteFile
 POST   /__annot/annotations                     body Annotation (status draft|sent) → Annotation   (assigns number if 0)
-PATCH  /__annot/annotations/:id                 body { comment?: string, target?: Target }  → Annotation  (user edits, appends comment message; a target appends `drawing edited` and returns review to sent)
+PATCH  /__annot/annotations/:id                 body { comment: string }  → Annotation  (user edits, appends comment message)
 DELETE /__annot/annotations/:id                 draft only → { ok }
 POST   /__annot/batches                         body { route, annotationIds, summary } → Batch      (moves drafts to sent, emits batch.sent)
 POST   /__annot/annotations/:id/transition      body { to: Status, by: Actor, message?: {kind,text,role} , resolution? } → Annotation
 GET    /__annot/events?since=<seq>              → { events: Event[] }
 GET    /__annot/events/stream?since=<seq>       SSE, one Event per message, heartbeat every 15 s       (used by annot watch)
-POST   /__annot/screenshots/:id                 body image/png → { path }
-GET    /__annot/screenshots/:id                 → the PNG, served inert (nosniff, sandboxed CSP)
 POST   /__annot/annotations/:id/attachments     body the file bytes, ?name=<encoded>&by=user|agent → Attachment
 DELETE /__annot/annotations/:id/attachments/:attachmentId       → { ok: true }
 GET    /__annot/attachments/:id/:attachmentId                   → the file
@@ -263,7 +244,7 @@ Websocket to the overlay reuses Vite's HMR socket with custom events `annot:anno
 `renderBatchMarkdown(batch, annotations, opts: { level: 'compact'|'standard'|'detailed', dir })` lives in core and is used by the CLI. Standard output for one batch:
 
 ```
-## Feedback batch 01J8…  ·  route /pricing  ·  3 items
+## Feedback batch 01J8…  ·  route /pricing  ·  2 items
 Summary from the user: all of these are about the pricing table spacing.
 
 ### #4 · element · button "Choose Pro"
@@ -280,12 +261,6 @@ container: p.lede   offsets: 17-51
 > Typo: should be "no questions asked." with a period, and drop the comma before it.
 id: 01J8…
 
-### #6 · page · drawing over h2 "Pricing", section.pricing, article "Free"
-screenshot: /repo/.annotations/screenshots/01J8….png  (1180×640)
-elements: h2 "Pricing" (main > h2), section.pricing (…), article "Free" (…)
-> The three cards should be visually one group, the gaps are uneven.
-id: 01J8…
-
 Reply with: annot ack <id…> · annot ask <id> "…" · annot done <id> --summary "…" · annot decline <id> --reason "…"
 ```
 
@@ -297,7 +272,7 @@ attachments:
   /repo/.annotations/attachments/01J8…/01J9….png   mock-v2.png (image/png, 240 KB)
 ```
 
-`compact` drops styles/context/prefix/suffix; `detailed` adds the `fallbacks`, the full `attrs`, the status and every thread message. Every item ends with its full id so `annot done <id>` is copy-pasteable, and `dir` is joined onto the relative screenshot path so page items carry an absolute path. Core also exports `renderAnnotationMarkdown`, `renderAnswerMarkdown` and `renderReopenMarkdown` for the answer and reopen sections in spec 06, plus `AGENT_VERBS_FOOTER`.
+`compact` drops styles/context/prefix/suffix; `detailed` adds the `fallbacks`, the full `attrs`, the status and every thread message. Every item ends with its full id so `annot done <id>` is copy-pasteable, and `dir` is joined onto relative attachment paths so they are absolute. Core also exports `renderAnnotationMarkdown`, `renderAnswerMarkdown` and `renderReopenMarkdown` for the answer and reopen sections in spec 06, plus `AGENT_VERBS_FOOTER`.
 
 ## Acceptance criteria
 

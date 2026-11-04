@@ -54,5 +54,3 @@ See `docs/known-gaps.md` for the consolidated list. The reader's own:
 
 - The rail is English only; the prototype's French copy did not move over.
 - Multi-document sessions are out of scope: one `DOC` per dev server.
-- Draw mode saves strokes without a screenshot: the reader does not install the optional
-  `modern-screenshot` peer.

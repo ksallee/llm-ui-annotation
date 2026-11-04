@@ -45,11 +45,6 @@
   "peerDependencies": {
     "svelte": "^5"
   },
-  "peerDependenciesMeta": {
-    "modern-screenshot": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@llm-ui-annotation/vite-plugin": "workspace:*",
     "@sveltejs/vite-plugin-svelte": "^6.2.1",

@@ -12,7 +12,6 @@ import type {
   QuestionLevel,
   Resolution,
   Status,
-  Target,
 } from '../model/types.js';
 
 export interface ErrorResponse {
@@ -41,8 +40,6 @@ export type RouteResponse = RouteFile;
 
 export interface PatchAnnotationRequest {
   comment?: string;
-  /** New geometry for a drawing; appends a `drawing edited` message and returns `review` to `sent`. */
-  target?: Target;
 }
 
 export interface CreateBatchRequest {
@@ -61,10 +58,6 @@ export interface TransitionRequest {
 
 export interface EventsResponse {
   events: Event[];
-}
-
-export interface ScreenshotResponse {
-  path: string;
 }
 
 export type AttachmentResponse = Attachment;

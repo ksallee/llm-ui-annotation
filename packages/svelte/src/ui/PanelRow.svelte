@@ -80,7 +80,6 @@
     expanded ? ACTIONS[a.status].filter((x) => x.id === 'approve' || x.id === 'send') : ACTIONS[a.status],
   );
   const picked = $derived(annot.selected.has(a.id));
-  const hidden = $derived(annot.hiddenDrawings.has(a.id));
   const attachments = $derived(a.attachments ?? []);
   /** The field an expanded row offers, by status. A draft has nothing to reply to. */
   const form = $derived.by((): ReplyForm | null => {
@@ -135,12 +134,11 @@
         onclick={(e) => annot.selectRow(a.id, e.shiftKey ? 'range' : 'toggle')}
       />
       <button class="head" onclick={ontoggle} aria-expanded={expanded}>
-        <Thumb {annot} {annotation} />
+        <Thumb {annotation} />
         <span class="lines">
           <span class="meta">
             <span class="num">#{a.number}</span>
             <span class="status-pill" style="background: var(--annot-{a.status}-fill)">{a.status}</span>
-            {#if hidden}<span class="status-pill">hidden</span>{/if}
             {#if anchor?.state === 'lost'}<span class="status-pill">lost</span>{/if}
             {#if anchor?.state === 'moved'}<span class="status-pill">moved</span>{/if}
             <span class="when">{relativeTime(a.updatedAt)}</span>
@@ -228,16 +226,6 @@
           {action.label}
         </button>
       {/each}
-      {#if a.mode === 'page'}
-        <button
-          class="icon-btn tiny"
-          aria-label="{hidden ? 'Show' : 'Hide'} the drawing on annotation {a.number}"
-          aria-pressed={hidden}
-          onclick={() => annot.toggleHidden(a.id)}
-        >
-          <Icon name={hidden ? 'eye-off' : 'eye'} size={16} />
-        </button>
-      {/if}
       <span class="spacer"></span>
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
