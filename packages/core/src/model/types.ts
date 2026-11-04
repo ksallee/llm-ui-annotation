@@ -1,15 +1,15 @@
-export const PROTOCOL_VERSION = 3;
-/** Versions a reader accepts; v1 files have no `TextTarget.blocks`, v2 no `Annotation.styleEdits`. */
-export const SUPPORTED_PROTOCOL_VERSIONS = [1, 2, 3] as const;
+export const PROTOCOL_VERSION = 4;
+/** Versions a reader accepts; v1 files have no `TextTarget.blocks`, v2 no `Annotation.styleEdits`, v1–3 may hold `page` targets. */
+export const SUPPORTED_PROTOCOL_VERSIONS = [1, 2, 3, 4] as const;
 export type ProtocolVersion = (typeof SUPPORTED_PROTOCOL_VERSIONS)[number];
 
-export type Mode = 'element' | 'text' | 'page';
+export type Mode = 'element' | 'text';
 
 export type Status = 'draft' | 'sent' | 'acknowledged' | 'question' | 'review' | 'approved';
 
 export type Actor = 'user' | 'agent';
 
-export const MODES: readonly Mode[] = ['element', 'text', 'page'];
+export const MODES: readonly Mode[] = ['element', 'text'];
 export const STATUSES: readonly Status[] = [
   'draft',
   'sent',
@@ -105,26 +105,7 @@ export interface TextTarget {
   blocks?: ElementRef[];
 }
 
-/** Coordinates in document CSS px; color as drawn. */
-export type Stroke =
-  | { tool: 'brush'; points: [number, number][]; color: string; width: number }
-  | { tool: 'arrow'; from: [number, number]; to: [number, number]; color: string; width: number }
-  | { tool: 'rect'; rect: Rect; color: string; width: number }
-  | { tool: 'ellipse'; rect: Rect; color: string; width: number }
-  | { tool: 'label'; at: [number, number]; text: string; color: string; size: number };
-
-export type StrokeTool = Stroke['tool'];
-
-export interface PageTarget {
-  kind: 'page';
-  region: Rect;
-  strokes: Stroke[];
-  /** Path relative to the annotations dir; null if capture failed. */
-  screenshot: string | null;
-  elements: ElementRef[];
-}
-
-export type Target = ElementTarget | TextTarget | PageTarget;
+export type Target = ElementTarget | TextTarget;
 
 export type MessageKind = 'comment' | 'question' | 'answer' | 'summary' | 'decline' | 'reopen';
 

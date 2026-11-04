@@ -1,8 +1,8 @@
 /** @vitest-environment happy-dom */
 import { describe, expect, it } from 'vitest';
 import { isOverlay } from '../../src/dom/ancestors.js';
-import { describeElement, findElementsInRect } from '../../src/dom/describe.js';
-import { allElements, FIXTURES, loadFixture, rect, setRect } from './helpers.js';
+import { describeElement } from '../../src/dom/describe.js';
+import { allElements, FIXTURES, loadFixture } from './helpers.js';
 
 describe('where an element came from', () => {
   it('reads the location a dev build attached, and shrugs when there is none', () => {
@@ -135,46 +135,5 @@ describe('describeElement', () => {
         expect(Number.isInteger(ref.rect.x)).toBe(true);
       }
     }
-  });
-});
-
-describe('findElementsInRect', () => {
-  const region = rect(30, 30, 840, 480);
-
-  it('returns the cards and the heading, not the page or the tiny icons', () => {
-    const doc = loadFixture('cards');
-    const found = findElementsInRect(doc, region);
-    const names = found.map((f) => f.name);
-
-    expect(names).toContain('h2 "Popular plans"');
-    for (const plan of ['Starter For one person.', 'Team For a small team.', 'Scale For a company.'])
-      expect(names).toContain(`article "${plan}"`);
-    expect(names.some((n) => n.startsWith('span'))).toBe(false);
-    expect(names.some((n) => n.startsWith('body'))).toBe(false);
-    expect(names.some((n) => n.includes('Far below'))).toBe(false);
-  });
-
-  it('sorts by overlap and caps at twelve compact refs', () => {
-    const doc = loadFixture('cards');
-    const found = findElementsInRect(doc, region);
-    expect(found.length).toBeLessThanOrEqual(12);
-    expect(found[0]?.styles).toBeUndefined();
-    const areas = found.map((f) => f.rect.width * f.rect.height);
-    expect(areas).toEqual([...areas].sort((a, b) => b - a));
-  });
-
-  it('drops a parent a single child already covers', () => {
-    const doc = loadFixture('cards');
-    doc.body.innerHTML = '<div class="outer"><span class="inner">x</span></div>';
-    setRect(doc.querySelector('.outer') as Element, rect(0, 0, 200, 100));
-    setRect(doc.querySelector('.inner') as Element, rect(0, 0, 200, 100));
-    expect(findElementsInRect(doc, rect(0, 0, 400, 400)).map((f) => f.tag)).toEqual(['span']);
-  });
-
-  it('falls back to the oversized element when nothing else matches', () => {
-    const doc = loadFixture('cards');
-    doc.body.innerHTML = '<section class="hero">Hero</section>';
-    setRect(doc.querySelector('.hero') as Element, rect(0, 0, 300, 200));
-    expect(findElementsInRect(doc, rect(0, 0, 300, 200)).map((f) => f.tag)).toEqual(['section']);
   });
 });

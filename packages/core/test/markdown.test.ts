@@ -10,7 +10,7 @@ import {
   ALL_ANNOTATIONS,
   ATTACHED_ANNOTATION,
   BATCH,
-  PAGE_ANNOTATION,
+  GROUP_ANNOTATION,
   TEXT_MULTI_ANNOTATION,
   annotation,
   elementRef,
@@ -47,36 +47,13 @@ describe('renderBatchMarkdown', () => {
 
   it('keeps the order of annotationIds and skips ids it was not given', () => {
     const md = renderBatchMarkdown(
-      { ...BATCH, annotationIds: [PAGE_ANNOTATION.id, 'missing'] },
+      { ...BATCH, annotationIds: [GROUP_ANNOTATION.id, 'missing'] },
       ALL_ANNOTATIONS,
       { level: 'compact', dir: DIR },
     );
     expect(md).toContain('1 item');
     expect(md).toContain('### #6');
     expect(md).not.toContain('### #4');
-  });
-
-  it('gives page items an absolute screenshot path with the region size', () => {
-    const md = renderBatchMarkdown(BATCH, ALL_ANNOTATIONS, { level: 'standard', dir: DIR });
-    expect(md).toContain(
-      'screenshot: /repo/.annotations/screenshots/01JBZZZZZZZZZZZZZZZZZZZZZZ.png  (1180×640)',
-    );
-  });
-
-  it('carries the words the user wrote onto the drawing', () => {
-    for (const level of ['compact', 'standard', 'detailed'] as const) {
-      const md = renderAnnotationMarkdown(PAGE_ANNOTATION, { level, dir: DIR });
-      expect(md, level).toContain('captions: "gaps uneven here"');
-    }
-  });
-
-  it('says so when the capture failed', () => {
-    const failed = { ...PAGE_ANNOTATION, target: { ...PAGE_ANNOTATION.target, screenshot: null } };
-    const md = renderAnnotationMarkdown(failed as typeof PAGE_ANNOTATION, {
-      level: 'standard',
-      dir: DIR,
-    });
-    expect(md).toContain('screenshot: none (capture failed)');
   });
 });
 

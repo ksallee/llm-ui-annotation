@@ -2,11 +2,9 @@ import { PROTOCOL_VERSION } from '@llm-ui-annotation/core';
 import type { ResolvedOptions } from './options.js';
 
 export const AUTO_MODULE = '@llm-ui-annotation/svelte/auto';
-export const SCREENSHOT_MODULE = 'modern-screenshot';
 export const VIRTUAL_ID = 'virtual:annot-auto';
 export const RESOLVED_VIRTUAL_ID = `\0${VIRTUAL_ID}`;
 export const GLOBAL_OPTIONS = '__ANNOT_OPTIONS__';
-export const GLOBAL_CAPTURE = '__ANNOT_DOM_TO_CANVAS__';
 export const GLOBAL_HOT = '__ANNOT_HOT__';
 
 /** URL of the injected script for a Vite `base`. */
@@ -35,21 +33,11 @@ export function overlayOptions(options: ResolvedOptions): OverlayOptions {
  *
  * @param options plugin options handed to the overlay.
  * @param available whether `@llm-ui-annotation/svelte/auto` resolves.
- * @param screenshots whether the optional `modern-screenshot` peer resolves.
  */
-export function autoModuleSource(
-  options: ResolvedOptions,
-  available: boolean,
-  screenshots = false,
-): string {
+export function autoModuleSource(options: ResolvedOptions, available: boolean): string {
   const json = JSON.stringify(overlayOptions(options));
   const load = available
     ? `import(${JSON.stringify(AUTO_MODULE)}).catch((error) => {\n  console.error('[annot] failed to load the overlay', error);\n});`
     : `console.warn('[annot] ${AUTO_MODULE} is not installed; the overlay was not mounted.');`;
-  // The overlay never imports the peer itself: a bare specifier the host cannot resolve would
-  // either break its module graph or never load in the browser.
-  const capture = screenshots
-    ? `import(${JSON.stringify(SCREENSHOT_MODULE)}).then((m) => {\n  globalThis.${GLOBAL_CAPTURE} = m.domToCanvas;\n}).catch(() => {});\n`
-    : '';
-  return `globalThis.${GLOBAL_OPTIONS} = ${json};\nglobalThis.${GLOBAL_HOT} = import.meta.hot;\n${capture}${load}\n`;
+  return `globalThis.${GLOBAL_OPTIONS} = ${json};\nglobalThis.${GLOBAL_HOT} = import.meta.hot;\n${load}\n`;
 }

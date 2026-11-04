@@ -2,7 +2,7 @@
   "name": "llm-ui-annotation",
   "private": true,
   "version": "0.0.0",
-  "description": "Annotate a running UI (elements, text, freehand) and hand the feedback to a coding agent. Svelte-first, MCP-free.",
+  "description": "Annotate a running UI (elements, text) and hand the feedback to a coding agent. Svelte-first, MCP-free.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.15.0",

@@ -2,7 +2,6 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.js';
 import {
   annotateElement,
-  commit,
   openPanel,
   overlay,
   panel,
@@ -57,30 +56,6 @@ test('the target line keeps the element name and gives up the selector', async (
   await expect(first.locator('.name')).toHaveText('button "Choose Pro"');
   const clipped = await first.locator('.name').evaluate((el) => el.scrollWidth > el.clientWidth + 1);
   expect(clipped, 'the name fits without an ellipsis').toBe(false);
-});
-
-test('a drawing shows its marks in the row, an element note shows the mode icon', async ({
-  page,
-  site,
-}) => {
-  await page.goto(`${site}/`);
-  await setMode(page, 'Element');
-  await annotateElement(page, '[data-testid="signup"]', 'an element note');
-
-  await setMode(page, 'Draw');
-  const box = (await page.locator('.cards').boundingBox())!;
-  await overlay(page).locator('[aria-label="Rectangle"]').click();
-  await page.mouse.move(box.x + 10, box.y + 10);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width - 10, box.y + box.height - 10, { steps: 10 });
-  await page.mouse.up();
-  await overlay(page).locator('button.chip', { hasText: 'Annotate' }).click();
-  await commit(page, 'this grid is cramped');
-
-  await openPanel(page);
-  // Either half of the rule: the screenshot once the plugin serves it, the strokes until then.
-  await expect(row(page, 2).locator('.thumb img, .thumb .marks')).toHaveCount(1);
-  await expect(row(page, 1).locator('.thumb img, .thumb .marks')).toHaveCount(0);
 });
 
 test('three review rows approve together in one step', async ({

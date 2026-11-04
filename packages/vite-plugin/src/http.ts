@@ -2,7 +2,6 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { ApiError, badRequest, forbidden, tooLarge, unsupportedMedia } from './errors.js';
 
 export const JSON_LIMIT = 1024 * 1024;
-export const PNG_LIMIT = 20 * 1024 * 1024;
 
 /** Content types a cross-origin page can send without a preflight. */
 const SIMPLE_TYPES = ['text/plain', 'application/x-www-form-urlencoded', 'multipart/form-data'];
@@ -79,10 +78,4 @@ export async function readJson(req: IncomingMessage, limit = JSON_LIMIT): Promis
   } catch {
     throw badRequest('body is not valid JSON');
   }
-}
-
-const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-
-export function isPng(body: Buffer): boolean {
-  return body.length > PNG_MAGIC.length && body.subarray(0, PNG_MAGIC.length).equals(PNG_MAGIC);
 }

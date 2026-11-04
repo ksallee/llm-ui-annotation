@@ -1,7 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
-import { screenshotPath } from '@llm-ui-annotation/core/node';
 import {
   ATTACHMENT_MAX_BYTES,
   cleanAttachmentName,
@@ -14,15 +13,7 @@ import {
   type TransitionRequest,
 } from '@llm-ui-annotation/core';
 import { ApiError, badRequest, notFound } from './errors.js';
-import {
-  assertSameOrigin,
-  isPng,
-  PNG_LIMIT,
-  readBody,
-  readJson,
-  sendError,
-  sendJson,
-} from './http.js';
+import { assertSameOrigin, readBody, readJson, sendError, sendJson } from './http.js';
 import type { ResolvedOptions } from './options.js';
 import type { Store } from './store.js';
 
@@ -125,17 +116,8 @@ export function createApi(
 
   on('PATCH', '/annotations/:id', async (req, res, params) => {
     const body = (await readJson(req)) as PatchAnnotationRequest;
-    if (body.comment !== undefined && typeof body.comment !== 'string') {
-      throw badRequest('comment: expected string');
-    }
-    if (body.comment === undefined && body.target === undefined) {
-      throw badRequest('comment or target: expected one');
-    }
-    const patch = {
-      ...(body.comment !== undefined ? { comment: body.comment } : {}),
-      ...(body.target !== undefined ? { target: body.target } : {}),
-    };
-    sendJson(res, 200, await store.patchAnnotation(safeId(params), patch));
+    if (typeof body.comment !== 'string') throw badRequest('comment: expected string');
+    sendJson(res, 200, await store.patchAnnotation(safeId(params), { comment: body.comment }));
   });
 
   on('DELETE', '/annotations/:id', async (_req, res, params) => {
@@ -165,12 +147,6 @@ export function createApi(
     await streamEvents(store, req, res, since(url));
   });
 
-  on('POST', '/screenshots/:id', async (req, res, params) => {
-    const body = await readBody(req, PNG_LIMIT);
-    if (!isPng(body)) throw badRequest('body: expected a PNG image');
-    sendJson(res, 201, { path: await store.saveScreenshot(safeId(params), body) });
-  });
-
   on('POST', '/annotations/:id/attachments', async (req, res, params, url) => {
     const id = safeId(params);
     const name = cleanAttachmentName(url.searchParams.get('name') ?? '');
@@ -188,11 +164,6 @@ export function createApi(
   on('GET', '/attachments/:id/:attachmentId', async (_req, res, params) => {
     const { attachment, file } = await store.attachment(safeId(params), safeAttachmentId(params));
     await sendFileInert(res, file, attachment.type, attachment.name);
-  });
-
-  on('GET', '/screenshots/:id', async (_req, res, params) => {
-    const id = safeId(params);
-    await sendFileInert(res, screenshotPath(options.dir, id), 'image/png', `${id}.png`);
   });
 
   const prefix = options.basePath;

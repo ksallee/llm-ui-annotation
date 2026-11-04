@@ -1,7 +1,7 @@
 # @llm-ui-annotation/svelte
 
 The annotation overlay: a Svelte 5 custom element `<annot-overlay>` with an open shadow root. It
-draws highlights, pins, a popup and a review panel over any page without touching the host DOM,
+shows highlights, pins, a popup and a review panel over any page without touching the host DOM,
 and talks to `@llm-ui-annotation/vite-plugin` over `/__annot`.
 
 ## Mounting
@@ -11,7 +11,6 @@ Auto (what the Vite plugin does — it sets the globals, then imports this modul
 ```js
 globalThis.__ANNOT_OPTIONS__ = { basePath: '/__annot', accent: '#2C8A85', scheme: 'auto' };
 globalThis.__ANNOT_HOT__ = import.meta.hot;   // optional: push updates instead of polling
-globalThis.__ANNOT_DOM_TO_CANVAS__ = domToCanvas;   // optional: page-mode screenshots
 import('@llm-ui-annotation/svelte/auto');
 ```
 
@@ -33,7 +32,7 @@ Or as a component, in a dev-only branch of a Svelte app:
 ## The element
 
 `<annot-overlay>` reads `accent`, `scheme` (`light|dark|auto`), `density`, `route-key`, `send-mode`
-(`batch|immediate`), `base-path` and `mode` (`element|text|page`); `accent`, `scheme`, `density` and
+(`batch|immediate`), `base-path` and `mode` (`element|text`); `accent`, `scheme`, `density` and
 `send-mode` also apply when changed after mounting. Anything that cannot be an attribute — `hot`,
 `doc`, `target` — goes through the `options` property before the element is connected, or through
 `mount(options)`. `element.state` is the live `AnnotState`, which is what `tools/qa.mjs` drives.
@@ -41,9 +40,7 @@ Or as a component, in a dev-only branch of a Svelte app:
 ## Modes
 
 **Element** outlines what you point at and marquees a group; **Highlight** watches the host's own
-selection, across block boundaries; **Draw** draws on an SVG layer inside a region you can resize,
-and captures a screenshot on save when a capture backend is available. The `mode` attribute and
-`PageTarget`/`TextTarget` keep their wire names `element`, `text`, `page`.
+selection, across block boundaries. The `mode` attribute and `TextTarget` keep the wire name `text`.
 
 ## Keyboard
 
@@ -54,19 +51,17 @@ an active mode, or focus on one of our surfaces:
 | Key | Does | Scope |
 |-----|------|-------|
 | `⌥A` | Command palette | always |
-| `E` `H` `D` | Element / Highlight / Draw | in a mode |
+| `E` `H` | Element / Highlight | in a mode |
 | `⌘↵` | Add the annotation, or send the batch | in a mode |
 | `⇧⌘↵` | Add the annotation and send it alone | in the popup |
 | `I` | Toggle the panel | in a mode |
 | `⇧P` | Pause animations | in a mode |
-| `1`–`6` | Pick a drawing tool | in Draw |
-| `⌘Z` `⇧⌘Z` | Undo / redo a stroke | in Draw |
 | `⌫` | Delete the focused draft | in a mode |
 | `⌘A` | Select every row the filter shows | in the panel |
 | `Esc` | Exit the mode, close the popup or the panel | on a surface |
 | `?` | Shortcut sheet | in a mode |
 
-The palette lists modes, the drawing tools and colours while in Draw, panel filters, settings and
+The palette lists modes, panel filters, settings and
 the annotations on this route (`#4`, or a word from the comment). It never offers Approve, Reopen,
 Send or Approve all: those mutate the loop and belong where the target is visible.
 
@@ -82,7 +77,7 @@ enabled only when every selected row allows it.
 
 The drawer's Inspect channel is devtools' Elements panel: the node title with its size, the tag
 chain, the box diagram, then Layout / Text / Appearance / Accessibility as mono declarations, then
-the exact `styles` the annotation will carry. On the canvas, hovering in Element mode draws the same
+the exact `styles` the annotation will carry. On the canvas, hovering in Element mode shows the same
 box model bands and devtools' tooltip; the **CSS Details** switch in Settings takes both off and
 leaves a plain outline.
 
@@ -128,7 +123,7 @@ about comments starting with `ask:`, and completes everything else.
 ## Known gaps
 
 See `docs/known-gaps.md` for the consolidated list across every package. The ones that bite here:
-screenshots need the optional `modern-screenshot` peer, the `⌘`-passthrough cursor does not change,
+the `⌘`-passthrough cursor does not change,
 a panel row does not flash its highlight, bulk undo covers Approve only, and nothing type-checks
 `.svelte` — `check` runs `tsc`, which skips them, so eleven components once imported `AnnotState`
 from a path that does not exist and nothing noticed.

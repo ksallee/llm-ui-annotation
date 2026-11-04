@@ -41,14 +41,8 @@ spec asks for it, nobody built it) or **non-goal** (deliberate, recorded so nobo
 - Nothing type-checks the 20 `.svelte` files: `check` runs `tsc`, which ignores them, and
   `svelte-check` is not installed. The repo's TypeScript-strict rule does not reach most of the UI.
   **bug**, toolchain. The highest-value thing on this page.
-- Page screenshots need an injected capture backend (`modern-screenshot`); without one the
-  annotation saves its strokes and toasts "Saved without screenshot". **non-goal**, spec 02.4.
-- In immediate send mode the batch is announced before the screenshot is captured and POSTed, so an
-  agent whose `annot watch` collection window (1.5 s) closes first reads
-  `screenshot: none (capture failed)` for an annotation that does have one. `apps/reader` runs in
-  exactly this mode. **bug**, narrow race.
 - Bulk undo is offered for Approve only; Reopen, Send and Delete have no undo toast. **non-goal**,
-  spec 09 §9 only requires it for Approve.
+  spec 09 §8 only requires it for Approve.
 - Pin visibility has no keyboard binding (pill, palette and settings only). **non-goal**.
 - `sendMode: 'immediate'` has no debounce: three fast annotations are three batches. **non-goal**,
   spec 04 mandates a batch of one.
@@ -63,9 +57,9 @@ spec asks for it, nobody built it) or **non-goal** (deliberate, recorded so nobo
 ## packages/vite-plugin
 
 - No origin or CSRF protection on the wire API. Any page the developer visits while the dev server
-  runs can create annotations, send batches, move items through the loop and overwrite a screenshot
-  inside the annotations dir — `Content-Type: text/plain` with PNG bytes is a CORS-simple request,
-  so there is no preflight to stop it. Path traversal out of the dir is fixed; the rest is not.
+  runs can create annotations, send batches, move items through the loop and write files
+  inside the annotations dir — `Content-Type: text/plain` is a CORS-simple request, so there is no
+  preflight to stop it. Path traversal out of the dir is fixed; the rest is not.
   **bug** — the fix is an `Origin`/`Host` check, which needs a decision about what a dev server
   should trust.
 - `POST /annotations` is an upsert that takes `status`, `thread`, `batch` and `resolution` from the
@@ -115,9 +109,8 @@ spec asks for it, nobody built it) or **non-goal** (deliberate, recorded so nobo
   writes it. **bug**, latent.
 - `packages/svelte/src/options.ts` re-lists `MODES`, `SCHEMES` and `SEND_MODES` that core already
   exports, in the same file that imports the `Mode` type from core. **non-goal**, duplication.
-- The markdown the agent reads drops `url`, `viewport`, `createdAt`/`updatedAt`/`sentAt`/`batch`, a
-  text target's `container.context`, and the `rect`/`role`/`attrs` of the elements under a drawing —
-  at every level, `detailed` included. Without `viewport` there is no width to interpret the
+- The markdown the agent reads drops `url`, `viewport`, `createdAt`/`updatedAt`/`sentAt`/`batch`, and a
+  text target's `container.context` — at every level, `detailed` included. Without `viewport` there is no width to interpret the
   document-pixel rects against. **unimplemented**.
 - Only `packages/core` has a v1 protocol fixture; neither the plugin nor the CLI tests one, though
   both claim to accept `SUPPORTED_PROTOCOL_VERSIONS`. Verified by hand for `0.1.0`: a v1 file loads,
@@ -127,14 +120,12 @@ spec asks for it, nobody built it) or **non-goal** (deliberate, recorded so nobo
 
 - The rail is English only; the prototype's French copy did not move over. **non-goal**.
 - One `DOC` per dev server; multi-document sessions are out of scope. **non-goal**.
-- Draw mode saves strokes without a screenshot — the reader does not install the optional
-  `modern-screenshot` peer. **non-goal**.
 
 ## apps/demo
 
-Nothing outstanding. The four deviations the README recorded against spec 08 are all reconciled:
-the `modern-screenshot` dependency, the "no highlights remain" wording, the two suites spec 09 added
-(spec 08 now lists all twelve), and the freeze-mode second `<style data-annot-*>` node.
+Nothing outstanding. The deviations the README recorded against spec 08 are all reconciled: the
+"no highlights remain" wording, the two suites spec 09 added, and the freeze-mode second
+`<style data-annot-*>` node.
 
 ## Fixed since the READMEs were written
 
@@ -142,22 +133,17 @@ Kept so nobody re-files them.
 
 - The `packages/svelte` barrel mounted the overlay on import; `auto.ts` is now the only entry with
   that side effect, and the reader's synchronous-`autoMount` workaround is gone.
-- `modern-screenshot` broke Vite's import analysis when absent; the specifier is read at call time
-  behind `/* @vite-ignore */`, and the reader's local stub plugin is gone.
-- `GET /routes/:slug` read, and `POST /screenshots/:id` wrote, any path on the machine.
+- `GET /routes/:slug` read any path on the machine.
 - Two tabs on one route could both take display `#5`, making `annot ack #5` ambiguous forever.
-- The words a user typed onto a drawing never reached the agent.
 - A multi-line text highlight changed shape between creation and its first re-anchor.
 
 ## Found by hand, specced in docs/specs/10
 
 - **The overlay cannot tell whether an agent is listening** (bug). Sending shows "Waiting for the agent" even when no `annot watch` is attached, so a correct send looks like a failure. The plugin already knows the answer from its open SSE clients.
-- **Strokes cannot be selected, moved, resized or restyled** (unimplemented). Draw is write-once: undo or erase the whole stroke. The resizable region from spec 09 §6 is the capture box, not the marks.
-- **A drawing cannot be grabbed as one object** (unimplemented). No select-all, and the region box cannot be dragged to move the marks inside it; `Clear drawing` is the only whole-drawing action.
 
 ## Found by hand, not yet specced
 
-- ~~A sent annotation cannot be deleted~~ — fixed: delete is allowed for any status, and removes the screenshot and attachment directory with it.
+- ~~A sent annotation cannot be deleted~~ — fixed: delete is allowed for any status, and removes the attachment directory with it.
 - **`vite-plugin/test/ws.test.ts` is flaky under CPU load** (test). The external-edit case waits on an `fs.watch` debounce of 100 ms; with several agents building in parallel the window is missed. Passes 4/4 in isolation, fails around half the time under load. The debounce should be configurable so the test can widen it.
 - **One dropped file sometimes attaches twice** (product bug, intermittent). Seen on both drop
   targets: `.attachment .att-name` resolving to two elements inside a panel row *and* inside the

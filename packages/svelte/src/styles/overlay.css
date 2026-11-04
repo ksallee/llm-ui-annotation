@@ -51,10 +51,6 @@
   pointer-events: none;
 }
 
-.layer.capture.draw {
-  touch-action: none;
-}
-
 .chrome {
   position: fixed;
   inset: 0;
@@ -160,10 +156,9 @@
   white-space: nowrap;
 }
 
-/* --------------------------------------------------- pill and drawing bar */
+/* -------------------------------------------------------------------- pill */
 
-.pill,
-.draw-bar {
+.pill {
   position: fixed;
   display: flex;
   align-items: center;
@@ -177,13 +172,6 @@
   user-select: none;
 }
 
-.draw-bar {
-  top: var(--annot-space-4);
-  left: 50%;
-  transform: translateX(-50%);
-  pointer-events: auto;
-}
-
 .grip {
   cursor: grab;
   opacity: 0.5;
@@ -194,8 +182,7 @@
   cursor: grabbing;
 }
 
-.pill .divider,
-.draw-bar .divider {
+.pill .divider {
   width: 1px;
   height: 22px;
   background: currentColor;
@@ -419,98 +406,6 @@ kbd {
   border-radius: var(--annot-radius-pill);
 }
 
-.widths {
-  display: flex;
-  gap: 2px;
-  align-items: center;
-}
-
-.width-btn {
-  width: 22px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  border-radius: var(--annot-radius-sm);
-}
-
-.width-btn[aria-pressed='true'] {
-  background: var(--annot-pill-hover);
-  color: var(--annot-pill);
-}
-
-.width-btn i {
-  display: block;
-  width: 14px;
-  border-radius: var(--annot-radius-pill);
-  background: currentColor;
-}
-
-/* ------------------------------------------------------------ draw region */
-
-.region {
-  position: absolute;
-  pointer-events: none;
-}
-
-.region .handle {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  margin: -5px;
-  border: 1px solid var(--annot-page);
-  border-radius: 2px;
-  background: var(--annot-surface);
-  pointer-events: auto;
-}
-
-.region .handle.nw { left: 0; top: 0; cursor: nwse-resize; }
-.region .handle.n { left: 50%; top: 0; cursor: ns-resize; }
-.region .handle.ne { left: 100%; top: 0; cursor: nesw-resize; }
-.region .handle.e { left: 100%; top: 50%; cursor: ew-resize; }
-.region .handle.se { left: 100%; top: 100%; cursor: nwse-resize; }
-.region .handle.s { left: 50%; top: 100%; cursor: ns-resize; }
-.region .handle.sw { left: 0; top: 100%; cursor: nesw-resize; }
-.region .handle.w { left: 0; top: 50%; cursor: ew-resize; }
-
-.region.move .handle,
-.region.strokes .handle {
-  border-color: var(--annot-accent);
-}
-
-.region.strokes .handle {
-  width: 8px;
-  height: 8px;
-  margin: -4px;
-  border-radius: 50%;
-}
-
-.region-bar {
-  position: absolute;
-  left: 0;
-  bottom: calc(100% + 8px);
-  display: flex;
-  align-items: center;
-  gap: var(--annot-space-1);
-  height: 26px;
-  padding: 0 var(--annot-space-1);
-  border-radius: var(--annot-radius-sm);
-  background: var(--annot-surface);
-  border: 1px solid var(--annot-line);
-  box-shadow: var(--annot-shadow);
-  font-size: var(--annot-text-xs);
-  white-space: nowrap;
-  pointer-events: auto;
-}
-
-.region-bar .grip {
-  display: inline-flex;
-  opacity: 0.6;
-}
-
 /* ----------------------------------------------------------------- palette */
 
 .palette-scrim {
@@ -565,12 +460,6 @@ kbd {
   font-size: var(--annot-text-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-}
-
-.swatch.static {
-  cursor: default;
-  width: 14px;
-  height: 14px;
 }
 
 /* ------------------------------------------------------------------- card */
@@ -1278,21 +1167,6 @@ kbd {
   overflow: hidden;
 }
 
-.thumb img,
-.thumb svg.marks {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.thumb img {
-  object-fit: cover;
-}
-
-.thumb svg.marks {
-  padding: 3px;
-}
-
 .entry .lines {
   display: flex;
   flex-direction: column;
@@ -1637,19 +1511,6 @@ kbd {
   font-size: var(--annot-text-sm);
   background: var(--annot-question-fill);
   color: var(--annot-ink);
-}
-
-.label-input {
-  position: absolute;
-  min-width: 40px;
-  padding: 2px 6px;
-  border-radius: var(--annot-radius-sm);
-  background: var(--annot-surface);
-  color: var(--annot-ink);
-  border: 1px solid var(--annot-accent-line);
-  outline: none;
-  pointer-events: auto;
-  font-size: 14px;
 }
 
 @media (prefers-reduced-motion: reduce) {

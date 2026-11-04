@@ -2,11 +2,9 @@
   import css from '../styles/overlay.css?raw';
   import {
     bindKeys,
-    capturePage,
     clearStylePreview,
     commitPopup,
     freezeWhile,
-    holdScroll,
     locate,
     LOCATE_KEY,
     paintTextHighlights,
@@ -16,21 +14,12 @@
     watchViewport,
   } from '../controller.js';
   import { clearHighlights, ensureHighlightStyle, supportsHighlights } from '../dom/highlights.js';
-  import {
-    commitLabel,
-    elementMode,
-    openElementPopup,
-    openPagePopup,
-    openTextPopup,
-    pageMode,
-    textMode,
-  } from '../modes/index.js';
+  import { elementMode, openElementPopup, openTextPopup, textMode } from '../modes/index.js';
   import { createState } from '../create.js';
   import type { AnnotatorProps, OverlayOptions } from '../options.js';
   import { connectLive } from '../transport/live.js';
   import { VERSION } from '../version.js';
-  import { accentSuggestions, applyTheme, drawingPalette } from '../theme/index.js';
-  import DrawBar from './DrawBar.svelte';
+  import { accentSuggestions, applyTheme } from '../theme/index.js';
   import ElementCard from './ElementCard.svelte';
   import Highlights from './Highlights.svelte';
   import HoverCard from './HoverCard.svelte';
@@ -38,7 +27,6 @@
   import Palette from './Palette.svelte';
   import Panel from './Panel.svelte';
   import Popup from './Popup.svelte';
-  import Region from './Region.svelte';
   import SendDialog from './SendDialog.svelte';
   import Settings from './Settings.svelte';
   import Shortcuts from './Shortcuts.svelte';
@@ -73,7 +61,6 @@
 
   let root = $state<HTMLElement | null>(null);
   let capture = $state<HTMLElement | null>(null);
-  let labelInput = $state<HTMLInputElement | null>(null);
 
   const host = $derived.by(() => {
     const node = root?.getRootNode();
@@ -95,9 +82,7 @@
         density: annot.prefs.density,
       },
       (tokens) => {
-        annot.palette = drawingPalette(tokens);
         annot.accentSuggestions = accentSuggestions(tokens);
-        if (!annot.drawColor) annot.drawColor = annot.palette[0] ?? '';
         dropHighlightStyle = ensureHighlightStyle(annot.doc, tokens);
       },
     );
@@ -145,25 +130,16 @@
     return () => clearStylePreview(annot.doc);
   });
 
-  // The state commits drawings on its own when Draw closes, but it has no screenshot backend.
-  $effect(() => {
-    annot.captureFor = (region, strokes) => capturePage(annot, region, strokes);
-    return () => (annot.captureFor = null);
-  });
-
   $effect(() => (annot.mode ? watchPageDrops(annot) : undefined));
 
   $effect(() => bindKeys(annot, host, { commit: () => primaryAction(annot) }));
 
   $effect(() => freezeWhile(annot, annot.frozen));
 
-  $effect(() => holdScroll(annot, host, annot.mode === 'page'));
-
   $effect(() => {
     const mode = annot.mode;
     if (!mode) return;
     if (mode === 'text') return textMode(annot);
-    if (mode === 'page') return capture ? pageMode(annot, capture) : undefined;
     const blocked = annot.prefs.blockInteractions && !annot.passthrough && capture;
     return elementMode(annot, (blocked ? capture : annot.doc) as HTMLElement);
   });
@@ -172,10 +148,6 @@
     void annot.anchors.size;
     void annot.visible.length;
     paintTextHighlights(annot);
-  });
-
-  $effect(() => {
-    labelInput?.focus();
   });
 
   const captureOff = $derived(
@@ -236,76 +208,6 @@
       </button>
     {/if}
 
-    {#if annot.mode === 'page' && !annot.popup}
-      {#if annot.drawTool === 'move' && annot.insideDrawing}
-        {@const box = annot.pickedStrokeBox}
-        {#if box}
-          <Region
-            {annot}
-            region={box}
-            kind="strokes"
-            onresize={(from, to) => annot.transformPickedStrokes(from, to)}
-            oncommit={() => {
-              const id = annot.insideDrawing;
-              if (id && annot.drawingRef(id)?.committed) void annot.saveDrawing(id);
-            }}
-          />
-        {/if}
-      {:else if annot.drawTool === 'frame' || annot.drawTool === 'move'}
-        {@const framing = annot.drawTool === 'frame'}
-        {#each [...annot.selectedDrawings] as id (id)}
-          {@const ref = annot.drawingRef(id)}
-          {#if ref}
-            <Region
-              {annot}
-              region={ref.region}
-              kind={framing ? 'frame' : 'move'}
-              fit={framing &&
-                !ref.committed &&
-                annot.regionOverride !== null &&
-                id === annot.activeDrawingId}
-              onresize={(from, to) =>
-                framing ? annot.setDrawingRegion(id, to) : annot.transformDrawing(id, from, to)}
-              oncommit={() => ref.committed && void annot.saveDrawing(id)}
-            />
-          {/if}
-        {/each}
-      {/if}
-
-      {#if annot.drawingRegion && annot.drawing.strokes.length > 0}
-        {@const region = annot.drawingRegion}
-        <button
-          class="chip"
-          style="left: {region.x + region.width - annot.scroll.x - 70}px; top: {region.y -
-            annot.scroll.y -
-            26}px"
-          onclick={() => openPagePopup(annot)}
-        >
-          Annotate
-        </button>
-      {/if}
-    {/if}
-
-    {#if annot.labelDraft}
-      <input
-        class="label-input"
-        bind:this={labelInput}
-        value={annot.labelDraft.text}
-        style="left: {annot.labelDraft.at[0] - annot.scroll.x}px; top: {annot.labelDraft.at[1] -
-          annot.scroll.y}px"
-        aria-label="Label text"
-        placeholder="Label…"
-        oninput={(e) => {
-          if (annot.labelDraft) annot.labelDraft.text = e.currentTarget.value;
-        }}
-        onkeydown={(e) => {
-          if (e.key === 'Enter') commitLabel(annot);
-          if (e.key === 'Escape') annot.labelDraft = null;
-        }}
-        onblur={() => commitLabel(annot)}
-      />
-    {/if}
-
     {#if annot.pageDrop}
       <div class="drop-veil">
         <span class="chip">
@@ -320,7 +222,7 @@
   </div>
 
   {#if annot.mode}
-    <div class="layer capture" class:passthrough={captureOff} class:draw={annot.mode === 'page'} bind:this={capture}></div>
+    <div class="layer capture" class:passthrough={captureOff} bind:this={capture}></div>
   {/if}
 
   <div class="chrome">
@@ -333,10 +235,6 @@
       onsend={() => annot.openSend()}
       onclose={() => annot.collapse()}
     />
-
-    {#if annot.mode === 'page'}
-      <DrawBar {annot} />
-    {/if}
 
     {#if annot.paletteOpen}
       <Palette {annot} onlocate={(id) => locate(annot, id)} />

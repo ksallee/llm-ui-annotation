@@ -1,7 +1,6 @@
-export { contentFrame, type ContentFrameOptions } from './frame.js';
 export { collapse, escapeIdent, isStableClass, isUtilityClass, quoteValue, truncate } from './css.js';
 export { isOverlay } from './ancestors.js';
-export { describeElement, findElementsInRect, type DescribeOptions } from './describe.js';
+export { describeElement, type DescribeOptions } from './describe.js';
 export { describeSelector, fullPath, resolveSelector, SHADOW_SEP, type SelectorRef } from './selector.js';
 export { matchedDeclarations, parseDeclarations, type Declaration } from './declared.js';
 export { describeName, isIconOnly, labelOf, visibleText } from './name.js';
@@ -39,14 +38,4 @@ export {
   type DescribeRangeResult,
   type Normalized,
 } from './text.js';
-export {
-  labelBox,
-  transformStrokes,
-  translateStrokes,
-  renderStrokes,
-  strokeBounds,
-  type Point,
-  type StrokeContext,
-} from './strokes.js';
-export { captureRegion, pickCaptureTarget, type CaptureOptions } from './capture.js';
 export { freezeAnimations } from './freeze.js';

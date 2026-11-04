@@ -18,7 +18,6 @@ export default defineConfig({
       external: [
         'svelte',
         /^svelte\//,
-        'modern-screenshot',
         /^@llm-ui-annotation\/core/,
       ],
       output: { entryFileNames: '[name].js', chunkFileNames: 'chunks/[name]-[hash].js' },

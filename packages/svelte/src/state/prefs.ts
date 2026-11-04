@@ -1,4 +1,4 @@
-import type { Mode } from '@llm-ui-annotation/core';
+import { MODES, type Mode } from '@llm-ui-annotation/core';
 import { DEFAULT_PALETTE_KEY } from '../keyboard.js';
 import { sendModeOf } from '../options.js';
 import type { Corner, Density, DetailLevel, MarkerVisibility, SchemeOption, SendMode } from '../options.js';
@@ -23,8 +23,6 @@ export interface Prefs {
   expanded: boolean;
   /** The one global binding, as `comboOf` writes it. */
   paletteKey: string;
-  /** Viewport position of the drawing bar; null keeps it top centre. */
-  drawBar: { x: number; y: number } | null;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -42,7 +40,6 @@ export const DEFAULT_PREFS: Prefs = {
   blockInteractions: true,
   expanded: false,
   paletteKey: DEFAULT_PALETTE_KEY,
-  drawBar: null,
 };
 
 type Storage = Pick<globalThis.Storage, 'getItem' | 'setItem'>;
@@ -65,7 +62,8 @@ export function loadPrefs(doc?: Document): Prefs {
     const parsed = JSON.parse(raw) as Partial<Prefs>;
     // `batch` and `immediate` are what the two-way version of this preference stored.
     const sendMode = parsed.sendMode ? sendModeOf(parsed.sendMode) : null;
-    return { ...DEFAULT_PREFS, ...parsed, ...(sendMode ? { sendMode } : {}) };
+    const mode = parsed.mode && MODES.includes(parsed.mode) ? parsed.mode : null;
+    return { ...DEFAULT_PREFS, ...parsed, mode, ...(sendMode ? { sendMode } : {}) };
   } catch {
     return { ...DEFAULT_PREFS };
   }

@@ -1,14 +1,12 @@
 // What the overlay binds to the host page — listeners, the key map, the style preview — and the
 // commands its surfaces run. The host page is read-only to all of it.
 
-import type { Rect, Status, Stroke, StyleEdit, Target } from '@llm-ui-annotation/core';
-import { captureRegion, describeElement, freezeAnimations, isOverlayNode } from './dom/core-dom.js';
+import type { Status, StyleEdit } from '@llm-ui-annotation/core';
+import { describeElement, freezeAnimations, isOverlayNode } from './dom/core-dom.js';
 import { withoutPreview } from './dom/preview.js';
 import { paintHighlights, supportsHighlights } from './dom/highlights.js';
 import { isTyping, keyAction } from './keyboard.js';
-import { DRAW_TOOLS } from './draw-tools.js';
-import { openElementPopup, openPagePopup, openTextPopup, walkSelection, type Walk } from './modes/index.js';
-import { domToCanvas } from './screenshot.js';
+import { openElementPopup, openTextPopup, walkSelection, type Walk } from './modes/index.js';
 import type { AnnotState } from './state/annot-state.svelte.js';
 import { filesOf, isFileDrag } from './ui/drop.js';
 
@@ -89,7 +87,6 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
       paletteOpen: state.paletteOpen,
       panelOpen: state.prefs.panelOpen,
       focusedDraft: focused?.status === 'draft',
-      marksPicked: state.marksPicked,
       selected: state.selection.length > 0,
       paletteKey: state.prefs.paletteKey,
     });
@@ -107,17 +104,6 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
       return;
     }
 
-    if (action.startsWith('tool:')) {
-      const name = action.slice(5);
-      if (name === 'move' || name === 'frame') state.drawTool = name;
-      else {
-        const tool = DRAW_TOOLS[Number(name) - 1];
-        if (tool) state.drawTool = tool.tool;
-      }
-      event.preventDefault();
-      return;
-    }
-
     switch (action) {
       case 'palette':
         state.togglePalette();
@@ -126,14 +112,12 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
       // panel is opened and closed deliberately, from the toolbar or `I`.
       case 'escape':
         if (state.paletteOpen) state.togglePalette(false);
-        else if (state.labelDraft) state.labelDraft = null;
         else if (state.popup) state.closePopup();
         else if (state.sendOpen || state.settingsOpen || state.shortcutsOpen) {
           state.sendOpen = false;
           state.settingsOpen = false;
           state.shortcutsOpen = false;
-        } else if (state.insideDrawing) state.stepOutDraw();
-        else if (state.mode) state.setMode(null);
+        } else if (state.mode) state.setMode(null);
         else state.collapse();
         break;
       case 'commit':
@@ -145,24 +129,14 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
       case 'mode:text':
         state.setMode('text');
         break;
-      case 'mode:page':
-        state.setMode('page');
-        break;
       case 'panel':
         state.togglePanel();
         break;
       case 'pause':
         state.frozen = !state.frozen;
         break;
-      case 'undo':
-        state.undoStroke();
-        break;
-      case 'redo':
-        state.redoStroke();
-        break;
       case 'delete':
-        // Picked marks first, so ⌫ inside a drawing takes the marks and not the whole annotation.
-        if (!state.deleteSelectedMarks() && state.focusedId) void state.deleteNote(state.focusedId);
+        if (state.focusedId) void state.deleteNote(state.focusedId);
         break;
       case 'help':
         state.shortcutsOpen = true;
@@ -198,34 +172,6 @@ export function paintTextHighlights(state: AnnotState): void {
     byStatus.set(a.status, list);
   }
   paintHighlights(state.doc, byStatus);
-}
-
-const SCROLL_KEYS = new Set([
-  'PageUp', 'PageDown', 'Home', 'End', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ',
-]);
-
-/**
- * Hold the page still while a drawing is open. A drawing is anchored in document coordinates, so
- * scrolling mid-drawing would stretch one note across a screenful it never meant to cover. Events
- * are suppressed rather than styles changed: the host page's DOM is never ours to touch.
- */
-export function holdScroll(state: AnnotState, host: Element | null, held: boolean): () => void {
-  const doc = state.doc;
-  const view = doc.defaultView;
-  if (!held || !view) return () => {};
-  const stop = (event: Event): void => event.preventDefault();
-  const stopKeys = (event: KeyboardEvent): void => {
-    if (isTyping(event.target, host) || !SCROLL_KEYS.has(event.key)) return;
-    event.preventDefault();
-  };
-  view.addEventListener('wheel', stop, { passive: false });
-  view.addEventListener('touchmove', stop, { passive: false });
-  doc.addEventListener('keydown', stopKeys);
-  return () => {
-    view.removeEventListener('wheel', stop);
-    view.removeEventListener('touchmove', stop);
-    doc.removeEventListener('keydown', stopKeys);
-  };
 }
 
 /** Hold the host page's animations still while `frozen`. */
@@ -280,7 +226,7 @@ export function watchPageDrops(state: AnnotState): () => void {
   };
 }
 
-/** Turn the popup into an annotation, capturing a screenshot for page targets. */
+/** Turn the popup into an annotation. */
 export async function commitPopup(state: AnnotState, send = false): Promise<void> {
   const popup = state.popup;
   if (!popup || popup.busy) return;
@@ -295,29 +241,11 @@ export async function commitPopup(state: AnnotState, send = false): Promise<void
     return;
   }
 
-  let target: Target = popup.target;
   // A file dropped while writing created the draft already, so it had somewhere to land.
   const created = popup.draftId
     ? await state.finishDraft(popup.draftId, comment)
-    : await state.add(popup.mode, target, comment);
+    : await state.add(popup.mode, popup.target, comment);
   popup.draftId = null;
-
-  if (target.kind === 'page') {
-    const png = await capturePage(state, target.region, target.strokes);
-    if (png) {
-      try {
-        const { path } = await state.client.screenshot(created.id, png);
-        target = { ...target, screenshot: path };
-        const current = state.annotations.get(created.id);
-        if (current) state.applyLocal({ ...current, target });
-      } catch {
-        state.toast('Saved without screenshot; strokes kept');
-      }
-    } else {
-      state.toast('Saved without screenshot; strokes kept');
-    }
-    state.clearDrawing();
-  }
 
   // The proposal is the note's now: the pending diff and its preview are done.
   state.clearStyleEdits();
@@ -361,30 +289,14 @@ export async function sendStyleEdits(state: AnnotState): Promise<void> {
   state.noteSent();
 }
 
-/** A PNG of the region with its marks drawn on, or null when the backend is missing. */
-export async function capturePage(state: AnnotState, region: Rect, strokes: Stroke[]): Promise<Blob | null> {
-  const backend = await domToCanvas();
-  if (!backend) return null;
-  try {
-    return await captureRegion(state.doc, region, strokes, { domToCanvas: backend });
-  } catch {
-    return null;
-  }
-}
-
 /** What ⌘↵ means right now. */
 export function primaryAction(state: AnnotState): void {
   if (state.popup) {
     void commitPopup(state);
     return;
   }
-  if (state.labelDraft) return;
   if (state.mode === 'text' && state.textChip?.enabled) {
     openTextPopup(state);
-    return;
-  }
-  if (state.mode === 'page' && state.drawing.strokes.length > 0) {
-    openPagePopup(state);
     return;
   }
   if (state.mode === 'element' && state.selection.length > 0) {

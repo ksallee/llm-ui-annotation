@@ -21,14 +21,11 @@ import {
   readServerInfo,
   removeAttachment,
   removeAttachments,
-  removeScreenshot,
   removeServerInfo,
-  screenshotPath,
   writeAttachment,
   writeBatch,
   writeFileAtomic,
   writeRoute,
-  writeScreenshot,
   writeServerInfo,
 } from '../src/node/index.js';
 import { BATCH, ELEMENT_ANNOTATION, TEXT_ANNOTATION } from './fixtures.js';
@@ -143,7 +140,7 @@ describe('appendEvent', () => {
   });
 });
 
-describe('batches, server info and screenshots', () => {
+describe('batches and server info', () => {
   it('round-trips a batch', async () => {
     expect(await readBatch(dir, BATCH.id)).toBeNull();
     await writeBatch(dir, BATCH);
@@ -164,15 +161,6 @@ describe('batches, server info and screenshots', () => {
     await removeServerInfo(dir);
     expect(await readServerInfo(dir)).toBeNull();
     await removeServerInfo(dir);
-  });
-
-  it('stores a screenshot at the protocol path', async () => {
-    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
-    const rel = await writeScreenshot(dir, ELEMENT_ANNOTATION.id, png);
-    expect(rel).toBe(`screenshots/${ELEMENT_ANNOTATION.id}.png`);
-    expect(new Uint8Array(await readFile(screenshotPath(dir, ELEMENT_ANNOTATION.id)))).toEqual(png);
-    await removeScreenshot(dir, ELEMENT_ANNOTATION.id);
-    await removeScreenshot(dir, ELEMENT_ANNOTATION.id);
   });
 });
 

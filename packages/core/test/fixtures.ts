@@ -4,8 +4,8 @@ import type {
   Attachment,
   Batch,
   ElementRef,
+  ElementTarget,
   Message,
-  PageTarget,
   TextTarget,
   Viewport,
 } from '../src/index.js';
@@ -82,27 +82,12 @@ export const TEXT_TARGET_MULTI: TextTarget = {
   ],
 };
 
-export const PAGE_TARGET: PageTarget = {
-  kind: 'page',
-  region: { x: 100, y: 200, width: 1180, height: 640 },
-  strokes: [
-    {
-      tool: 'brush',
-      points: [
-        [110, 210],
-        [180, 260],
-      ],
-      color: 'oklch(0.65 0.2 30)',
-      width: 4,
-    },
-    { tool: 'arrow', from: [200, 300], to: [400, 420], color: 'oklch(0.65 0.2 30)', width: 4 },
-    { tool: 'label', at: [220, 320], text: 'gaps uneven here', color: 'oklch(0.65 0.2 30)', size: 14 },
-  ],
-  screenshot: 'screenshots/01JBZZZZZZZZZZZZZZZZZZZZZZ.png',
+export const GROUP_TARGET: ElementTarget = {
+  kind: 'element',
   elements: [
-    elementRef({ selector: 'main > h2', tag: 'h2', role: 'heading', name: 'Pricing', text: 'Pricing' }),
-    elementRef({ selector: 'section.pricing', tag: 'section', role: null, name: '', text: '' }),
     elementRef({ selector: 'article:nth-of-type(1)', tag: 'article', role: null, name: 'Free', text: 'Free' }),
+    elementRef({ selector: 'article:nth-of-type(2)', tag: 'article', role: null, name: 'Pro', text: 'Pro' }),
+    elementRef({ selector: 'article:nth-of-type(3)', tag: 'article', role: null, name: 'Team', text: 'Team' }),
   ],
 };
 
@@ -158,10 +143,10 @@ export const TEXT_ANNOTATION = annotation({
   ],
 });
 
-export const PAGE_ANNOTATION = annotation({
+export const GROUP_ANNOTATION = annotation({
   id: '01JBZZZZZZ0000000000000012',
-  mode: 'page',
-  target: PAGE_TARGET,
+  mode: 'element',
+  target: GROUP_TARGET,
   number: 6,
   comment: 'The three cards should be visually one group, the gaps are uneven.',
   thread: [
@@ -196,12 +181,12 @@ export const TEXT_MULTI_ANNOTATION = annotation({
 export const BATCH: Batch = {
   id: '01JBZZZZZZ00000000000000B0',
   route: '/pricing',
-  annotationIds: [ELEMENT_ANNOTATION.id, TEXT_ANNOTATION.id, PAGE_ANNOTATION.id],
+  annotationIds: [ELEMENT_ANNOTATION.id, TEXT_ANNOTATION.id, GROUP_ANNOTATION.id],
   summary: 'all of these are about the pricing table spacing.',
   sentAt: '2026-09-05T18:25:00.000Z',
 };
 
-export const ALL_ANNOTATIONS = [ELEMENT_ANNOTATION, TEXT_ANNOTATION, PAGE_ANNOTATION];
+export const ALL_ANNOTATIONS = [ELEMENT_ANNOTATION, TEXT_ANNOTATION, GROUP_ANNOTATION];
 
 export const ATTACHMENTS: Attachment[] = [
   {

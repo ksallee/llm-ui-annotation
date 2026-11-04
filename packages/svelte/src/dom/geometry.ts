@@ -84,29 +84,6 @@ export function cornerStyle(corner: Corner, margin = 20, drawer = 0): string {
   return `${vertical} ${horizontal}`;
 }
 
-/** Points sampled at least `min` px apart, for brush strokes. */
-export function sample(points: [number, number][], next: [number, number], min = 2): boolean {
-  const last = points.at(-1);
-  if (!last) return true;
-  return Math.hypot(next[0] - last[0], next[1] - last[1]) >= min;
-}
-
-/** SVG path for a brush stroke, smoothed with quadratic midpoints. */
-export function smoothPath(points: [number, number][]): string {
-  if (points.length === 0) return '';
-  const [first, ...rest] = points;
-  if (rest.length === 0) return `M ${first![0]} ${first![1]} l 0.1 0`;
-  let d = `M ${first![0]} ${first![1]}`;
-  for (let i = 0; i < rest.length - 1; i++) {
-    const [x1, y1] = rest[i]!;
-    const [x2, y2] = rest[i + 1]!;
-    d += ` Q ${x1} ${y1} ${(x1 + x2) / 2} ${(y1 + y2) / 2}`;
-  }
-  const last = rest.at(-1)!;
-  d += ` L ${last[0]} ${last[1]}`;
-  return d;
-}
-
 /** `3m`, `2h`, `now`. */
 export function relativeTime(iso: string, now = Date.now()): string {
   const then = Date.parse(iso);
@@ -120,27 +97,4 @@ export function relativeTime(iso: string, now = Date.now()): string {
   const days = hours / 24;
   if (days < 7) return `${Math.round(days)}d`;
   return `${Math.round(days / 7)}w`;
-}
-
-export type Edge = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'move';
-
-const MIN_SIDE = 40;
-
-/** Move or resize a rect by a pointer delta, never letting a side fall under 40 px. */
-export function resizeRect(rect: Rect, edge: Edge, dx: number, dy: number): Rect {
-  if (edge === 'move') return { ...rect, x: rect.x + dx, y: rect.y + dy };
-  let { x, y, width, height } = rect;
-  if (edge.includes('w')) {
-    const shift = Math.min(dx, width - MIN_SIDE);
-    x += shift;
-    width -= shift;
-  }
-  if (edge.includes('e')) width = Math.max(MIN_SIDE, width + dx);
-  if (edge.includes('n')) {
-    const shift = Math.min(dy, height - MIN_SIDE);
-    y += shift;
-    height -= shift;
-  }
-  if (edge.includes('s')) height = Math.max(MIN_SIDE, height + dy);
-  return { x, y, width, height };
 }

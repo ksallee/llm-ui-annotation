@@ -88,21 +88,9 @@ describe('computeTheme', () => {
     const delta = (name: TokenName): number => ((at(t, name).h - h + 540) % 360) - 180;
     expect(delta('--annot-element')).toBeCloseTo(0, 1);
     expect(delta('--annot-text')).toBeCloseTo(40, 1);
-    expect(delta('--annot-page')).toBeCloseTo(-40, 1);
     expect(at(t, '--annot-question').h).toBeCloseTo(75, 1);
     expect(at(t, '--annot-review').h).toBeCloseTo(150, 1);
     expect(at(t, '--annot-draft').c).toBeCloseTo(at(t, '--annot-sent').c * 0.6, 2);
-  });
-
-  it('offers H, H±40, H+180 and neutral ink as the drawing palette', () => {
-    const t = computeTheme({ accent: '#7c3aed', scheme: 'light' });
-    const h = at(t, '--annot-accent').h;
-    const delta = (name: TokenName): number => ((at(t, name).h - h + 540) % 360) - 180;
-    expect(delta('--annot-stroke-1')).toBeCloseTo(0, 1);
-    expect(delta('--annot-stroke-2')).toBeCloseTo(40, 1);
-    expect(delta('--annot-stroke-3')).toBeCloseTo(-40, 1);
-    expect(Math.abs(delta('--annot-stroke-4'))).toBeCloseTo(180, 1);
-    expect(at(t, '--annot-stroke-5').c).toBeLessThan(0.02);
   });
 
   it('inverts the pill relative to the page', () => {

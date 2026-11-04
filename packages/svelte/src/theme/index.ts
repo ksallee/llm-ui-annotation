@@ -59,17 +59,6 @@ export function readSchemeHint(doc: Document): ResolvedScheme | null {
   return null;
 }
 
-/** The five drawing colours the theme derives from the accent. */
-export function drawingPalette(tokens: ThemeTokens): string[] {
-  return [
-    tokens['--annot-stroke-1'],
-    tokens['--annot-stroke-2'],
-    tokens['--annot-stroke-3'],
-    tokens['--annot-stroke-4'],
-    tokens['--annot-stroke-5'],
-  ];
-}
-
 /** Six accents around the colour wheel, at the current accent's lightness and chroma. */
 export function accentSuggestions(tokens: ThemeTokens): string[] {
   const accent = parseColor(tokens['--annot-accent']);

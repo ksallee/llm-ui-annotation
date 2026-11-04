@@ -8,7 +8,7 @@ never touches `window` at import time. Spec: `docs/specs/01-data-model-and-proto
 
 `@llm-ui-annotation/core` is framework-free and safe in a browser bundle.
 `@llm-ui-annotation/core/dom` adds the algorithms that read a live page: selector generation, element
-description, text anchoring, stroke rendering, region capture and animation freezing. Every function takes a
+description, text anchoring and animation freezing. Every function takes a
 `Document`, `Element` or `Range`, so it runs under happy-dom as readily as in a browser.
 `@llm-ui-annotation/core/node` adds the `node:fs` helpers that read and write `.annotations/`.
 `@llm-ui-annotation/core/theme` is the oklch color math and the palette every overlay token comes from.
