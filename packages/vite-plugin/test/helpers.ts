@@ -125,20 +125,6 @@ export function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation 
   };
 }
 
-export function pageAnnotation(overrides: Partial<Annotation> = {}): Annotation {
-  return makeAnnotation({
-    mode: 'page',
-    target: {
-      kind: 'page',
-      region: { x: 0, y: 0, width: 400, height: 300 },
-      strokes: [{ tool: 'rect', rect: { x: 1, y: 2, width: 3, height: 4 }, color: '#f00', width: 2 }],
-      screenshot: null,
-      elements: [],
-    },
-    ...overrides,
-  });
-}
-
 export interface SseReader {
   /** Resolves once the server has written its first bytes, so the subscription is live. */
   ready: Promise<void>;

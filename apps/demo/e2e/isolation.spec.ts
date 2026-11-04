@@ -38,15 +38,6 @@ test('a full session leaves the hostile host document untouched', async ({ page,
   await overlay(page).locator('button.chip').click();
   await commit(page, 'this sentence is doing too much');
 
-  await setMode(page, 'Draw');
-  const box = (await page.locator('main').boundingBox())!;
-  await page.mouse.move(box.x + 40, box.y + 40);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 240, box.y + 160, { steps: 8 });
-  await page.mouse.up();
-  await overlay(page).locator('button.chip', { hasText: 'Annotate' }).click();
-  await commit(page, 'this whole block is too dark');
-
   await exitMode(page);
   await overlay(page).locator('[aria-label="Pause animations"]').click();
   await overlay(page).locator('[aria-label="Pause animations"]').click();
@@ -56,7 +47,7 @@ test('a full session leaves the hostile host document untouched', async ({ page,
   await page.keyboard.press('Escape');
   await sendBatch(page, 'everything at once');
 
-  await expect.poll(() => snapshot(page).then((s) => s.counts['sent'])).toBe(3);
+  await expect.poll(() => snapshot(page).then((s) => s.counts['sent'])).toBe(2);
   expect(await mainHtml(page)).toBe(before);
   expect(await headMarkers(page)).toEqual(['STYLE:data-annot-highlights']);
 });

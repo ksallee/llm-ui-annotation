@@ -74,9 +74,6 @@
               run();
             }}
           >
-            {#if hit.color}
-              <span class="swatch static" style="background: {hit.color}"></span>
-            {/if}
             <span class="palette-label">{hit.label}</span>
             <span class="palette-kind muted">{hit.kind}</span>
             {#if hit.hint}<kbd>{hit.hint}</kbd>{/if}

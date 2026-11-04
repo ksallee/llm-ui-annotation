@@ -1,13 +1,12 @@
 // The command palette: what it offers, and how a query ranks it.
 
-import { DRAW_TOOLS } from './draw-tools.js';
 import { formatCombo } from './keyboard.js';
 import type { SendMode } from './options.js';
 import type { AnnotState, Filter } from './state/annot-state.svelte.js';
 
 const SEND_ORDER: SendMode[] = ['manual', 'review', 'auto'];
 
-export type PaletteKind = 'mode' | 'tool' | 'color' | 'filter' | 'setting' | 'annotation';
+export type PaletteKind = 'mode' | 'filter' | 'setting' | 'annotation';
 
 export interface PaletteEntry {
   id: string;
@@ -17,7 +16,6 @@ export interface PaletteEntry {
   hint: string;
   /** What the query is matched against; defaults to the label. */
   search: string;
-  color: string | null;
   run(): void;
 }
 
@@ -34,14 +32,13 @@ const entry = (
   label: string,
   hint: string,
   run: () => void,
-  extra: { search?: string; color?: string } = {},
+  extra: { search?: string } = {},
 ): PaletteEntry => ({
   id,
   kind,
   label,
   hint,
   search: extra.search ?? label,
-  color: extra.color ?? null,
   run,
 });
 
@@ -53,25 +50,7 @@ export function paletteEntries(state: AnnotState, locate: (id: string) => void):
   const out: PaletteEntry[] = [
     entry('mode:element', 'mode', 'Element mode', 'E', () => state.setMode('element')),
     entry('mode:text', 'mode', 'Highlight mode', 'H', () => state.setMode('text')),
-    entry('mode:page', 'mode', 'Draw mode', 'D', () => state.setMode('page')),
   ];
-
-  if (state.mode === 'page') {
-    DRAW_TOOLS.forEach((tool, i) => {
-      out.push(
-        entry(`tool:${tool.tool}`, 'tool', `${tool.label} tool`, String(i + 1), () => {
-          state.drawTool = tool.tool;
-        }),
-      );
-    });
-    state.palette.forEach((color, i) => {
-      out.push(
-        entry(`color:${color}`, 'color', `Drawing colour ${i + 1}`, '', () => {
-          state.drawColor = color;
-        }, { color }),
-      );
-    });
-  }
 
   for (const filter of FILTERS) {
     out.push(

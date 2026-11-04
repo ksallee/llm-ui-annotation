@@ -1,8 +1,8 @@
-import type { ElementContext, ElementRef, Rect } from '../model/types.js';
+import type { ElementContext, ElementRef } from '../model/types.js';
 import { DEFAULT_OVERLAY_TAG, ancestorChain, isOverlay } from './ancestors.js';
 import { collapse, stableClasses, truncate } from './css.js';
 import { describeName, visibleText } from './name.js';
-import { area, intersect, rectOf } from './rect.js';
+import { rectOf } from './rect.js';
 import { roleOf } from './roles.js';
 import { describeSelector } from './selector.js';
 import { computedStyles } from './styles.js';
@@ -17,11 +17,6 @@ const NEVER_RENDERED = new Set([
   'SCRIPT', 'STYLE', 'HEAD', 'META', 'LINK', 'TITLE', 'TEMPLATE', 'NOSCRIPT', 'BR', 'BASE',
 ]);
 
-const MIN_SIZE = 8;
-const MIN_COVERAGE = 0.3;
-const MAX_REGION_SHARE = 0.9;
-const PARENT_DROP = 0.8;
-const MAX_RESULTS = 12;
 
 export interface DescribeOptions {
   /** Include the computed style subset. Default true. */
@@ -122,44 +117,4 @@ export function describeElement(el: Element, opts: DescribeOptions = {}): Elemen
 /** Refs without styles or context, for the targets that hold several elements. */
 export function compactRefs(elements: readonly Element[], opts: DescribeOptions = {}): ElementRef[] {
   return elements.map((el) => describeElement(el, { ...opts, styles: false, context: false }));
-}
-
-interface Hit {
-  el: Element;
-  overlap: number;
-  oversized: boolean;
-}
-
-function hitsIn(doc: Document, region: Rect, overlayTag: string): Hit[] {
-  const regionArea = area(region);
-  const out: Hit[] = [];
-  for (const el of Array.from(doc.body?.querySelectorAll('*') ?? [])) {
-    if (ignorable(el, overlayTag)) continue;
-    const rect = rectOf(el);
-    if (rect.width < MIN_SIZE || rect.height < MIN_SIZE) continue;
-    const overlap = area(intersect(rect, region));
-    if (overlap < MIN_COVERAGE * area(rect)) continue;
-    out.push({ el, overlap, oversized: regionArea > 0 && area(rect) > MAX_REGION_SHARE * regionArea });
-  }
-  return out;
-}
-
-function dropCoveredParents(hits: Hit[]): Hit[] {
-  return hits.filter(
-    (hit) =>
-      !hits.some(
-        (other) => other !== hit && hit.el.contains(other.el) && other.overlap >= PARENT_DROP * hit.overlap,
-      ),
-  );
-}
-
-/** Elements the user drew around, largest overlap first, compact. */
-export function findElementsInRect(doc: Document, region: Rect, opts: DescribeOptions = {}): ElementRef[] {
-  const overlayTag = opts.overlayTag ?? DEFAULT_OVERLAY_TAG;
-  const all = hitsIn(doc, region, overlayTag);
-  const sized = all.filter((h) => !h.oversized);
-  const hits = dropCoveredParents(sized.length > 0 ? sized : all)
-    .sort((a, b) => b.overlap - a.overlap)
-    .slice(0, MAX_RESULTS);
-  return compactRefs(hits.map((h) => h.el), opts);
 }

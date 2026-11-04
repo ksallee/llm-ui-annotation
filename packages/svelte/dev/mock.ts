@@ -242,12 +242,6 @@ export function mockAnnot(base = '/__annot'): Plugin {
           return;
         }
 
-        const shot = /^\/screenshots\/([^/]+)$/.exec(path);
-        if (shot && req.method === 'POST') {
-          await body(req);
-          return send(200, { path: `screenshots/${shot[1]}.png` });
-        }
-
         return send(404, { error: `no mock route for ${path}` });
       });
     },

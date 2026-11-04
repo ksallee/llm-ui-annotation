@@ -15,8 +15,7 @@ import {
 import {
   BATCH,
   ELEMENT_ANNOTATION,
-  PAGE_ANNOTATION,
-  PAGE_TARGET,
+  GROUP_ANNOTATION,
   TEXT_ANNOTATION,
   TEXT_MULTI_ANNOTATION,
   TEXT_TARGET,
@@ -29,8 +28,8 @@ import {
 const V1_ROUTE = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'route-v1.json');
 
 describe('validateAnnotation', () => {
-  it('accepts the three fixture modes', () => {
-    for (const a of [ELEMENT_ANNOTATION, TEXT_ANNOTATION, PAGE_ANNOTATION, TEXT_MULTI_ANNOTATION]) {
+  it('accepts the fixtures', () => {
+    for (const a of [ELEMENT_ANNOTATION, TEXT_ANNOTATION, GROUP_ANNOTATION, TEXT_MULTI_ANNOTATION]) {
       expect(validateAnnotation(a)).toEqual([]);
       expect(isAnnotation(a)).toBe(true);
     }
@@ -41,11 +40,11 @@ describe('validateAnnotation', () => {
     ['bad id', annotation({ id: 'nope' }), 'id: expected a 26-char id, got "nope"'],
     [
       'bad protocol version',
-      { ...annotation(), protocolVersion: 4 },
-      'protocolVersion: expected 1 or 2 or 3, got 4',
+      { ...annotation(), protocolVersion: 5 },
+      'protocolVersion: expected 1 or 2 or 3 or 4, got 5',
     ],
     ['relative route', annotation({ route: 'pricing' }), 'route: must start with /'],
-    ['unknown mode', { ...annotation(), mode: 'sketch' }, 'mode: expected one of element|text|page, got "sketch"'],
+    ['unknown mode', { ...annotation(), mode: 'sketch' }, 'mode: expected one of element|text, got "sketch"'],
     ['unknown status', { ...annotation(), status: 'done' }, 'status: expected one of draft|sent|acknowledged|question|review|approved, got "done"'],
     ['non-integer number', annotation({ number: 1.5 }), 'number: must be an integer'],
     ['naive timestamp', annotation({ createdAt: '2026-09-05 18:24:41' }), 'createdAt: expected an ISO 8601 UTC timestamp, got "2026-09-05 18:24:41"'],
@@ -82,13 +81,14 @@ describe('validateAnnotation', () => {
     expect(validateAnnotation(annotation({ comment: 'x'.repeat(10_000) }))).toEqual([]);
   });
 
-  it('rejects a screenshot path we did not issue', () => {
-    const bad = annotation({
+  it('refuses a drawing, which v4 no longer has', () => {
+    const drawing = {
+      ...annotation(),
       mode: 'page',
-      target: { ...PAGE_TARGET, screenshot: '../../../../etc/passwd' },
-    });
-    expect(validateAnnotation(bad)).toContain('target.screenshot: expected screenshots/<id>.png');
-    expect(validateAnnotation(PAGE_ANNOTATION)).toEqual([]);
+      target: { kind: 'page', region: { x: 0, y: 0, width: 10, height: 10 }, strokes: [], screenshot: null, elements: [] },
+    };
+    expect(validateAnnotation(drawing)).toContain('mode: expected one of element|text, got "page"');
+    expect(validateAnnotation(drawing)).toContain('target.kind: expected one of element|text, got "page"');
   });
 
   it('takes a question budget of 0 to 3 and nothing else', () => {
@@ -142,19 +142,6 @@ describe('validateAnnotation', () => {
   it('rejects a text target whose offsets are inverted', () => {
     const bad = annotation({ mode: 'text', target: { ...TEXT_TARGET, start: 90, end: 10 } });
     expect(validateAnnotation(bad)).toContain('target.start: must not be greater than target.end');
-  });
-
-  it('rejects an unknown stroke tool', () => {
-    const bad = annotation({
-      mode: 'page',
-      target: {
-        ...PAGE_TARGET,
-        strokes: [{ tool: 'spray', color: 'red', width: 2 } as unknown as never],
-      },
-    });
-    expect(validateAnnotation(bad)).toContain(
-      'target.strokes[0].tool: expected one of brush|arrow|rect|ellipse|label, got "spray"',
-    );
   });
 
   it('reports a malformed thread message by index', () => {
@@ -223,16 +210,6 @@ describe('summarizeTarget', () => {
     expect(summarizeTarget(TEXT_TARGET_MULTI)).toBe(
       'text "Cancel anytime, no questions asked. Nobody will…" across p.lede, blockquote.pull, section.terms > p:nth-of-type(2)',
     );
-  });
-
-  it('lists what a drawing covers', () => {
-    expect(summarizeTarget(PAGE_ANNOTATION.target)).toBe(
-      'drawing over 3 elements: h2 "Pricing", section.pricing, article "Free"',
-    );
-  });
-
-  it('falls back to stroke count when a drawing covers nothing', () => {
-    expect(summarizeTarget({ ...PAGE_TARGET, elements: [] })).toBe('drawing over 3 strokes');
   });
 });
 

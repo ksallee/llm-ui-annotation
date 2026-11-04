@@ -1,6 +1,6 @@
 # llm-ui-annotation
 
-Annotate a running UI in the browser and hand the feedback to a coding agent. Point at an element, select a run of text, or draw on the page; say what should change; send. The agent picks it up from files in your project, does the work, answers questions in a thread, and marks each item for review. You approve, the highlight disappears.
+Annotate a running UI in the browser and hand the feedback to a coding agent. Point at an element or select a run of text; say what should change; send. The agent picks it up from files in your project, does the work, answers questions in a thread, and marks each item for review. You approve, the highlight disappears.
 
 - Svelte 5 first, framework-free core.
 - No MCP, no cloud: a Vite plugin writes `.annotations/`, a small `annot` CLI is what the agent runs.

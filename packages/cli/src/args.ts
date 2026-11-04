@@ -12,7 +12,6 @@ const BOOLEAN_FLAGS = new Set([
   'help',
   'version',
   'from-now',
-  'open',
   'claude-md',
   'gitignore',
   'no-http',

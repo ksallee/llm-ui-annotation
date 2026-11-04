@@ -53,9 +53,9 @@ test('the palette switches modes and never offers a loop transition', async ({ p
   await ready(page);
 
   await page.keyboard.press('Alt+a');
-  await search(page).fill('draw');
+  await search(page).fill('highlight');
   await page.keyboard.press('Enter');
-  await expect.poll(() => field<string | null>(page, 'mode')).toBe('page');
+  await expect.poll(() => field<string | null>(page, 'mode')).toBe('text');
 
   await page.keyboard.press('Alt+a');
   await search(page).fill('approve');
@@ -80,23 +80,14 @@ test('the palette key is rebindable and survives a reload', async ({ page, site 
   await expect.poll(() => field<boolean>(page, 'paletteOpen')).toBe(true);
 });
 
-test('the drawing bar belongs to Draw mode alone', async ({ page, site }) => {
+test('the toolbar offers Element and Highlight, and D is no mode', async ({ page, site }) => {
   await page.goto(`${site}/`);
   await openToolbar(page);
-
-  const bar = overlay(page).locator('[aria-label="Drawing tools"]');
   const pill = overlay(page).locator('[aria-label="Annotation toolbar"]');
-  await expect(bar).toBeHidden();
-
-  await setMode(page, 'Draw');
-  await expect(bar).toBeVisible();
-  await expect(bar.locator('[aria-label="Caption"]')).toBeVisible();
-  await expect(pill.locator('[aria-label="Caption"]')).toHaveCount(0);
-  await expect(pill.locator('[aria-label="Brush"]')).toHaveCount(0);
-
-  await page.keyboard.press('3');
-  await expect.poll(() => field<string>(page, 'drawTool')).toBe('rect');
+  await expect(pill.locator('[aria-label$=" mode"]')).toHaveCount(2);
+  await expect(pill.locator('[aria-label="Draw mode"]')).toHaveCount(0);
 
   await setMode(page, 'Element');
-  await expect(bar).toBeHidden();
+  await page.keyboard.press('d');
+  await expect.poll(() => field<string | null>(page, 'mode')).toBe('element');
 });

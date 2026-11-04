@@ -24,14 +24,6 @@ export const elementTarget = (selector = 'button.cta'): Target => ({
   ],
 });
 
-export const pageTarget = (): Target => ({
-  kind: 'page',
-  region: { x: 40, y: 40, width: 200, height: 120 },
-  strokes: [{ tool: 'rect', rect: { x: 60, y: 60, width: 80, height: 40 }, color: 'red', width: 2 }],
-  screenshot: null,
-  elements: [],
-});
-
 export function annotation(over: Partial<Annotation> = {}): Annotation {
   const at = nowIso();
   const id = over.id ?? newId();
@@ -72,7 +64,6 @@ export function fakeClient(): {
   createBatch: (r: CreateBatchRequest) => Promise<unknown>;
   transition: (id: string, r: unknown) => Promise<Annotation>;
   patch: (id: string, comment: string) => Promise<Annotation>;
-  patchTarget: (id: string, target: Target) => Promise<Annotation>;
   remove: (id: string) => Promise<void>;
   batches: CreateBatchRequest[];
   store: Map<string, Annotation>;
@@ -102,22 +93,6 @@ export function fakeClient(): {
     async patch(id, comment) {
       calls.push(`patch:${id}`);
       const next = { ...store.get(id)!, comment };
-      store.set(id, next);
-      return next;
-    },
-    async patchTarget(id, target) {
-      calls.push(`patchTarget:${id}`);
-      const previous = store.get(id)!;
-      const status = previous.status === 'review' ? 'sent' : previous.status;
-      const next: Annotation = {
-        ...previous,
-        target,
-        status,
-        thread: [
-          ...previous.thread,
-          { id: newId(), role: 'user', kind: 'comment', text: 'drawing edited', at: nowIso() },
-        ],
-      };
       store.set(id, next);
       return next;
     },

@@ -11,28 +11,20 @@ const state = (): AnnotState => {
 
 describe('fuzzyScore', () => {
   it('matches a subsequence and ranks contiguous hits higher', () => {
-    expect(fuzzyScore('drw', 'draw mode')).not.toBeNull();
-    expect(fuzzyScore('xyz', 'draw mode')).toBeNull();
-    expect(fuzzyScore('draw', 'draw mode')!).toBeGreaterThan(fuzzyScore('draw', 'd r a w')!);
+    expect(fuzzyScore('hlt', 'highlight mode')).not.toBeNull();
+    expect(fuzzyScore('xyz', 'highlight mode')).toBeNull();
+    expect(fuzzyScore('high', 'highlight mode')!).toBeGreaterThan(fuzzyScore('high', 'h i g h')!);
   });
 });
 
 describe('paletteEntries', () => {
   it('ranks modes first and carries the annotations of this route', () => {
     const entries = paletteEntries(state(), () => {});
-    expect(entries.slice(0, 3).map((e) => e.label)).toEqual([
+    expect(entries.slice(0, 2).map((e) => e.label)).toEqual([
       'Element mode',
       'Highlight mode',
-      'Draw mode',
     ]);
     expect(entries.some((e) => e.kind === 'annotation' && e.label.startsWith('#4'))).toBe(true);
-  });
-
-  it('offers the drawing tools only in Draw', () => {
-    const s = state();
-    expect(paletteEntries(s, () => {}).some((e) => e.kind === 'tool')).toBe(false);
-    s.setMode('page');
-    expect(paletteEntries(s, () => {}).filter((e) => e.kind === 'tool')).toHaveLength(6);
   });
 
   it('never offers a transition that mutates the loop', () => {

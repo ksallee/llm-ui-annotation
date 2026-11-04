@@ -20,7 +20,6 @@ export const LIMITS = {
   quote: 5_000,
   selector: 1_000,
   array: 1_000,
-  points: 20_000,
 } as const;
 
 type Rec = Record<string, unknown>;
@@ -129,12 +128,6 @@ class Problems {
     if (!this.rec(v, path)) return;
     for (const k of ['x', 'y', 'width', 'height']) this.num(v[k], `${path}.${k}`);
   }
-
-  point(v: unknown, path: string): void {
-    if (!this.arr(v, path)) return;
-    if (v.length !== 2) this.add(`${path}: expected [x, y]`);
-    for (let i = 0; i < Math.min(v.length, 2); i++) this.num(v[i], `${path}[${i}]`);
-  }
 }
 
 function typeName(v: unknown): string {
@@ -187,40 +180,6 @@ function checkElementRef(p: Problems, v: unknown, path: string): void {
   }
 }
 
-function checkStroke(p: Problems, v: unknown, path: string): void {
-  if (!p.rec(v, path)) return;
-  const tool = v['tool'];
-  switch (tool) {
-    case 'brush':
-      if (p.arr(v['points'], `${path}.points`, LIMITS.points)) {
-        v['points'].forEach((pt, i) => p.point(pt, `${path}.points[${i}]`));
-      }
-      p.str(v['color'], `${path}.color`);
-      p.num(v['width'], `${path}.width`);
-      break;
-    case 'arrow':
-      p.point(v['from'], `${path}.from`);
-      p.point(v['to'], `${path}.to`);
-      p.str(v['color'], `${path}.color`);
-      p.num(v['width'], `${path}.width`);
-      break;
-    case 'rect':
-    case 'ellipse':
-      p.rect(v['rect'], `${path}.rect`);
-      p.str(v['color'], `${path}.color`);
-      p.num(v['width'], `${path}.width`);
-      break;
-    case 'label':
-      p.point(v['at'], `${path}.at`);
-      p.capped(v['text'], `${path}.text`, LIMITS.text);
-      p.str(v['color'], `${path}.color`);
-      p.num(v['size'], `${path}.size`);
-      break;
-    default:
-      p.add(`${path}.tool: expected one of brush|arrow|rect|ellipse|label, got ${JSON.stringify(tool)}`);
-  }
-}
-
 function checkTarget(p: Problems, v: unknown, mode: unknown, path: string): void {
   if (!p.rec(v, path)) return;
   const kind = v['kind'];
@@ -253,24 +212,8 @@ function checkTarget(p: Problems, v: unknown, mode: unknown, path: string): void
       }
       return;
     }
-    case 'page': {
-      p.rect(v['region'], `${path}.region`);
-      if (p.arr(v['strokes'], `${path}.strokes`)) {
-        v['strokes'].forEach((s, i) => checkStroke(p, s, `${path}.strokes[${i}]`));
-      }
-      if (v['screenshot'] !== null && p.str(v['screenshot'], `${path}.screenshot`)) {
-        // The CLI opens this path and the agent reads it, so it is a name we issued or nothing.
-        if (!SCREENSHOT_PATH.test(v['screenshot'] as string)) {
-          p.add(`${path}.screenshot: expected screenshots/<id>.png`);
-        }
-      }
-      if (p.arr(v['elements'], `${path}.elements`)) {
-        v['elements'].forEach((e, i) => checkElementRef(p, e, `${path}.elements[${i}]`));
-      }
-      return;
-    }
     default:
-      p.add(`${path}.kind: expected one of element|text|page, got ${JSON.stringify(kind)}`);
+      p.add(`${path}.kind: expected one of element|text, got ${JSON.stringify(kind)}`);
   }
 }
 
@@ -284,7 +227,6 @@ function checkMessage(p: Problems, v: unknown, path: string): void {
 }
 
 const ATTACHMENT_PATH = /^attachments\/[0-9A-HJKMNP-TV-Z]{26}\/[0-9A-HJKMNP-TV-Z]{26}\.[a-z0-9]{1,8}$/;
-const SCREENSHOT_PATH = /^screenshots\/[0-9A-HJKMNP-TV-Z]{26}\.png$/;
 
 function checkAttachment(p: Problems, v: unknown, annotationId: unknown, path: string): void {
   if (!p.rec(v, path)) return;

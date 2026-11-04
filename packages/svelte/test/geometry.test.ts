@@ -6,12 +6,9 @@ import {
   place,
   rectFromPoints,
   relativeTime,
-  resizeRect,
-  sample,
-  smoothPath,
   unionRects,
 } from '../src/dom/geometry.js';
-import { mergeRects, strokeBounds } from '../src/dom/core-dom.js';
+import { mergeRects } from '../src/dom/core-dom.js';
 
 const viewport = { width: 1000, height: 800 };
 
@@ -55,11 +52,6 @@ describe('rect maths', () => {
     expect(coverage({ x: 0, y: 0, width: 10, height: 10 }, { x: 5, y: 0, width: 10, height: 10 })).toBe(0.5);
     expect(rectFromPoints({ x: 30, y: 40 }, { x: 10, y: 10 })).toEqual({ x: 10, y: 10, width: 20, height: 30 });
   });
-
-  it('pads stroke bounds, half the stroke width included', () => {
-    expect(strokeBounds([{ tool: 'rect', rect: { x: 100, y: 100, width: 50, height: 20 }, color: 'x', width: 2 }], 10))
-      .toEqual({ x: 89, y: 89, width: 72, height: 42 });
-  });
 });
 
 describe('pill placement', () => {
@@ -71,19 +63,6 @@ describe('pill placement', () => {
   });
 });
 
-describe('brush sampling', () => {
-  it('drops points closer than the minimum spacing', () => {
-    expect(sample([[0, 0]], [1, 0])).toBe(false);
-    expect(sample([[0, 0]], [4, 0])).toBe(true);
-    expect(sample([], [0, 0])).toBe(true);
-  });
-
-  it('smooths through quadratic midpoints', () => {
-    expect(smoothPath([[0, 0], [10, 0], [20, 10]])).toBe('M 0 0 Q 10 0 15 5 L 20 10');
-    expect(smoothPath([])).toBe('');
-  });
-});
-
 describe('relativeTime', () => {
   const now = Date.parse('2026-09-05T12:00:00.000Z');
   it('reads as a short duration', () => {
@@ -92,22 +71,5 @@ describe('relativeTime', () => {
     expect(relativeTime('2026-09-05T10:00:00.000Z', now)).toBe('2h');
     expect(relativeTime('2026-09-03T12:00:00.000Z', now)).toBe('2d');
     expect(relativeTime('nonsense', now)).toBe('');
-  });
-});
-
-describe('resizeRect', () => {
-  const base = { x: 100, y: 100, width: 200, height: 120 };
-
-  it('moves the whole box', () => {
-    expect(resizeRect(base, 'move', 10, -20)).toEqual({ x: 110, y: 80, width: 200, height: 120 });
-  });
-
-  it('drags an edge and never lets a side fall under 40', () => {
-    expect(resizeRect(base, 'se', 40, 30)).toEqual({ x: 100, y: 100, width: 240, height: 150 });
-    expect(resizeRect(base, 'nw', 50, 40)).toEqual({ x: 150, y: 140, width: 150, height: 80 });
-    expect(resizeRect(base, 'e', -500, 0)).toEqual({ x: 100, y: 100, width: 40, height: 120 });
-    const squashed = resizeRect(base, 'nw', 500, 500);
-    expect(squashed.width).toBe(40);
-    expect(squashed.height).toBe(40);
   });
 });

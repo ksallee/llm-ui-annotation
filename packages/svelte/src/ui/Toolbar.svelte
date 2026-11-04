@@ -15,7 +15,6 @@
   const MODES: { mode: Mode; icon: IconName; label: string; key: string }[] = [
     { mode: 'element', icon: 'element', label: 'Element', key: 'E' },
     { mode: 'text', icon: 'text', label: 'Highlight', key: 'H' },
-    { mode: 'page', icon: 'page', label: 'Draw', key: 'D' },
   ];
 
   const CONNECTION: Record<Connection, string> = {

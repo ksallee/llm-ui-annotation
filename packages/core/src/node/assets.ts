@@ -1,9 +1,8 @@
-/** Screenshots and attachments: the binary files an annotation points at. */
+/** Attachments: the binary files an annotation points at. */
 
 import { readFile, rm } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import { attachmentDir, attachmentFile } from '../protocol/attachments.js';
-import { screenshotFile } from '../protocol/paths.js';
 import { isEnoent, writeFileAtomic } from './fs.js';
 
 /** `join`, refusing a path that would land outside `dir`. */
@@ -14,20 +13,6 @@ function safeJoin(dir: string, rel: string): string {
     throw new Error(`path escapes the annotations dir: ${rel}`);
   }
   return file;
-}
-
-export function screenshotPath(dir: string, id: string): string {
-  return safeJoin(dir, screenshotFile(id));
-}
-
-/** Write a screenshot and return its path relative to `dir`. */
-export async function writeScreenshot(dir: string, id: string, png: Uint8Array): Promise<string> {
-  await writeFileAtomic(screenshotPath(dir, id), png);
-  return screenshotFile(id);
-}
-
-export async function removeScreenshot(dir: string, id: string): Promise<void> {
-  await rm(screenshotPath(dir, id), { force: true });
 }
 
 export function attachmentDirPath(dir: string, annotationId: string): string {

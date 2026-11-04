@@ -3,9 +3,9 @@ import { join } from 'node:path';
 import type { Annotation, RouteFile } from '@llm-ui-annotation/core';
 import { expect, type Locator, type Page } from '@playwright/test';
 
-export type Mode = 'Element' | 'Highlight' | 'Draw';
+export type Mode = 'Element' | 'Highlight';
 
-const STATE_MODE: Record<Mode, string> = { Element: 'element', Highlight: 'text', Draw: 'page' };
+const STATE_MODE: Record<Mode, string> = { Element: 'element', Highlight: 'text' };
 
 export interface Snapshot {
   route: string;

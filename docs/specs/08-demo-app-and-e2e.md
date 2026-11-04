@@ -33,18 +33,17 @@ limit of `tokenMap` visible.
 1. **element**: activate, hover shows label chip, click opens the popup, whose details pane carries the breadcrumb, add draft, send batch, route file contains `ElementTarget` with a selector that `document.querySelector` resolves to the same element; marker turns solid.
 2. **multi-select**: marquee over the three cards → one annotation with 3 elements.
 3. **text**: select a phrase that appears twice on `/prose`, annotate the second; the target's prefix/suffix disambiguate; reload → highlight on the second occurrence.
-4. **page**: draw a rect + arrow + label, annotate; screenshot file exists, is a valid PNG with the expected size cap, `elements` non-empty. Needs the optional `modern-screenshot` peer, which `apps/demo` installs.
-5. **loop**: start the fake agent; send three annotations with comments `fix`, `ask: …`, `decline: …`; assert statuses become `review`, `question`, `review(declined)`; answer the question in the panel → agent completes it; Approve all → no markers or outlines remain, panel Done filter shows 3.
-6. **immediate mode**: switch setting, add → status `sent` immediately, badge does not count drafts.
-7. **theming**: change the accent on `/hostile`; computed color of the pill, a marker, and a text highlight all change; contrast check of ink on surface ≥ 4.5 for three accents.
-8. **isolation**: on `/hostile/`, the overlay's buttons have their styles and the host's `all: unset` did not leak; no attribute or class added to any host element after a full session (diff `outerHTML` of `main` before/after). The only `data-annot-*` node in the head is `<style data-annot-highlights>`; freeze mode adds `<style data-annot-freeze>` while it is on, so the check runs with animations resumed.
-9. **shortcuts and blocking**: `E`, click a host button → the host click did not fire; `⌘`+click → it did. Plus spec 09 §2: nothing but `⌥A` fires while idle, the scoped keys fire in a mode, `⌘↵` sends.
-10. **palette** (spec 09 §3): `⌥A` opens it, it filters by comment text and jumps to `#N`, it never offers a loop transition, the key rebinds and survives a reload, and the drawing bar exists only in Draw.
-11. **panel** (spec 09 §8, §9): a collapsed row sends its draft without expanding; three `review` rows approve together with one undo toast; a mixed selection disables the illegal transitions.
-12. **a11y**: axe-core scan of the overlay with the popup and panel open: no serious violations.
-13. **inspector** (spec 12 §1–§3): a selection switches an open drawer to Inspect and deselecting
+4. **loop**: start the fake agent; send three annotations with comments `fix`, `ask: …`, `decline: …`; assert statuses become `review`, `question`, `review(declined)`; answer the question in the panel → agent completes it; Approve all → no markers or outlines remain, panel Done filter shows 3.
+5. **immediate mode**: switch setting, add → status `sent` immediately, badge does not count drafts.
+6. **theming**: change the accent on `/hostile`; computed color of the pill, a marker, and a text highlight all change; contrast check of ink on surface ≥ 4.5 for three accents.
+7. **isolation**: on `/hostile/`, the overlay's buttons have their styles and the host's `all: unset` did not leak; no attribute or class added to any host element after a full session (diff `outerHTML` of `main` before/after). The only `data-annot-*` node in the head is `<style data-annot-highlights>`; freeze mode adds `<style data-annot-freeze>` while it is on, so the check runs with animations resumed.
+8. **shortcuts and blocking**: `E`, click a host button → the host click did not fire; `⌘`+click → it did. Plus spec 09 §2: nothing but `⌥A` fires while idle, the scoped keys fire in a mode, `⌘↵` sends.
+9. **palette** (spec 09 §3): `⌥A` opens it, it filters by comment text and jumps to `#N`, it never offers a loop transition, and the key rebinds and survives a reload.
+10. **panel** (spec 09 §7, §8): a collapsed row sends its draft without expanding; three `review` rows approve together with one undo toast; a mixed selection disables the illegal transitions.
+11. **a11y**: axe-core scan of the overlay with the popup and panel open: no serious violations.
+12. **inspector** (spec 12 §1–§3): a selection switches an open drawer to Inspect and deselecting
     switches it back, a closed drawer stays closed, the toggle holds until the selection changes;
-    the box model draws devtools' bands at any size and puts the numbers in the card; a value
+    the box model shows devtools' bands at any size and puts the numbers in the card; a value
     changed in the drawer previews on the page, rides with the note into the route file, and is
     reverted once the note is sent (spec 13); every gap on `/layout/` reads back as its stylesheet
     wrote it; "what the agent will see" matches the `styles` stored on the annotation, key for key.

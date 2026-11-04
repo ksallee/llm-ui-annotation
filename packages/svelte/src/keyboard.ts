@@ -4,18 +4,12 @@ export type KeyAction =
   | 'palette'
   | 'mode:element'
   | 'mode:text'
-  | 'mode:page'
   | 'escape'
   | 'commit'
   | 'panel'
   | 'pause'
-  | 'undo'
-  | 'redo'
   | 'delete'
   | 'help'
-  | `tool:${number}`
-  | 'tool:move'
-  | 'tool:frame'
   | 'pick'
   | 'walk:parent'
   | 'walk:child'
@@ -31,8 +25,6 @@ export interface KeyContext {
   paletteOpen: boolean;
   panelOpen: boolean;
   focusedDraft: boolean;
-  /** A drawing or its strokes are picked, so delete has something nearer to act on. */
-  marksPicked: boolean;
   /** An element is selected, which is what the arrow keys walk from. */
   selected: boolean;
   /** The one global binding, as `comboOf` writes it. */
@@ -103,22 +95,11 @@ export function keyAction(event: KeyboardEvent, ctx: KeyContext): KeyAction | nu
     return ctx.popupOpen || ctx.dialogOpen || !ctx.mode ? null : 'commit';
   }
 
-  if (meta && (event.key === 'z' || event.key === 'Z')) {
-    if (ctx.mode !== 'page') return null;
-    return event.shiftKey ? 'redo' : 'undo';
-  }
-
   if (meta || event.altKey) return null;
   // Scoped, not global: a mode is active, or the user has opened the pill. Otherwise the host
   // page owns the keyboard, and an expanded pill is how you get back into a mode after Esc.
   const engaged = Boolean(ctx.mode) || ctx.expanded;
   if (ctx.popupOpen || ctx.dialogOpen || !engaged) return null;
-
-  if (ctx.mode === 'page') {
-    if (event.key >= '1' && event.key <= '6') return `tool:${Number(event.key)}`;
-    if (event.key === 'v' || event.key === 'V') return 'tool:move';
-    if (event.key === 'f' || event.key === 'F') return 'tool:frame';
-  }
 
   if (ctx.mode === 'element' && (event.key === 'c' || event.key === 'C')) return 'pick';
 
@@ -143,9 +124,6 @@ export function keyAction(event: KeyboardEvent, ctx: KeyContext): KeyAction | nu
     case 'h':
     case 'H':
       return 'mode:text';
-    case 'd':
-    case 'D':
-      return 'mode:page';
     case 'p':
     case 'P':
       return event.shiftKey ? 'pause' : null;
@@ -156,7 +134,7 @@ export function keyAction(event: KeyboardEvent, ctx: KeyContext): KeyAction | nu
       return 'help';
     case 'Backspace':
     case 'Delete':
-      return ctx.focusedDraft || ctx.marksPicked ? 'delete' : null;
+      return ctx.focusedDraft ? 'delete' : null;
     default:
       return null;
   }
@@ -172,14 +150,9 @@ export const SHORTCUTS: ShortcutEntry[] = [
   { keys: '⌥A', what: 'Command palette', scope: 'always' },
   { keys: 'E', what: 'Element mode', scope: 'in a mode' },
   { keys: 'H', what: 'Highlight mode', scope: 'in a mode' },
-  { keys: 'D', what: 'Draw mode', scope: 'in a mode' },
   { keys: '⌘↵', what: 'Add annotation, or send the batch', scope: 'in a mode' },
   { keys: 'I', what: 'Toggle the panel', scope: 'in a mode' },
   { keys: '⇧P', what: 'Pause animations', scope: 'in a mode' },
-  { keys: 'V', what: 'Move: select and transform a drawing', scope: 'in Draw' },
-  { keys: 'F', what: 'Frame: resize the capture box alone', scope: 'in Draw' },
-  { keys: '1–6', what: 'Pick a drawing tool', scope: 'in Draw' },
-  { keys: '⌘Z / ⇧⌘Z', what: 'Undo / redo a stroke', scope: 'in Draw' },
   { keys: 'C', what: 'Point at elements again, or stop', scope: 'in Element' },
   { keys: '↑ ↓', what: 'Walk to the parent or the first child', scope: 'with a selection' },
   { keys: '← →', what: 'Walk to the previous or next sibling', scope: 'with a selection' },

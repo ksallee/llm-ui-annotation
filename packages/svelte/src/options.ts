@@ -67,7 +67,7 @@ export const ATTRIBUTES = [
 
 const SCHEMES = new Set(['light', 'dark', 'auto']);
 const SEND_MODES = new Set<string>(['manual', 'review', 'auto']);
-const MODES = new Set(['element', 'text', 'page']);
+const MODES = new Set(['element', 'text']);
 
 /** Read `<annot-overlay>` attributes into options. Unknown values are dropped. */
 export function optionsFromAttributes(el: Element): OverlayOptions {

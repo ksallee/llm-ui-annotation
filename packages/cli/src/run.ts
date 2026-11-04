@@ -6,7 +6,7 @@ import { HELP } from './help.js';
 import { consoleIo, type Io } from './output.js';
 import { init } from './commands/init.js';
 import { ack, ask, attach, decline, done, reply } from './commands/mutate.js';
-import { doctor, pending, routes, screenshot, show } from './commands/read.js';
+import { doctor, pending, routes, show } from './commands/read.js';
 import { watch } from './commands/watch.js';
 
 export const VERSION = '0.1.0';
@@ -23,7 +23,6 @@ const COMMANDS: Record<string, Command> = {
   reply,
   done,
   decline,
-  screenshot,
   routes,
   doctor,
 };

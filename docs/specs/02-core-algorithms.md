@@ -1,4 +1,4 @@
-# 02 · Core algorithms: selectors, element description, text anchoring, capture helpers
+# 02 · Core algorithms: selectors, element description, text anchoring, freeze
 
 Owner: `packages/core/src/dom/`. Pure functions that take a `Document`/`Element`/`Range` and return data from spec 01. No `window` at import time. Tests in happy-dom (or jsdom where happy-dom lacks an API) with HTML fixtures.
 
@@ -39,7 +39,7 @@ Colors are reported as `oklch()` strings via `toOklch()` from `core/theme` so th
 
 `context`: `name` of parent element, previous element sibling, next element sibling (nulls allowed). Skip the overlay host element (`annot-overlay`) and `script/style`.
 
-Also export `resolveSelector(root, selector): Element | null` (handles `>>>`) and `findElementsInRect(doc, rect, opts): ElementRef[]` for page mode: elements whose rect intersects `rect` by ≥ 30% of their own area, excluding the overlay host and its descendants, `html`, `body`, elements smaller than 8×8 or larger than 90% of the region unless nothing else matches; sort by intersection area desc; dedupe ancestors that add nothing (if a child covers ≥ 80% of the parent's intersection, drop the parent); cap at 12; compact (no styles).
+Also export `resolveSelector(root, selector): Element | null` (handles `>>>`).
 
 ## 2.1b Locating: the file, and the rule
 
@@ -83,17 +83,9 @@ Re-anchor ladder (matches the reader's, named states):
 
 The state is `exact` when the quote matched verbatim at the recorded offsets in the resolved container, and `moved` in every other hit, including an exact text match at a shifted offset.
 
-Return DOM `Range` built from the normalized offsets via `map`. Export `rangeRects(range): Rect[]` (document coords, merged per line: adjacent rects on the same line with ≤ 2 px gap are unioned) for drawing overlay highlights.
+Return DOM `Range` built from the normalized offsets via `map`. Export `rangeRects(range): Rect[]` (document coords, merged per line: adjacent rects on the same line with ≤ 2 px gap are unioned) for painting overlay highlights.
 
-## 2.3 Page-mode helpers → `strokeBounds(strokes, padding = 24): Rect`, `renderStrokes(ctx, strokes, origin, scale)`
-
-Canvas 2D drawing of strokes for compositing onto the screenshot. `origin` is `{ x, y }`, the document coordinate the canvas top-left sits at. Brush uses quadratic smoothing between points; arrow has a filled triangular head sized `3 × width`; a label's `at` is the top-left of a 4 px padded pill filled with the stroke color, text in `size` px system-ui over a readable ink. Text width is approximated as `length × size × 0.6` rather than measured, so `strokeBounds` and `renderStrokes` agree and neither needs a live context. Colors passed through as given. Deterministic so the e2e test can snapshot.
-
-## 2.4 Screenshot capture → `captureRegion(doc, rect, strokes, opts): Promise<Blob | null>`
-
-Lives in core but takes an injected `domToCanvas` function (from `modern-screenshot`, an optional peer of `packages/svelte`, not of core) so core stays dep-free. Algorithm as in agentation's `screenshot.ts` but our own code: hide the overlay host, pick the smallest element covering ≥ 90% of the region (`elementsFromPoint` at the center, or a scan of `body`'s descendants where that API is missing), `domToCanvas(target, { scale: min(2, dpr), timeout: 5000 })`, crop to the region + padding, cap the longest side at 1600 px, composite strokes with `renderStrokes`, `toBlob('image/png')`. Return `null` on any failure; the caller falls back to strokes-only via `renderStrokes` on a light background. Restore overlay visibility in `finally`.
-
-## 2.5 Freeze → `freezeAnimations(doc): () => void`
+## 2.3 Freeze → `freezeAnimations(doc): () => void`
 
 Inject a `<style data-annot-freeze>` pausing `animation-play-state` and disabling `transition` for everything except the overlay host; pause playing `<video>`s and remember them; return an `unfreeze` function that restores. Identical in intent to both references.
 
@@ -103,8 +95,6 @@ Inject a `<style data-annot-freeze>` pausing `animation-play-state` and disablin
 - `describeElement` returns a selector that resolves back to the same element for every element in every fixture (property test over `querySelectorAll('*')`).
 - Selectors contain no `svelte-*` or utility classes.
 - Text anchoring tests: exact, prefix/suffix disambiguation of a repeated quote, moved after an insertion before the quote, moved after an edit inside the quote, lost after deletion, container re-found via fallbacks after its class changed, a run across two blocks and across a paragraph/blockquote/paragraph, and refusal at `body`.
-- `findElementsInRect` on a fixture with a card grid returns the cards and the heading, not `body` or the tiny icons.
-- Stroke rendering snapshot test with a fixed set of strokes rendered to a `canvas` (node-canvas or a stub that records calls; recording calls is acceptable).
 
 ## Notes
 

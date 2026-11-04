@@ -54,7 +54,7 @@ const chrome = (t) => `
           <div class="crumb muted">panel · popup · surface</div>
         </div>
         <div class="markers">
-          ${SIGNAL_NAMES.slice(3, 8)
+          ${SIGNAL_NAMES.slice(2, 7)
             .map(
               (n, i) =>
                 `<span class="marker" style="background:${esc(t[`--annot-${n}`])};color:${esc(t[`--annot-${n}-ink`])};box-shadow:0 0 0 2px ${esc(t['--annot-surface'])}">${i + 1}</span>`,
@@ -63,7 +63,7 @@ const chrome = (t) => `
         </div>
         <div class="pill">
           <span class="tool active">element</span><span class="divider"></span>
-          <span class="tool">text</span><span class="tool">page</span>
+          <span class="tool">text</span>
         </div>
       </div>`;
 
@@ -93,10 +93,6 @@ const schemeBlock = (t, scheme) => `
       </table>
       <h4>Status and mode</h4>
       <table class="grid signals"><tbody>${SIGNAL_NAMES.map((n) => signalRow(t, n)).join('')}</tbody></table>
-      <h4>Drawing palette</h4>
-      <div class="swatches">
-        ${['--annot-stroke-1', '--annot-stroke-2', '--annot-stroke-3', '--annot-stroke-4', '--annot-stroke-5'].map((n) => swatch(t, n)).join('')}
-      </div>
       <h4>Every token</h4>
       <table class="tokens"><tbody>
         ${TOKEN_NAMES.map((n) => {

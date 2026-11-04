@@ -21,7 +21,6 @@ this app, because a note about a sentence is rarely worth batching.
 
 - **Text** is the default mode: the selection is anchored by quote and offsets.
 - **Element** outlines whatever you point at, for layout and styling notes.
-- **Page** lets you draw over the document and sends a screenshot along.
 
 The anchor survives edits. If a paragraph moves, the note follows it and the
 highlight is drawn with a dashed edge until the offsets line up again.

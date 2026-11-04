@@ -82,16 +82,12 @@ export const PRICING: Annotation[] = [
   annotation({
     id: IDS.c,
     number: 6,
-    mode: 'page',
     status: 'acknowledged',
     comment: 'The gaps are uneven.',
     thread: [message({ text: 'The gaps are uneven.' })],
     target: {
-      kind: 'page',
-      region: { x: 100, y: 200, width: 1180, height: 640 },
-      strokes: [{ tool: 'arrow', from: [200, 300], to: [400, 420], color: '#f00', width: 4 }],
-      screenshot: `screenshots/${IDS.c}.png`,
-      elements: [elementRef({ selector: 'main > h2', tag: 'h2', name: 'Pricing', text: 'Pricing' })],
+      kind: 'element',
+      elements: [elementRef({ selector: 'main > h2', tag: 'h2', role: 'heading', name: 'Pricing', text: 'Pricing' })],
     },
   }),
 ];

@@ -35,7 +35,6 @@ import {
   type RouteFile,
   type RouteSummary,
   type Status,
-  type Target,
   type TransitionRequest,
 } from '@llm-ui-annotation/core';
 import {
@@ -49,12 +48,10 @@ import {
   readTextOrNull,
   removeAttachment,
   removeAttachments,
-  removeScreenshot,
   routePath,
   writeAttachment,
   writeBatch,
   writeFileAtomic,
-  writeScreenshot,
 } from '@llm-ui-annotation/core/node';
 import { badRequest, conflict, notFound, tooLarge, unsupportedMedia } from './errors.js';
 
@@ -233,24 +230,17 @@ export class Store {
     });
   }
 
-  async patchAnnotation(id: string, patch: { comment?: string; target?: Target }): Promise<Annotation> {
+  async patchAnnotation(id: string, patch: { comment: string }): Promise<Annotation> {
     const route = await this.routeOf(id);
     return this.withRoute(route, async () => {
       const file = await this.mutableRoute(route);
       const at = this.locate(file, id);
       const previous = file.annotations[at] as Annotation;
       const now = nowIso();
-      const edited = patch.target !== undefined;
-      const text = patch.comment ?? 'drawing edited';
-      const message = makeMessage({ role: 'user', kind: 'comment', text }, now);
-      // The agent's answer was about the old marks, so a reviewed drawing goes back to the agent.
-      const status = edited && previous.status === 'review' ? 'sent' : previous.status;
+      const message = makeMessage({ role: 'user', kind: 'comment', text: patch.comment }, now);
       const next: Annotation = {
         ...previous,
-        ...(patch.comment !== undefined ? { comment: patch.comment } : {}),
-        ...(patch.target !== undefined ? { target: patch.target } : {}),
-        status,
-        sentAt: status === 'sent' && previous.status !== 'sent' ? now : previous.sentAt,
+        comment: patch.comment,
         thread: [...previous.thread, message],
         updatedAt: now,
       };
@@ -266,17 +256,6 @@ export class Store {
         annotationId: id,
         message,
       });
-      if (status !== previous.status) {
-        await this.emit({
-          at: now,
-          type: 'status.changed',
-          by: 'user',
-          route: file.route,
-          annotationId: id,
-          status,
-          data: next,
-        });
-      }
       this.change({ kind: 'annotation', annotation: next });
       return next;
     });
@@ -289,7 +268,6 @@ export class Store {
       const at = this.locate(file, id);
       file.annotations.splice(at, 1);
       await this.save(file);
-      await removeScreenshot(this.dir, id);
       await removeAttachments(this.dir, id);
       this.index.delete(id);
       await this.emit({
@@ -429,29 +407,6 @@ export class Store {
       this.change({ kind: 'annotation', annotation: next });
       return next;
     });
-  }
-
-  /** Store a page-mode screenshot and attach its path to the annotation when it exists. */
-  async saveScreenshot(id: string, png: Uint8Array): Promise<string> {
-    const path = await writeScreenshot(this.dir, id, png);
-    const route = await this.routeOf(id).catch(() => null);
-    if (route === null) return path;
-
-    await this.withRoute(route, async () => {
-      const file = await this.mutableRoute(route);
-      const at = file.annotations.findIndex((a) => a.id === id);
-      const previous = at >= 0 ? file.annotations[at] : undefined;
-      if (!previous || previous.target.kind !== 'page' || previous.target.screenshot === path) return;
-      const next: Annotation = {
-        ...previous,
-        target: { ...previous.target, screenshot: path },
-        updatedAt: nowIso(),
-      };
-      file.annotations[at] = next;
-      await this.save(file);
-      this.change({ kind: 'annotation', annotation: next });
-    });
-    return path;
   }
 
   /** Store a dropped file under `attachments/<id>/` and record it on the annotation. */

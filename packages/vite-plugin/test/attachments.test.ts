@@ -2,7 +2,6 @@ import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   ACCEPTED_ATTACHMENT_TYPES,
-  newId,
   type Annotation,
   type Attachment,
   type Event,
@@ -223,12 +222,6 @@ describe('attachment endpoint hardening', () => {
     for (const type of ['text/plain', 'multipart/form-data', 'application/x-www-form-urlencoded']) {
       const res = await attach(h, a.id, PNG, 'mock.png', { headers: { 'content-type': type } });
       expect(res.status, type).toBe(415);
-      const shot = await h.raw(`/__annot/screenshots/${a.id}`, {
-        method: 'POST',
-        headers: { 'content-type': type },
-        body: PNG as unknown as BodyInit,
-      });
-      expect(shot.status, `screenshot ${type}`).toBe(415);
     }
   });
 
@@ -252,30 +245,5 @@ describe('attachment endpoint hardening', () => {
     const attachment = await attached(h, a.id, PNG, '../../../etc/passwd.png');
     expect(attachment.name).toBe('passwd.png');
     expect(attachment.path).toBe(`attachments/${a.id}/${attachment.id}.png`);
-  });
-});
-
-describe('screenshot serving', () => {
-  it('serves a stored screenshot inert, and refuses a traversing id', async () => {
-    const h = await serve();
-    const id = newId();
-    const stored = await h.raw(`/__annot/screenshots/${id}`, {
-      method: 'POST',
-      headers: { 'content-type': 'image/png', origin: h.url },
-      body: PNG,
-    });
-    expect(stored.status).toBe(201);
-
-    const got = await h.raw(`/__annot/screenshots/${id}`);
-    expect(got.status).toBe(200);
-    expect(got.headers.get('content-type')).toBe('image/png');
-    expect(got.headers.get('x-content-type-options')).toBe('nosniff');
-    expect(new Uint8Array(await got.arrayBuffer())).toEqual(new Uint8Array(PNG));
-
-    const escape = await h.raw(`/__annot/screenshots/${encodeURIComponent('../../pwned')}`);
-    expect(escape.status).toBe(400);
-
-    const missing = await h.raw(`/__annot/screenshots/${newId()}`);
-    expect(missing.status).toBe(404);
   });
 });

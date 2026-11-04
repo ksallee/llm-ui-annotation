@@ -1,6 +1,6 @@
 # 04 · Svelte overlay
 
-Owner: `packages/svelte`. Svelte 5, runes. `<annot-overlay>` is a hand-written custom element that mounts `Annotator.svelte` into an open shadow root, rather than a component compiled with `customElement: true`: the overlay needs to own the shadow root, the host element's inline style and the props, and that stays true in any bundler. Also export the plain component `Annotator.svelte` and a `mount(options)` function. Peer deps: `svelte ^5`. Optional peer: `modern-screenshot` (page-mode screenshots).
+Owner: `packages/svelte`. Svelte 5, runes. `<annot-overlay>` is a hand-written custom element that mounts `Annotator.svelte` into an open shadow root, rather than a component compiled with `customElement: true`: the overlay needs to own the shadow root, the host element's inline style and the props, and that stays true in any bundler. Also export the plain component `Annotator.svelte` and a `mount(options)` function. Peer deps: `svelte ^5`.
 
 ## Mounting
 
@@ -12,7 +12,7 @@ Owner: `packages/svelte`. Svelte 5, runes. `<annot-overlay>` is a hand-written c
 
 ```
 <div class="annot-root" data-scheme>           tokens live here
-  <svg class="layer highlights">                element outlines, text highlight rects, page strokes, region boxes
+  <svg class="layer highlights">                element outlines, text highlight rects
   <div class="layer markers">                   numbered pins, hover cards (the class name keeps the old word)
   <div class="layer capture">                   full-viewport pointer catcher while a mode is active (transparent)
   <Popup/> <Panel/> <Toolbar/> <Toasts/>
@@ -27,35 +27,28 @@ Never mutate the host DOM. Text highlights use the CSS Custom Highlight API when
 
 Collapsed: a single 44 px round button with the logo glyph and a badge with the count of drafts (batch mode) or unread agent activity (questions + reviews). Click expands.
 
-Expanded, left to right — the ten controls of spec 09 §4 and nothing else:
+Expanded, left to right — the nine controls of spec 09 §4 and nothing else:
 
 1. Grip. The command palette has no button here: it opens on its shortcut, which Settings rebinds.
 1a. In Element mode only, the picker toggle (`C`).
-2. The mode segment: **Element** (`E`), **Highlight** (`H`), **Draw** (`D`). One active or none. Clicking the active one exits (`Esc` too).
+2. The mode segment: **Element** (`E`), **Highlight** (`H`). One active or none. Clicking the active one exits (`Esc` too).
 3. Pin visibility cycle (all → dots → none), pause animations (`⇧P`).
 4. **Send** (`⌘↵`) with the draft count, batch mode only. Disabled when no drafts.
 5. Panel toggle (`I`) with badge for questions + reviews.
-6. Settings (gear) · connection dot, shown only when the state is not `connected` (spec 09 §7) · Collapse (`Esc` twice or the ×).
+6. Settings (gear) · connection dot, shown only when the state is not `connected` (spec 09 §6) · Collapse (`Esc` twice or the ×).
 
-The drawing tools are **not** in the pill. They live in their own bar at the top centre that appears
-with Draw mode and leaves with it — spec 09 §4: brush, arrow, rect, ellipse, caption, eraser ·
-color swatches (5, from spec 03) · width (3 steps) · undo (`⌘Z`) · redo (`⇧⌘Z`) · clear drawing.
-
-Tooltips show label and shortcut, the key rendered as a keycap at `--annot-text-sm` (spec 09 §10). The pill is draggable by the grip at its left edge; snaps to the nearest corner on release.
+Tooltips show label and shortcut, the key rendered as a keycap at `--annot-text-sm` (spec 09 §9). The pill is draggable by the grip at its left edge; snaps to the nearest corner on release.
 
 **Block page interactions** (settings, default on): while a mode is active, the capture layer swallows clicks so buttons in the host do not fire. Holding `⌘`/`Ctrl` lets events through (cursor changes) so you can open a menu and then annotate inside it. Hover and selection still work with blocking on.
 
 ## Modes
 
 ### Element mode
-Hover draws the devtools picture: the four box-model bands in devtools' colours, and its tooltip card above the element — node title, size, colour, font, box, contrast, accessibility (spec 12 §2). Hovering follows the pointer only while **picking** is on, which the pill toggles and `C` toggles; selecting an element with the drawer open turns it off, the way devtools leaves its picker after a pick, so the card stops chasing the cursor while you work in the panel. Entering Element mode turns it back on. **CSS Details** (settings, default on) turns that off and leaves the quiet version: a 2 px outline and a small label chip (`button "Save"`, `describeName(el)` from `core/dom`).
-Clicking empty space clears the selection, and so does `Esc` before it reaches the panel. Click opens the popup anchored to the element — **unless the drawer is open on Inspect** (spec 12 §1), where a click only selects and the note comes from the Annotate chip or `⌘↵`: reading an element and annotating it are different activities, and popping a note over every click makes the inspector unusable. Drag from empty space draws a marquee: the outermost elements at least 50% inside are selected, then the selection steps down one level for as long as a single container is tiled (≥ 70% of its area) by children that are ≥ 90% inside, so a box round a card grid selects the cards and a box round one card selects the card. `⇧` extends the selection and shows an Annotate chip. Ignore the overlay host, `html`, `body`.
+Hover shows the devtools picture: the four box-model bands in devtools' colours, and its tooltip card above the element — node title, size, colour, font, box, contrast, accessibility (spec 12 §2). Hovering follows the pointer only while **picking** is on, which the pill toggles and `C` toggles; selecting an element with the drawer open turns it off, the way devtools leaves its picker after a pick, so the card stops chasing the cursor while you work in the panel. Entering Element mode turns it back on. **CSS Details** (settings, default on) turns that off and leaves the quiet version: a 2 px outline and a small label chip (`button "Save"`, `describeName(el)` from `core/dom`).
+Clicking empty space clears the selection, and so does `Esc` before it reaches the panel. Click opens the popup anchored to the element — **unless the drawer is open on Inspect** (spec 12 §1), where a click only selects and the note comes from the Annotate chip or `⌘↵`: reading an element and annotating it are different activities, and popping a note over every click makes the inspector unusable. Drag from empty space makes a marquee: the outermost elements at least 50% inside are selected, then the selection steps down one level for as long as a single container is tiled (≥ 70% of its area) by children that are ≥ 90% inside, so a box round a card grid selects the cards and a box round one card selects the card. `⇧` extends the selection and shows an Annotate chip. Ignore the overlay host, `html`, `body`.
 
 ### Highlight mode
 Native selection stays enabled on the host (capture layer uses `pointer-events: none` in this mode and listens to `selectionchange` on the document). When a non-collapsed selection ends (mouseup / keyup), show an **Annotate** chip at the end of the selection; click or `⌘↵` opens the popup with the quote shown. A selection crossing block boundaries is one annotation whose container is the nearest common block (spec 09 §5); only a selection whose common ancestor would be `body` is refused, with the chip reading "that is the whole page". Existing text annotations are highlighted; hovering shows the pin and the comment card.
-
-### Draw mode
-Drawing happens on the SVG layer in document coordinates. Brush points are sampled at ≥ 2 px spacing, smoothed on render. Arrow/rect/ellipse are drag-to-size. Label: click to place, inline `contenteditable` in the shadow DOM, `Enter` commits, `Esc` cancels. Eraser removes a whole stroke on hit. Undo/redo stack per pending drawing. The dashed bounding box is resizable, and what it holds is `PageTarget.region` (spec 09 §6). When the user clicks **Annotate** (chip that appears near it after the first stroke) or presses `⌘↵`, the popup opens; on save, capture the screenshot (spec 02.4) with the strokes composited, POST it, then create the annotation with the `PageTarget`. Show a 1-line toast if the capture failed ("Saved without screenshot; strokes kept").
 
 ## Popup
 
@@ -78,7 +71,7 @@ After Add in Manual mode: the pin appears with dashed `draft` styling, badge inc
 
 ## Pins and hover cards
 
-The pin at the top-right corner of the element rect (or end of the text range, or inset into the top-left of the page region, so it lands on the drawing rather than on whatever sits outside it), numbered, status-colored. Hover a pin or a highlight: a card shows the comment, status pill, and for `review` the agent's summary and an **Approve** button, for `question` the question and an **Answer** field. Click a pin: opens the panel scrolled to that row. Right-click or `⌫` on a focused draft pin: delete (draft only).
+The pin at the top-right corner of the element rect (or end of the text range), numbered, status-colored. Hover a pin or a highlight: a card shows the comment, status pill, and for `review` the agent's summary and an **Approve** button, for `question` the question and an **Answer** field. Click a pin: opens the panel scrolled to that row. Right-click or `⌫` on a focused draft pin: delete (draft only).
 
 Anchor states: `moved` pins get a dotted ring and a tooltip "text moved, check the highlight"; `lost` annotations have no pin and are listed in the panel with a "lost" chip and a "locate" action that scrolls to the container if it still exists.
 
@@ -95,11 +88,11 @@ selection changes.
 
 Header: route (mono), "all routes" toggle, close. One chip row, not two: the counts live on the
 filter chips — Needs you (question + review, default when non-empty) · Open (draft, sent,
-acknowledged) · Done (approved) · All, each with its count (spec 11 §3).
+acknowledged) · Done (approved) · All, each with its count (spec 11 §2).
 
-Row: a selection checkbox, a 44 px thumbnail, the number, **the status as a word**, the timestamp,
+Row: a selection checkbox, the mode glyph, the number, **the status as a word**, the timestamp,
 then the target on its own line — the name at full length, the selector truncated after it — the
-comment, a thread preview (last message, role-colored) and the row's actions (spec 09 §8) with a
+comment, a thread preview (last message, role-colored) and the row's actions (spec 09 §7) with a
 `⋯` menu holding Edit, Delete and Locate. The 3 px status bar stays but is no longer the only
 signal. Expand to show the full thread with role labels and the field the status calls for:
 
@@ -114,7 +107,7 @@ The row actions that only open a field are dropped while the row is expanded, si
 already there with its own button.
 
 Footer: **Approve all in review** (count) with an undo toast for 6 s, and **Send drafts** (batch
-mode). The bulk bar of spec 09 §9 is not here; it floats at the top of the list.
+mode). The bulk bar of spec 09 §8 is not here; it floats at the top of the list.
 
 Clicking a row scrolls the page so the target is centered and flashes the highlight once.
 
@@ -126,13 +119,13 @@ Switches follow the shadcn switch: a `role="switch"` button carrying `data-state
 
 ## Keyboard summary
 
-`⌥A` is the only global binding and opens the command palette; everything else is scoped to an active mode or to a focused surface — spec 09 §2. Scoped: `E` `H` `D` modes · `Esc` · `⌘↵` add or send · `I` panel · `C` point at elements · `↑↓←→` walk the tree · `⇧P` pause · `⌘Z` `⇧⌘Z` in Draw mode · `1`–`6` drawing tools · `⌫` delete focused draft · `?` shows the sheet.
+`⌥A` is the only global binding and opens the command palette; everything else is scoped to an active mode or to a focused surface — spec 09 §2. Scoped: `E` `H` modes · `Esc` · `⌘↵` add or send · `I` panel · `C` point at elements · `↑↓←→` walk the tree · `⇧P` pause · `⌫` delete focused draft · `?` shows the sheet.
 
-**Escape** closes what is on top of the mode, then the mode, then the pill: the palette, a caption being typed, the popup, a dialog, one step out of a drawing you are inside, the mode, the toolbar. It never touches the panel — the panel is opened and closed deliberately, from the toolbar or `I` — and it does not clear the element selection on its own, because leaving the mode already does. One press in a mode with nothing open means one thing: you are out of the mode. Shortcuts are ignored while typing in the host page (focus inside an input/textarea/contenteditable outside the overlay).
+**Escape** closes what is on top of the mode, then the mode, then the pill: the palette, the popup, a dialog, the mode, the toolbar. It never touches the panel — the panel is opened and closed deliberately, from the toolbar or `I` — and it does not clear the element selection on its own, because leaving the mode already does. One press in a mode with nothing open means one thing: you are out of the mode. Shortcuts are ignored while typing in the host page (focus inside an input/textarea/contenteditable outside the overlay).
 
 ## State
 
-A single `AnnotState` class using `$state` for: `annotations` (a `SvelteMap` by id, hydrated from the route file then patched by ws events), `mode`, `drafts` derived, `drawing`, `selection`, `hover`, `popup`, `panel`, `prefs`, `connection` (`connected | polling | offline`). The theme lives on the shadow root as tokens, not in the state. Server events win over local optimistic state; keep an `optimistic` set of ids to reconcile. Offline (no `/__annot/health`): the toolbar shows a muted dot and annotations are kept in memory with a banner "dev server not reachable".
+A single `AnnotState` class using `$state` for: `annotations` (a `SvelteMap` by id, hydrated from the route file then patched by ws events), `mode`, `drafts` derived, `selection`, `hover`, `popup`, `panel`, `prefs`, `connection` (`connected | polling | offline`). The theme lives on the shadow root as tokens, not in the state. Server events win over local optimistic state; keep an `optimistic` set of ids to reconcile. Offline (no `/__annot/health`): the toolbar shows a muted dot and annotations are kept in memory with a banner "dev server not reachable".
 
 ## Accessibility
 

@@ -29,12 +29,5 @@ export function summarizeTarget(target: Target): string {
       const named = target.blocks.slice(0, 3).map((b) => b.selector).join(', ');
       return `${quote} across ${named}${target.blocks.length > 3 ? ', …' : ''}`;
     }
-    case 'page': {
-      if (target.elements.length === 0) {
-        return `drawing over ${target.strokes.length} stroke${target.strokes.length === 1 ? '' : 's'}`;
-      }
-      const named = target.elements.slice(0, 3).map(elementLabel).join(', ');
-      return `drawing over ${target.elements.length} element${target.elements.length === 1 ? '' : 's'}: ${named}${target.elements.length > 3 ? ', …' : ''}`;
-    }
   }
 }

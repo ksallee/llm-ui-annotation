@@ -7,14 +7,12 @@ import {
   type RouteSummary,
   type Status,
 } from '@llm-ui-annotation/core';
-import { spawn } from 'node:child_process';
-import { join, relative, sep } from 'node:path';
-import { flagBool, renderLevel, type Args } from '../args.js';
+import { renderLevel, type Args } from '../args.js';
 import type { Context } from '../context.js';
 import { readCursor, cursorPath } from '../cursor.js';
-import { CliError, EXIT_OK } from '../errors.js';
+import { EXIT_OK } from '../errors.js';
 import { json, type Io } from '../output.js';
-import { resolveMany, resolveOne } from '../resolve.js';
+import { resolveMany } from '../resolve.js';
 import { countByStatus } from '../store.js';
 
 export const PENDING_STATUSES: readonly Status[] = ['sent', 'acknowledged', 'question'];
@@ -101,26 +99,6 @@ export async function routes(ctx: Context, _args: Args, io: Io): Promise<number>
       })
       .join('\n'),
   );
-  return EXIT_OK;
-}
-
-export async function screenshot(ctx: Context, args: Args, io: Io): Promise<number> {
-  const all = await ctx.store.annotations();
-  const [token] = args.positionals;
-  if (token === undefined) throw new CliError('missing <id>');
-  const a = resolveOne(all, token, ctx.route);
-  const rel = a.target.kind === 'page' ? a.target.screenshot : null;
-  if (rel === null) throw new CliError(`#${a.number} has no screenshot`);
-  const path = join(ctx.dir, rel);
-  if (relative(ctx.dir, path).startsWith(`..${sep}`)) {
-    throw new CliError(`#${a.number} names a screenshot outside ${ctx.dir}`);
-  }
-  if (ctx.json) json(io, { id: a.id, number: a.number, path });
-  else io.out(path);
-  if (flagBool(args, 'open')) {
-    const opener = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
-    spawn(opener, [path], { detached: true, stdio: 'ignore' }).unref();
-  }
   return EXIT_OK;
 }
 

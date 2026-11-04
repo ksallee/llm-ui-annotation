@@ -21,26 +21,23 @@ Blocks until at least one `batch.sent`, `status.changed` to `acknowledged` by us
 
 ```
 annot pending [--route <path>] [--level …]      everything in sent|acknowledged|question (grouped by route). Idempotent. Exit 0 even if empty.
-annot show <id…> [--level detailed]             full annotation(s) incl. thread and screenshot path
+annot show <id…> [--level detailed]             full annotation(s) incl. thread and attachment paths
 annot ack <id…>                                 sent → acknowledged
 annot ask <id> "<question>"                      → question, appends message kind question
 annot done <id…> --summary "<what changed>"     → review, resolution changed
 annot decline <id…> --reason "<why>"            → review, resolution declined
 annot reply <id> "<text>"                       appends comment message without changing status
 annot attach <id> <file…>                       adds files to an annotation (the user sees them in the panel)
-annot screenshot <id> [--open]                  prints absolute path (agent then Reads the image)
 annot routes                                    routes with counts
 annot init [--claude-md] [--gitignore]          adds .annotations/ to .gitignore, appends the agent section to CLAUDE.md (idempotent, marked with <!-- annot:start/end -->), prints the vite snippet
 annot doctor                                    checks dir, server, cursor, protocol version
 ```
 
-`annot screenshot` prints the path recorded on the annotation, and refuses one that resolves outside the annotations dir rather than printing it or handing it to `--open`.
-
 `<id>` accepts full ids, unique prefixes, or `#<number>` (with `--route` when ambiguous). All mutating commands print the resulting status line, e.g. `#4 → review (changed)`; `reply` prints `#4 → acknowledged (comment)`. Exit 2 on illegal transition with the allowed moves listed, 124 on `watch` timeout, 1 on anything else.
 
 ## Markdown the agent reads
 
-Exactly `renderBatchMarkdown` from spec 01. For page-mode items the screenshot line is an absolute path so the agent can `Read` it. An item with attachments carries the same block `show` and `pending` print at every level, absolute for the same reason:
+Exactly `renderBatchMarkdown` from spec 01. An item with attachments carries the same block `show` and `pending` print at every level, absolute so the agent can `Read` the files:
 
 ```
 attachments:
@@ -90,7 +87,7 @@ Written by `annot init --claude-md`:
 This project uses llm-ui-annotation. The user annotates the running UI in the browser; the feedback lands in `.annotations/`.
 
 - When asked to "watch for feedback" or "pick up annotations", run `annot watch` with `run_in_background` and keep working; when it exits, read its output, then start another `annot watch` before doing anything else so nothing is missed.
-- For each item: `annot ack <id>`, locate the code with the selector / quote / screenshot, make the change, then `annot done <id> --summary "<one or two sentences: what changed, where>"`. If you will not do it, `annot decline <id> --reason "..."`.
+- For each item: `annot ack <id>`, locate the code with the selector / quote, make the change, then `annot done <id> --summary "<one or two sentences: what changed, where>"`. If you will not do it, `annot decline <id> --reason "..."`.
 - An item may carry an `attachments:` block of absolute paths — a mock, a PDF, notes the user dropped on it. Read them before changing anything; `annot attach <id> <file…>` hands a file back the other way.
 A `styles:` line may name a token after a value, as `background-color oklch(0.55 0.15 250) var(--color-primary-600)`. Change or reuse the token; do not paste the literal value.
 - An item may carry a `style edits proposed by the user` diff. Those are exact values the user set in the browser. The removed line names the rule that holds the value today (`/* .gap-10 in src/utilities.css */`) — change it there, or override deliberately if that rule is shared; when the added line names a token (`/* --space-5 */`) use the token, not the literal.

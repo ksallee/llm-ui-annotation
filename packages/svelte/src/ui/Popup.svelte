@@ -32,9 +32,7 @@
 
   const refs = $derived.by((): ElementRef[] => {
     const target = popup.target;
-    if (target.kind === 'element') return target.elements;
-    if (target.kind === 'text') return [target.container];
-    return target.elements;
+    return target.kind === 'element' ? target.elements : [target.container];
   });
 
   const quote = $derived.by(() => {
@@ -185,10 +183,6 @@
           <dd>{popup.target.prefix}</dd>
           <dt>suffix</dt>
           <dd>{popup.target.suffix}</dd>
-        {/if}
-        {#if popup.target.kind === 'page'}
-          <dt>strokes</dt>
-          <dd>{popup.target.strokes.length}</dd>
         {/if}
       </dl>
     </div>

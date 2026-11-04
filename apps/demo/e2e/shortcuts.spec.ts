@@ -52,7 +52,6 @@ test('no overlay key but ⌥A fires while idle; the scoped ones fire in a mode',
   await setMode(page, 'Element');
   for (const [key, mode] of [
     ['h', 'text'],
-    ['d', 'page'],
     ['e', 'element'],
   ] as const) {
     await page.keyboard.press(key);

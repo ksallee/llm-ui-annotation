@@ -19,7 +19,6 @@ const ctx = (over: Partial<KeyContext> = {}): KeyContext => ({
   paletteOpen: false,
   panelOpen: false,
   focusedDraft: false,
-  marksPicked: false,
   selected: false,
   paletteKey: DEFAULT_PALETTE_KEY,
   ...over,
@@ -29,7 +28,7 @@ describe('picking', () => {
   it('takes C in element mode and nowhere else', () => {
     expect(keyAction(key({ key: 'c' }), ctx())).toBe('pick');
     expect(keyAction(key({ key: 'C' }), ctx())).toBe('pick');
-    expect(keyAction(key({ key: 'c' }), ctx({ mode: 'page' }))).toBeNull();
+    expect(keyAction(key({ key: 'c' }), ctx({ mode: 'text' }))).toBeNull();
   });
 });
 
@@ -43,7 +42,7 @@ describe('walking the tree', () => {
 
     // Nothing selected, or another mode: the page keeps its scroll.
     expect(keyAction(key({ key: 'ArrowUp' }), ctx())).toBeNull();
-    expect(keyAction(key({ key: 'ArrowUp' }), ctx({ selected: true, mode: 'page' }))).toBeNull();
+    expect(keyAction(key({ key: 'ArrowUp' }), ctx({ selected: true, mode: 'text' }))).toBeNull();
   });
 });
 
@@ -98,16 +97,16 @@ describe('keyAction', () => {
   });
 
   it('answers mode letters with no mode when the pill is open', () => {
-    // After Esc leaves a mode the pill stays open, and D has to get you back into Draw.
-    expect(keyAction(key({ key: 'd' }), ctx({ mode: null, expanded: false }))).toBeNull();
-    expect(keyAction(key({ key: 'd' }), ctx({ mode: null, expanded: true }))).toBe('mode:page');
+    // After Esc leaves a mode the pill stays open, and H has to get you back into Highlight.
+    expect(keyAction(key({ key: 'h' }), ctx({ mode: null, expanded: false }))).toBeNull();
+    expect(keyAction(key({ key: 'h' }), ctx({ mode: null, expanded: true }))).toBe('mode:text');
     expect(keyAction(key({ key: 'i' }), ctx({ mode: null, expanded: true }))).toBe('panel');
   });
 
   it('maps the mode letters while a mode is active', () => {
     expect(keyAction(key({ key: 'e' }), ctx())).toBe('mode:element');
     expect(keyAction(key({ key: 'H' }), ctx())).toBe('mode:text');
-    expect(keyAction(key({ key: 'd' }), ctx())).toBe('mode:page');
+    expect(keyAction(key({ key: 'd' }), ctx())).toBeNull();
   });
 
   it('pause needs the shift', () => {
@@ -139,21 +138,6 @@ describe('keyAction', () => {
   it('swallows plain letters while a popup or dialog is open', () => {
     expect(keyAction(key({ key: 'e' }), ctx({ popupOpen: true }))).toBeNull();
     expect(keyAction(key({ key: 'i' }), ctx({ dialogOpen: true }))).toBeNull();
-  });
-
-  it('numbers pick a drawing tool, but only in Draw', () => {
-    expect(keyAction(key({ key: '3' }), ctx({ mode: 'page' }))).toBe('tool:3');
-    expect(keyAction(key({ key: '3' }), ctx({ mode: 'element' }))).toBeNull();
-  });
-
-  it('undo and redo only exist in Draw', () => {
-    expect(keyAction(key({ key: 'z', metaKey: true }), ctx({ mode: 'element' }))).toBeNull();
-    expect(keyAction(key({ key: 'z', metaKey: true }), ctx({ mode: 'page' }))).toBe('undo');
-    expect(keyAction(key({ key: 'Z', metaKey: true, shiftKey: true }), ctx({ mode: 'page' }))).toBe('redo');
-  });
-
-  it('deletes picked marks even with no focused draft', () => {
-    expect(keyAction(key({ key: 'Backspace' }), ctx({ mode: 'page', marksPicked: true }))).toBe('delete');
   });
 
   it('deletes only when a draft marker has focus', () => {
