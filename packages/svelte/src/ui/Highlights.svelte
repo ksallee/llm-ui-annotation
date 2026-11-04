@@ -60,6 +60,19 @@
       {/if}
     {/each}
 
+    {#if !textPainted && annot.popup?.target.kind === 'text'}
+      {#each annot.popup.target.rects as rect, i (i)}
+        <rect
+          x={rect.x}
+          y={rect.y - 1}
+          width={rect.width}
+          height={rect.height + 2}
+          rx="2"
+          fill="var(--annot-accent-soft)"
+        />
+      {/each}
+    {/if}
+
     {#if annot.previewId}
       {#each annot.anchors.get(annot.previewId)?.rects ?? [] as rect, i (i)}
         <rect
