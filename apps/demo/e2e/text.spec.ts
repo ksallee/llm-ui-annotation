@@ -1,9 +1,12 @@
 import { PROTOCOL_VERSION, type TextTarget } from '@llm-ui-annotation/core';
+import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.js';
 import {
   anchorOf,
   commit,
+  field,
   overlay,
+  popup,
   ready,
   selectPhrase,
   sendBatch,
@@ -130,4 +133,94 @@ test('a selection spanning the whole body is refused, and says why', async ({ pa
   await expect(chip).toBeDisabled();
   await expect(chip).toHaveText('that is the whole page');
   await expect.poll(() => snapshot(page).then((s) => s.chip?.enabled)).toBe(false);
+});
+
+/** Drag the real mouse across a phrase, start to end, the way a reader selects it. */
+async function dragAcross(page: Page, container: string, phrase: string, occurrence = 1): Promise<void> {
+  await page.locator(container).scrollIntoViewIfNeeded();
+  await selectPhrase(page, container, phrase, occurrence);
+  const box = await page.evaluate(() => {
+    const selection = document.getSelection()!;
+    const rects = [...selection.getRangeAt(0).getClientRects()].filter((r) => r.width > 0);
+    selection.removeAllRanges();
+    const first = rects[0]!;
+    const last = rects.at(-1)!;
+    return { x0: first.left + 1, y0: first.top + first.height / 2, x1: last.right - 1, y1: last.top + last.height / 2 };
+  });
+  await page.mouse.move(box.x0, box.y0);
+  await page.mouse.down();
+  await page.mouse.move(box.x1, box.y1, { steps: 8 });
+  await page.mouse.up();
+}
+
+test('releasing the mouse on a highlight opens its note', async ({ page, site, annotDir }) => {
+  await page.goto(`${site}/prose/`);
+  await setMode(page, 'Highlight');
+
+  await dragAcross(page, '#twice', PHRASE, 1);
+  await expect(popup(page)).toBeVisible();
+  await expect.poll(() => field<string>(page, 'popup.target.quote')).toBe(PHRASE);
+  await expect(overlay(page).locator('button.chip')).toHaveCount(0);
+
+  await commit(page, 'This sentence can go');
+  await expect.poll(() => storedAnnotations(annotDir, '/prose/').then((s) => s.length)).toBe(1);
+  const stored = await storedAnnotations(annotDir, '/prose/');
+  expect((stored[0]!.target as TextTarget).quote).toBe(PHRASE);
+});
+
+test('a selection made without the mouse waits for the chip', async ({ page, site }) => {
+  await page.goto(`${site}/prose/`);
+  await setMode(page, 'Highlight');
+
+  await selectPhrase(page, '#twice', PHRASE, 1);
+  await expect(overlay(page).locator('button.chip')).toHaveText('Annotate');
+  await expect(popup(page)).toBeHidden();
+});
+
+test('selecting again while the note is empty moves the note', async ({ page, site }) => {
+  await page.goto(`${site}/prose/`);
+  await setMode(page, 'Highlight');
+
+  await dragAcross(page, '#twice', PHRASE, 1);
+  await expect.poll(() => field<string>(page, 'popup.target.quote')).toBe(PHRASE);
+
+  await dragAcross(page, '#twice', 'A first sentence');
+  await expect.poll(() => field<string>(page, 'popup.target.quote')).toBe('A first sentence');
+  await expect(popup(page)).toHaveCount(1);
+});
+
+test('selecting again keeps a note that has words in it', async ({ page, site }) => {
+  await page.goto(`${site}/prose/`);
+  await setMode(page, 'Highlight');
+
+  await dragAcross(page, '#twice', PHRASE, 1);
+  await popup(page).locator('textarea').fill('half a thought');
+
+  await dragAcross(page, '#twice', 'A first sentence');
+  await expect.poll(() => field<string>(page, 'popup.target.quote')).toBe(PHRASE);
+  await expect(popup(page).locator('textarea')).toHaveValue('half a thought');
+});
+
+test('a double-click opens the word, and shift+click extends it while the note is empty', async ({
+  page,
+  site,
+}) => {
+  await page.goto(`${site}/prose/`);
+  await setMode(page, 'Highlight');
+  await page.locator('#twice').scrollIntoViewIfNeeded();
+  await selectPhrase(page, '#twice', 'first sentence opens');
+  const words = await page.evaluate(() => {
+    const selection = document.getSelection()!;
+    const box = selection.getRangeAt(0).getBoundingClientRect();
+    selection.removeAllRanges();
+    return { start: box.left + 3, end: box.right - 2, y: box.top + box.height / 2 };
+  });
+
+  await page.mouse.click(words.start, words.y, { clickCount: 2 });
+  await expect.poll(() => field<string>(page, 'popup.target.quote')).toBe('first');
+
+  await page.keyboard.down('Shift');
+  await page.mouse.click(words.end, words.y);
+  await page.keyboard.up('Shift');
+  await expect.poll(() => field<string>(page, 'popup.target.quote')).toMatch(/^first sentence open/);
 });

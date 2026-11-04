@@ -195,7 +195,7 @@
       </button>
     {/if}
 
-    {#if annot.mode === 'text' && annot.textChip}
+    {#if annot.mode === 'text' && annot.textChip && !annot.popup}
       <button
         class="chip"
         disabled={!annot.textChip.enabled}
