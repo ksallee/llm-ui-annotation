@@ -3,6 +3,7 @@ import type { ThemeTokens } from '../theme/index.js';
 
 const STYLE_ID = 'data-annot-highlights';
 const PAINTED: Status[] = ['draft', 'sent', 'acknowledged', 'question', 'review'];
+const PENDING = 'annot-pending';
 
 interface HighlightRegistry {
   set(name: string, highlight: unknown): void;
@@ -42,17 +43,24 @@ export function ensureHighlightStyle(doc: Document, tokens: ThemeTokens): () => 
     style.dataset.annotHighlights = '';
     head.append(style);
   }
-  style.textContent = PAINTED.map(
-    (status) => `::highlight(annot-${status}) {
+  style.textContent = [
+    ...PAINTED.map(
+      (status) => `::highlight(annot-${status}) {
   background-color: ${tokens[`--annot-${status}-fill`]};
   color: ${tokens[`--annot-${status}-ink`]};
 }`,
-  ).join('\n');
+    ),
+    `::highlight(${PENDING}) {
+  background-color: ${tokens['--annot-accent-soft']};
+  text-decoration: underline 2px ${tokens['--annot-accent']};
+  text-underline-offset: 3px;
+}`,
+  ].join('\n');
   return () => style?.remove();
 }
 
-/** Hand the live ranges to the browser, one highlight per status. */
-export function paintHighlights(doc: Document, ranges: Map<Status, Range[]>): void {
+/** Hand the live ranges to the browser, one highlight per status, plus the note being written. */
+export function paintHighlights(doc: Document, ranges: Map<Status, Range[]>, pending: Range | null = null): void {
   const store = registry(doc);
   const Ctor = highlightCtor(doc);
   if (!store || !Ctor) return;
@@ -61,10 +69,13 @@ export function paintHighlights(doc: Document, ranges: Map<Status, Range[]>): vo
     if (list.length === 0) store.delete(`annot-${status}`);
     else store.set(`annot-${status}`, new Ctor(...list));
   }
+  if (pending) store.set(PENDING, new Ctor(pending));
+  else store.delete(PENDING);
 }
 
 export function clearHighlights(doc: Document): void {
   const store = registry(doc);
   if (!store) return;
   for (const status of PAINTED) store.delete(`annot-${status}`);
+  store.delete(PENDING);
 }
