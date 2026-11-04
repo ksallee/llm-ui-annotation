@@ -159,7 +159,7 @@ export function bindKeys(state: AnnotState, host: Element | null, actions: KeyAc
   };
 }
 
-/** Hand text ranges to the CSS Custom Highlight API, grouped by status. */
+/** Hand text ranges to the CSS Custom Highlight API, grouped by status, with the open note's own. */
 export function paintTextHighlights(state: AnnotState): void {
   if (!supportsHighlights(state.doc)) return;
   const byStatus = new Map<Status, Range[]>();
@@ -171,7 +171,7 @@ export function paintTextHighlights(state: AnnotState): void {
     list.push(range);
     byStatus.set(a.status, list);
   }
-  paintHighlights(state.doc, byStatus);
+  paintHighlights(state.doc, byStatus, state.popup?.range ?? null);
 }
 
 /** Hold the host page's animations still while `frozen`. */

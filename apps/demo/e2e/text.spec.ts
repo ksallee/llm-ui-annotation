@@ -224,3 +224,26 @@ test('a double-click opens the word, and shift+click extends it while the note i
   await page.keyboard.up('Shift');
   await expect.poll(() => field<string>(page, 'popup.target.quote')).toMatch(/^first sentence open/);
 });
+
+/** The text the overlay paints as the note's pending selection, null when it paints none. */
+const pending = (page: Page) =>
+  page.evaluate(() => {
+    const registry = (CSS as unknown as { highlights: Map<string, Set<Range>> }).highlights;
+    const ranges = registry.get('annot-pending');
+    return ranges ? [...ranges].map((r) => r.toString()).join('') : null;
+  });
+
+test('the selected text stays marked while its note is open, and only then', async ({ page, site }) => {
+  await page.goto(`${site}/prose/`);
+  await setMode(page, 'Highlight');
+
+  await dragAcross(page, '#twice', PHRASE, 1);
+  await expect(popup(page)).toBeVisible();
+  await popup(page).locator('textarea').fill('still looking at it');
+  expect(await page.evaluate(() => document.getSelection()?.toString() ?? '')).toBe('');
+  await expect.poll(() => pending(page)).toBe(PHRASE);
+
+  await page.keyboard.press('Escape');
+  await expect(popup(page)).toBeHidden();
+  await expect.poll(() => pending(page)).toBeNull();
+});

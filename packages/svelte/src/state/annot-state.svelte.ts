@@ -77,6 +77,8 @@ export interface PopupState {
   busy: boolean;
   /** The draft created early so a dropped file had somewhere to land. */
   draftId: string | null;
+  /** The selection a text note is about, painted while the note is open. */
+  range: Range | null;
 }
 
 const tooLarge = (name: string): string =>
@@ -104,6 +106,7 @@ export interface TextChip {
   enabled: boolean;
   reason: string;
   target: TextTarget | null;
+  range: Range | null;
 }
 
 export interface Toast {
@@ -952,7 +955,13 @@ export class AnnotState {
 
   // ----------------------------------------------------------------- popup
 
-  openPopup(mode: Mode, target: Target, anchor: Rect, editing: string | null = null): void {
+  openPopup(
+    mode: Mode,
+    target: Target,
+    anchor: Rect,
+    editing: string | null = null,
+    range: Range | null = null,
+  ): void {
     const existing = editing ? this.annotations.get(editing) : null;
     this.popup = {
       mode,
@@ -963,6 +972,7 @@ export class AnnotState {
       editing,
       busy: false,
       draftId: null,
+      range,
     };
     this.#creating = null;
   }

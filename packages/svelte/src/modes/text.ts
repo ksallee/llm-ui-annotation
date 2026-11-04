@@ -43,11 +43,11 @@ export function textMode(state: AnnotState): () => void {
       state.textChip =
         described.reason === 'empty'
           ? null
-          : { rect: at, enabled: false, reason: 'that is the whole page', target: null };
+          : { rect: at, enabled: false, reason: 'that is the whole page', target: null, range: null };
       return;
     }
-    state.textChip = { rect: at, enabled: true, reason: '', target: described.target };
     held = range.cloneRange();
+    state.textChip = { rect: at, enabled: true, reason: '', target: described.target, range: held };
     if (open && canReplacePopup(state)) openTextPopup(state);
   };
 
@@ -140,5 +140,5 @@ export function openTextPopup(state: AnnotState): void {
     y: anchor.y,
     width: anchor.width,
     height: rects.at(-1) ? rects.at(-1)!.y + rects.at(-1)!.height - anchor.y : anchor.height,
-  });
+  }, null, chip.range);
 }
