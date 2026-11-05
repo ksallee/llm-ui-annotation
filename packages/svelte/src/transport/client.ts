@@ -8,6 +8,7 @@ import {
   type ErrorResponse,
   type Event,
   type HealthResponse,
+  type ReplaceRequest,
   type RouteFile,
   type RoutesResponse,
   type TransitionRequest,
@@ -92,6 +93,11 @@ export class AnnotClient {
       method: 'POST',
       body: JSON.stringify(request),
     });
+  }
+
+  /** Write the user's text into the page's source; answers with the `replace` annotation recorded. */
+  replace(request: ReplaceRequest): Promise<Annotation> {
+    return this.#json<Annotation>('/replace', { method: 'POST', body: JSON.stringify(request) });
   }
 
   events(since: number): Promise<{ events: Event[] }> {

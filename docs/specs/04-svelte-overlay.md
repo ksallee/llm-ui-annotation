@@ -67,6 +67,8 @@ Nothing above the note: the card is the field and two buttons.
 ink-2), the quote or first element text, and the selector(s), rect and styles subset the agent will
 see. Escape cancels. Clicking outside cancels only if the textarea is empty; otherwise it stays.
 
+**Replace** (text mode, shown only when `/health` says `replace: true`): sits before Send and swaps the note for a field holding the selected text, with **Back to note** and **Replace** (`⌘↵`, disabled while the text is unchanged). Confirming posts `POST /__annot/replace`; on success the popup closes with a toast naming the file, and the host re-renders from its own file watcher. A refusal stays in the popup as a line under the field, so the user can copy what they wrote. While the field is open a new selection does not move the popup. A user edit's panel row offers no action (only the `⋯` menu): it is already in the source.
+
 After Add in Manual mode: the pin appears with dashed `draft` styling, badge increments, popup closes, the mode stays active. A note that goes out at once — Review or Auto, or **Send** in Manual — toasts "Sent. Waiting for the agent.": the pin turning solid is easy to miss, and silence after sending reads as nothing having happened. **Send** does the same and then sends that one note as a batch of one, without going through the send dialog. In immediate mode Add and Send are the same thing, so only Send is shown.
 
 ## Pins and hover cards

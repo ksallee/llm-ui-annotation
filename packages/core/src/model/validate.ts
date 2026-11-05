@@ -1,6 +1,7 @@
 import { isId } from './id.js';
 import {
   ACTORS,
+  ANNOTATION_KINDS,
   MESSAGE_KINDS,
   MODES,
   STATUSES,
@@ -326,6 +327,17 @@ export function validateAnnotation(x: unknown): string[] {
 
   if (x['styleEdits'] !== undefined && p.arr(x['styleEdits'], 'styleEdits')) {
     x['styleEdits'].forEach((e, i) => checkStyleEdit(p, e, `styleEdits[${i}]`));
+  }
+
+  if (x['kind'] !== undefined) p.oneOf(x['kind'], ANNOTATION_KINDS, 'kind');
+  if (x['kind'] === 'replace') {
+    if (x['mode'] !== 'text') p.add('mode: a replace annotation is text');
+    if (p.rec(x['replacement'], 'replacement')) {
+      p.capped(x['replacement']['text'], 'replacement.text', LIMITS.text);
+      p.capped(x['replacement']['file'], 'replacement.file', LIMITS.selector);
+    }
+  } else if (x['replacement'] !== undefined) {
+    p.add('replacement: only on a replace annotation');
   }
 
   if (x['anchorState'] !== undefined) {

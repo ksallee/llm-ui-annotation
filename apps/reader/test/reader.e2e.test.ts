@@ -221,4 +221,50 @@ describe('reader end to end', () => {
     expect(shot.visible).toBe(0);
     expect(routeJson().annotations.find((a) => a.id === id)?.status).toBe('approved');
   });
+
+  it('replaces a selection in the source file from the popup and re-renders the page', async () => {
+    const block = 'opening/1';
+    const quote = 'of no particular interest';
+    await page.evaluate(
+      ({ block, quote }) => {
+        const node = document.querySelector(`[data-annot-block="${block}"]`)?.firstChild as Text | null;
+        if (!node) throw new Error(`no text in ${block}`);
+        const at = node.data.indexOf(quote);
+        const range = document.createRange();
+        range.setStart(node, at);
+        range.setEnd(node, at + quote.length);
+        window.getSelection()?.removeAllRanges();
+        window.getSelection()?.addRange(range);
+        document.dispatchEvent(new Event('selectionchange'));
+      },
+      { block, quote },
+    );
+    await until('the chip on the new selection', async () =>
+      page.evaluate((q: string) => {
+        const state = (document.querySelector('annot-overlay') as unknown as { state: OverlayState }).state;
+        return (state.textChip?.target as { quote?: string } | null)?.quote === q ? true : null;
+      }, quote),
+    );
+
+    await page.getByRole('button', { name: 'Annotate' }).click();
+    await page.getByRole('button', { name: 'Replace', exact: true }).click();
+    const field = page.getByLabel('Replace the selected text with');
+    expect(await field.inputValue()).toBe(quote);
+    await field.fill('of passing interest');
+    await page.getByRole('button', { name: /^Replace/ }).click();
+
+    await until('the file on disk', async () =>
+      readFileSync(doc, 'utf8').includes('the opening, of passing interest to anyone.') ? true : null,
+    );
+    expect(readFileSync(doc, 'utf8')).toBe(
+      readFileSync(FIXTURE, 'utf8').replace(quote, 'of passing interest'),
+    );
+    await until('the re-rendered paragraph', async () =>
+      page
+        .evaluate((b: string) => document.querySelector(`[data-annot-block="${b}"]`)?.textContent ?? '', block)
+        .then((text) => (text.includes('of passing interest') ? text : null)),
+    );
+    const edit = routeJson().annotations.find((a) => a.kind === 'replace');
+    expect(edit).toMatchObject({ status: 'approved', replacement: { text: 'of passing interest', file: doc } });
+  });
 });

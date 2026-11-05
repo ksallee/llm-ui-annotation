@@ -108,6 +108,19 @@ describe('validateAnnotation', () => {
     expect(validateAnnotation(a)).toEqual([]);
   });
 
+  it('accepts a replace annotation and refuses a replacement on a note', () => {
+    const replace = { ...TEXT_ANNOTATION, kind: 'replace', replacement: { text: 'one file', file: 'docs/a.md' } };
+    expect(validateAnnotation(replace)).toEqual([]);
+    expect(validateAnnotation({ ...ELEMENT_ANNOTATION, kind: 'replace', replacement: { text: 'x', file: 'a.md' } })).toContain(
+      'mode: a replace annotation is text',
+    );
+    expect(validateAnnotation({ ...TEXT_ANNOTATION, kind: 'replace' })).toContain('replacement: expected object, got undefined');
+    expect(validateAnnotation({ ...TEXT_ANNOTATION, replacement: { text: 'x', file: 'a.md' } })).toContain(
+      'replacement: only on a replace annotation',
+    );
+    expect(validateAnnotation({ ...TEXT_ANNOTATION, kind: 'edit' })[0]).toMatch(/^kind:/);
+  });
+
   it('reads a v1 route file, whose text targets have no blocks', () => {
     const file = JSON.parse(readFileSync(V1_ROUTE, 'utf8')) as RouteFile;
     for (const a of file.annotations) {

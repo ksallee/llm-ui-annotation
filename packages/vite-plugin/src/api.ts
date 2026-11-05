@@ -15,6 +15,7 @@ import {
 import { ApiError, badRequest, notFound } from './errors.js';
 import { assertSameOrigin, readBody, readJson, sendError, sendJson } from './http.js';
 import type { ResolvedOptions } from './options.js';
+import { replaceInSource } from './replace.js';
 import type { Store } from './store.js';
 
 const HEARTBEAT_MS = 15_000;
@@ -93,7 +94,12 @@ export function createApi(
   };
 
   on('GET', '/health', (_req, res) => {
-    sendJson(res, 200, { ok: true, protocolVersion: PROTOCOL_VERSION, dir: store.dir });
+    sendJson(res, 200, {
+      ok: true,
+      protocolVersion: PROTOCOL_VERSION,
+      dir: store.dir,
+      ...(options.sourceFile ? { replace: true } : {}),
+    });
   });
 
   on('GET', '/routes', async (_req, res) => {
@@ -137,6 +143,10 @@ export function createApi(
       `[annot] batch ${batch.id} sent, ${batch.annotationIds.length} item${batch.annotationIds.length === 1 ? '' : 's'} on ${batch.route}`,
     );
     sendJson(res, 201, batch);
+  });
+
+  on('POST', '/replace', async (req, res) => {
+    sendJson(res, 201, await replaceInSource(store, options, await readJson(req)));
   });
 
   on('GET', '/events', async (_req, res, _params, url) => {

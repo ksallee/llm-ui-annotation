@@ -29,6 +29,7 @@ export function connectLive(
       return;
     }
     state.connection = options.hot ? 'connected' : 'polling';
+    state.canReplace = health.replace === true;
     try {
       state.hydrate(await client.route(state.route));
     } catch {

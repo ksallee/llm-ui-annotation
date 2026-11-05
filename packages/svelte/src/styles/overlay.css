@@ -147,6 +147,12 @@
   color: var(--annot-ink-2);
 }
 
+.error {
+  margin: 0;
+  color: var(--annot-question);
+  font-size: var(--annot-text-sm);
+}
+
 .sr {
   position: absolute;
   width: 1px;

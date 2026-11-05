@@ -25,6 +25,7 @@ export default defineConfig({
 | `routeKey` | pathname of the URL | Route for an annotation posted without one. |
 | `basePath` | `'/__annot'` | Prefix for every endpoint. |
 | `include` | every page | Page URL globs (`*`, `**`, `?`) to inject on. |
+| `sourceFile` | none | `(route) => path` of the markdown behind a route; turns on `POST /__annot/replace`. |
 | `watch` | `'native'` | `native` uses `fs.watch`, `poll` stats every 500 ms. |
 
 `ANNOT_DIR` is what lets `tools/qa.mjs` give each headless run its own storage, so parallel

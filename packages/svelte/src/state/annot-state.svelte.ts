@@ -47,7 +47,7 @@ export type SelectHow = 'toggle' | 'range' | 'only';
 /** Which statuses each bulk action may act on. */
 const BULK_ALLOWS: Record<BulkAction, (a: Annotation) => boolean> = {
   approve: (a) => a.status === 'review',
-  reopen: (a) => a.status === 'review' || a.status === 'approved',
+  reopen: (a) => (a.status === 'review' || a.status === 'approved') && a.kind !== 'replace',
   send: (a) => a.status === 'draft' && a.comment.trim().length > 0,
   // `.annotations/` is a scratch directory, not an audit log: a note sent by mistake has to go.
   delete: () => true,
@@ -79,6 +79,10 @@ export interface PopupState {
   draftId: string | null;
   /** The selection a text note is about, painted while the note is open. */
   range: Range | null;
+  /** The text that will take the quote's place; null while writing a note. */
+  replacing: string | null;
+  /** Why the server refused the replacement. */
+  error: string | null;
 }
 
 const tooLarge = (name: string): string =>
@@ -150,6 +154,8 @@ export class AnnotState {
   seq = $state(0);
   nextNumber = $state(1);
   ready = $state(false);
+  /** The dev server can write a text replacement into this page's source. */
+  canReplace = $state(false);
 
   prefs = $state<Prefs>({ ...DEFAULT_PREFS });
   popup = $state<PopupState | null>(null);
@@ -973,8 +979,54 @@ export class AnnotState {
       busy: false,
       draftId: null,
       range,
+      replacing: null,
+      error: null,
     };
     this.#creating = null;
+  }
+
+  /** Swap the note for a field holding the selected text, to be rewritten in the source. */
+  startReplace(): void {
+    const popup = this.popup;
+    if (!popup || popup.target.kind !== 'text' || !this.canReplace) return;
+    popup.replacing = popup.target.quote;
+    popup.error = null;
+  }
+
+  /** Back from the replacement field to the note. */
+  cancelReplace(): void {
+    if (!this.popup) return;
+    this.popup.replacing = null;
+    this.popup.error = null;
+  }
+
+  /** Have the dev server write the replacement into the source; the popup stays open on a refusal. */
+  async confirmReplace(): Promise<void> {
+    const popup = this.popup;
+    if (!popup || popup.busy || popup.replacing === null || popup.target.kind !== 'text') return;
+    if (popup.replacing === popup.target.quote) return;
+    popup.busy = true;
+    popup.error = null;
+    try {
+      const saved = await this.client.replace({
+        route: this.route,
+        url: this.url,
+        target: popup.target,
+        replacement: popup.replacing,
+        viewport: this.viewport(),
+      });
+      this.applyServer(saved);
+      this.announce('Replaced in the source');
+      this.toast(`Replaced in ${saved.replacement?.file.split('/').at(-1) ?? 'the source'}`);
+      this.textChip = null;
+      this.doc.getSelection()?.removeAllRanges();
+      this.closePopup();
+    } catch (error) {
+      popup.error =
+        error instanceof AnnotHttpError ? error.message : 'Dev server not reachable; nothing was written';
+    } finally {
+      popup.busy = false;
+    }
   }
 
   /** Closing without committing takes the early draft, and its attachments, with it. */
