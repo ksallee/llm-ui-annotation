@@ -126,7 +126,9 @@ function extend(doc: Document, from: Range, to: Caret): Range {
 function canReplacePopup(state: AnnotState): boolean {
   const popup = state.popup;
   if (!popup) return true;
-  return popup.mode === 'text' && !popup.editing && !popup.draftId && !popup.comment.trim();
+  return (
+    popup.mode === 'text' && !popup.editing && !popup.draftId && popup.replacing === null && !popup.comment.trim()
+  );
 }
 
 /** Open the popup for whatever the text chip is pointing at. */

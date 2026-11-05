@@ -10,7 +10,7 @@ Give every other workstream a single vocabulary: what an annotation is, how it i
 
 - `id`: 26-char Crockford base32 ULID-like string generated client-side (10-char time prefix + 16 random). Provide `newId(now = Date.now())`. Sortable, no dependency; ids made in the same millisecond increment the random part so the order is strict. Also `isId`, `idTime`, `compareIds`, `nowIso`.
 - All timestamps ISO 8601 UTC strings (`2026-09-05T18:24:41.048Z`).
-- `protocolVersion: 4` (`PROTOCOL_VERSION`). Readers accept every version in `SUPPORTED_PROTOCOL_VERSIONS` — `[1, 2, 3, 4]` — so files written before multi-block highlights keep loading; a v1 text target simply has no `blocks`, a v2 annotation no `styleEdits`. `validateAnnotation` is the one place that decides. `attachments` (spec 11 §1) did **not** bump it: the field is additive and optional, so a v2 reader that predates it sees an annotation without attachments, which is a state it already handles. `tokens` on `ElementRef` (spec 12 §4) does not bump it either, for the same reason. `source`, `declared` and `StyleEdit.rule` (spec 02 §Locating) do not bump it either: they say where something already is, and a reader that drops them loses nothing the user wrote — only the agent's shortcut to the file. `styleEdits` (spec 13) **does** bump it, on a different ground: it is not more description of what is there, it is an instruction, and a reader that drops it silently loses half of what the user said. `Batch.questions` does not bump it, by the same test read the other way: a reader that ignores it delivers every word the user wrote, and the agent merely asks a question it need not have asked. v4 removes the `page` target kind: a v1–3 file may still hold a `page` annotation, which loads, and which a v4 writer refuses (`validateAnnotation` rejects kind `page`).
+- `protocolVersion: 4` (`PROTOCOL_VERSION`). Readers accept every version in `SUPPORTED_PROTOCOL_VERSIONS` — `[1, 2, 3, 4]` — so files written before multi-block highlights keep loading; a v1 text target simply has no `blocks`, a v2 annotation no `styleEdits`. `validateAnnotation` is the one place that decides. `attachments` (spec 11 §1) did **not** bump it: the field is additive and optional, so a v2 reader that predates it sees an annotation without attachments, which is a state it already handles. `tokens` on `ElementRef` (spec 12 §4) does not bump it either, for the same reason. `source`, `declared` and `StyleEdit.rule` (spec 02 §Locating) do not bump it either: they say where something already is, and a reader that drops them loses nothing the user wrote — only the agent's shortcut to the file. `styleEdits` (spec 13) **does** bump it, on a different ground: it is not more description of what is there, it is an instruction, and a reader that drops it silently loses half of what the user said. `Batch.questions` does not bump it, by the same test read the other way: a reader that ignores it delivers every word the user wrote, and the agent merely asks a question it need not have asked. `kind` and `replacement` (a user edit, below) do not bump it either: a `replace` annotation is born `approved`, so an older reader files it in history, and its `comment` already reads `Replaced "…" with "…"`, every word the user wrote. v4 removes the `page` target kind: a v1–3 file may still hold a `page` annotation, which loads, and which a v4 writer refuses (`validateAnnotation` rejects kind `page`).
 
 ## Types (TypeScript, exported from `@llm-ui-annotation/core`)
 
@@ -118,6 +118,8 @@ export interface Annotation {
   resolution: { kind: 'changed' | 'declined'; summary: string } | null;
   attachments?: Attachment[];  // files dropped on the annotation, spec 11 §1
   styleEdits?: StyleEdit[];    // values the user changed in the inspector, spec 13
+  kind?: 'note' | 'replace';   // absent means note; replace is a text edit the user already wrote into the source
+  replacement?: { text: string; file: string };   // on replace only: the new text, the file relative to the project root
   anchorState?: 'exact' | 'moved' | 'lost';   // browser-only, not persisted
 }
 
@@ -163,6 +165,8 @@ export function applyTransition(a: Annotation, to: Status, by: Actor, msg?: Omit
 Every transition appends a `Message` when one is given. The resolution comes from that message: kind `summary` sets `{ kind: 'changed' }`, kind `decline` sets `{ kind: 'declined' }`, both with the message text as the summary (`resolutionFromMessage` is exported). Moving to `review` sets `resolvedAt`; `approve` sets `approvedAt`; `sent` sets `sentAt` unless the annotation was already `sent`; `reopen` clears `resolution`, `resolvedAt`, `approvedAt` and sets `batch` to null — the writer that creates the new batch attaches it with `assignBatch(a, batchId)`.
 
 Also exported: `allowedTransitions(from, by)`, `IllegalTransitionError` (carries `allowed`), `makeMessage`.
+
+A **user edit** is an annotation of `kind: 'replace'`, mode `text`, created by the server once it has written the user's text into the source (`POST /__annot/replace`). It is born `approved` with `approvedAt` set, `batch: null`, one user `comment` message `Replaced "<quote>" with "<text>"`, and it has no transitions: the server refuses them with 409, the overlay offers none.
 
 Deletion is allowed for **any** status. `.annotations/` is a scratch directory, not an audit log: a note sent by mistake has to be removable, and approving it to hide it claims the agent did work it never did. Deleting removes the annotation and its attachment directory.
 
@@ -217,7 +221,7 @@ export interface Event {
 Base path `/__annot`. JSON in and out. CORS off (same origin). Errors `{ error: string, problems?: string[] }`. Request and response shapes are exported as types from core (`HealthResponse`, `RoutesResponse`, `CreateBatchRequest`, `TransitionRequest`, `EventsResponse`, …).
 
 ```
-GET    /__annot/health                          → { ok: true, protocolVersion, dir }
+GET    /__annot/health                          → { ok: true, protocolVersion, dir, replace? }   (replace: true when POST /replace is configured)
 GET    /__annot/routes                          → { routes: string[] }
 GET    /__annot/routes/:slug                    → RouteFile
 POST   /__annot/annotations                     body Annotation (status draft|sent) → Annotation   (assigns number if 0)
@@ -225,12 +229,15 @@ PATCH  /__annot/annotations/:id                 body { comment: string }  → An
 DELETE /__annot/annotations/:id                 draft only → { ok }
 POST   /__annot/batches                         body { route, annotationIds, summary } → Batch      (moves drafts to sent, emits batch.sent)
 POST   /__annot/annotations/:id/transition      body { to: Status, by: Actor, message?: {kind,text,role} , resolution? } → Annotation
+POST   /__annot/replace                         body { route, url, target: TextTarget, replacement, viewport } → Annotation (kind replace), 201
 GET    /__annot/events?since=<seq>              → { events: Event[] }
 GET    /__annot/events/stream?since=<seq>       SSE, one Event per message, heartbeat every 15 s       (used by annot watch)
 POST   /__annot/annotations/:id/attachments     body the file bytes, ?name=<encoded>&by=user|agent → Attachment
 DELETE /__annot/annotations/:id/attachments/:attachmentId       → { ok: true }
 GET    /__annot/attachments/:id/:attachmentId                   → the file
 ```
+
+Replace: the server resolves the route to a source file (plugin option `sourceFile`, 404 without one) and runs `applyReplacement(text, target, replacement)` from core. A container offset is a place in the rendered DOM, not in the markdown, so the anchor in the file is the quote with its prefix and suffix: the three must read in sequence, context compared through inline markup (`* _ \` ~ [ ]`, link targets, escapes) and line markers (`>`, `#`, list bullets) with whitespace collapsed, and exactly once. The replaced span itself must be the quote verbatim, whitespace aside. No match is 409 "changed since this text was selected", two matches 409 "appears more than once", a span crossing markup 409 "crosses formatting"; the file is untouched in every case. On success the file is written atomically, then the user edit is stored and emits `annotation.created` by `user` with the annotation as `data`. Writes to one file are serialized.
 
 Attachments: accepted types `image/png|jpeg|gif|webp|svg+xml`, `application/pdf`, `text/markdown|plain|csv`,
 `application/json`; 20 MB per file, 50 MB and 10 files per annotation. The type is sniffed from magic bytes
@@ -272,7 +279,7 @@ attachments:
   /repo/.annotations/attachments/01J8…/01J9….png   mock-v2.png (image/png, 240 KB)
 ```
 
-`compact` drops styles/context/prefix/suffix; `detailed` adds the `fallbacks`, the full `attrs`, the status and every thread message. Every item ends with its full id so `annot done <id>` is copy-pasteable, and `dir` is joined onto relative attachment paths so they are absolute. Core also exports `renderAnnotationMarkdown`, `renderAnswerMarkdown` and `renderReopenMarkdown` for the answer and reopen sections in spec 06, plus `AGENT_VERBS_FOOTER`.
+`compact` drops styles/context/prefix/suffix; `detailed` adds the `fallbacks`, the full `attrs`, the status and every thread message. Every item ends with its full id so `annot done <id>` is copy-pasteable, and `dir` is joined onto relative attachment paths so they are absolute. Core also exports `renderAnnotationMarkdown`, `renderAnswerMarkdown` and `renderReopenMarkdown` for the answer and reopen sections in spec 06, plus `AGENT_VERBS_FOOTER` and `renderUserEditsMarkdown` (spec 06).
 
 ## Acceptance criteria
 

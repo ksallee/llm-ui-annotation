@@ -12,6 +12,7 @@ DOC=path/to/doc.md pnpm dev:reader
 - Left rail: title, section links, notes count, font size − / +, theme toggle. Right: the overlay's own panel replaces the prototype's notes panel; do not build a second one.
 - The overlay is mounted manually with `mode` defaulting to `text`, `sendMode` defaulting to `review` (the prototype's "every note goes out", the agent's work still reviewed) and `accent` set from the reader's `--accent`. Element mode stays available.
 - Hot reload of the document: the Vite plugin for the reader (`apps/reader/vite-doc-plugin.ts`) watches `DOC` and pushes `doc` over the websocket, like the prototype. Annotations live in `<dirname(DOC)>/.annotations/` by passing `dir` to the shared plugin so notes sit next to the document, as before.
+- The reader passes `sourceFile` for its route, so the popup's **Replace** (spec 04) writes into `DOC` and the watcher above re-renders the page.
 - `route` for the document is `/doc/<basename>`; multi-document sessions are out of scope.
 - Design: keep the prototype's calm reading look (Literata/Fraunces or system serif fallbacks, 66ch measure, warm tinted neutrals from the theme math with the accent). The overlay tokens derive from the same accent so highlights match.
 

@@ -76,13 +76,16 @@
   const line = $derived(targetLine(a.target));
   // Expanding puts the answer/reopen/comment field on screen with its own button; the row-level
   // twins of it would then say the same thing twice.
+  // A user edit is already in the source: there is nothing to reopen, only the ⋯ menu.
+  const offered = $derived(a.kind === 'replace' ? [] : ACTIONS[a.status]);
   const actions = $derived(
-    expanded ? ACTIONS[a.status].filter((x) => x.id === 'approve' || x.id === 'send') : ACTIONS[a.status],
+    expanded ? offered.filter((x) => x.id === 'approve' || x.id === 'send') : offered,
   );
   const picked = $derived(annot.selected.has(a.id));
   const attachments = $derived(a.attachments ?? []);
   /** The field an expanded row offers, by status. A draft has nothing to reply to. */
   const form = $derived.by((): ReplyForm | null => {
+    if (a.kind === 'replace') return null;
     if (a.status === 'question') return REPLIES.answer;
     if (a.status === 'review' || a.status === 'approved') return REPLIES.reopen;
     return a.status === 'draft' ? null : REPLIES.comment;

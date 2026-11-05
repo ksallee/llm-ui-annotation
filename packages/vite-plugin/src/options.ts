@@ -18,6 +18,8 @@ export interface AnnotationsOptions {
   /** Page URL globs to inject on; every page when omitted. */
   include?: string[];
   watch?: WatchMode;
+  /** The markdown file behind a route, relative to the Vite root; enables `POST /replace` for it. */
+  sourceFile?: (route: string) => string | null | undefined;
 }
 
 export interface ResolvedOptions {
@@ -29,6 +31,8 @@ export interface ResolvedOptions {
   basePath: string;
   include: string[] | null;
   watch: WatchMode;
+  root: string;
+  sourceFile: ((route: string) => string | null | undefined) | null;
 }
 
 /** Pathname of `url`, which may be absolute or server-relative. */
@@ -57,6 +61,8 @@ export function resolveOptions(options: AnnotationsOptions, root: string): Resol
     basePath: normalizeBasePath(options.basePath ?? DEFAULT_BASE_PATH),
     include: options.include && options.include.length > 0 ? [...options.include] : null,
     watch: options.watch ?? 'native',
+    root,
+    sourceFile: options.sourceFile ?? null,
   };
 }
 

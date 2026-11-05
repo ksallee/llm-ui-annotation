@@ -4,6 +4,7 @@ import {
   renderAnswerMarkdown,
   renderBatchMarkdown,
   renderReopenMarkdown,
+  renderUserEditsMarkdown,
   type RenderLevel,
 } from '../src/index.js';
 import {
@@ -12,6 +13,7 @@ import {
   BATCH,
   GROUP_ANNOTATION,
   TEXT_MULTI_ANNOTATION,
+  TEXT_TARGET,
   annotation,
   elementRef,
   message,
@@ -163,6 +165,27 @@ describe('renderReopenMarkdown', () => {
       [
         `## Reopened #6 (${reopened.id}), new batch 01JBZZZZZZ00000000000000B9`,
         'User: The gaps are still uneven on the middle card.',
+        '',
+      ].join('\n'),
+    );
+  });
+});
+
+describe('renderUserEditsMarkdown', () => {
+  it('lists each edit with its file, the old text and the new', () => {
+    const edit = annotation({
+      number: 7,
+      mode: 'text',
+      target: { ...TEXT_TARGET, quote: 'source of truth' },
+      status: 'approved',
+      kind: 'replace',
+      replacement: { text: 'single source of truth', file: 'docs/sample.md' },
+    });
+    expect(renderUserEditsMarkdown([edit])).toBe(
+      [
+        '## User edits',
+        'The user rewrote this text in the source; the files already hold it. Re-read them before editing nearby.',
+        `- #7 docs/sample.md: "source of truth" → "single source of truth" (${edit.id})`,
         '',
       ].join('\n'),
     );

@@ -12,6 +12,8 @@ import type {
   QuestionLevel,
   Resolution,
   Status,
+  TextTarget,
+  Viewport,
 } from '../model/types.js';
 
 export interface ErrorResponse {
@@ -23,6 +25,8 @@ export interface HealthResponse {
   ok: true;
   protocolVersion: ProtocolVersion;
   dir: string;
+  /** The server can write a text replacement into the page's source (`POST /replace`). */
+  replace?: boolean;
 }
 
 export interface RouteSummary {
@@ -56,6 +60,15 @@ export interface TransitionRequest {
   resolution?: Resolution;
 }
 
+/** A text replacement for the source behind `route`; the server records it as a `replace` annotation. */
+export interface ReplaceRequest {
+  route: string;
+  url: string;
+  target: TextTarget;
+  replacement: string;
+  viewport: Viewport;
+}
+
 export interface EventsResponse {
   events: Event[];
 }
@@ -69,3 +82,4 @@ export interface DeleteResponse {
 export type CreateAnnotationRequest = Annotation;
 export type AnnotationResponse = Annotation;
 export type BatchResponse = Batch;
+export type ReplaceResponse = Annotation;

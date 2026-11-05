@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { FileStore } from '../src/store.js';
-import { BATCH, IDS, makeFixture } from './fixtures.js';
+import { annotation, BATCH, IDS, makeFixture, PRICING } from './fixtures.js';
 import { annot } from './helpers.js';
 
 beforeAll(() => {
@@ -46,6 +46,27 @@ async function sendBatch(dir: string, id: string, annotationIds: string[]): Prom
     data: batch,
   });
   return batch;
+}
+
+/** What the plugin does after it wrote a user's replacement into the source. */
+async function userReplaces(dir: string): Promise<Annotation> {
+  const at = new Date().toISOString();
+  const edit = annotation({
+    id: '01JBZZZZZZEEEEEEEEEEEEEEEE',
+    number: 7,
+    mode: 'text',
+    status: 'approved',
+    batch: null,
+    approvedAt: at,
+    kind: 'replace',
+    replacement: { text: 'Cancel whenever you like', file: 'docs/pricing.md' },
+    target: { ...(PRICING[1]?.target as Annotation['target']) },
+    comment: 'Replaced "Cancel anytime, no questions asked" with "Cancel whenever you like"',
+  });
+  const file = await readRoute(dir, '/pricing');
+  await writeRoute(dir, { ...file, annotations: [...file.annotations, edit] });
+  await appendEvent(dir, { at, type: 'annotation.created', by: 'user', route: '/pricing', annotationId: edit.id, data: edit });
+  return edit;
 }
 
 describe('watch', () => {
@@ -180,5 +201,22 @@ describe('watch', () => {
     expect(parsed.batches[0]?.annotations.map((a) => a.id)).toEqual([IDS.a, IDS.b, IDS.c]);
     expect(parsed.answers).toEqual([]);
     expect(parsed.events.map((e) => e.seq)).toEqual([1]);
+  });
+
+  it('wakes on a user edit and prints it under User edits, which pending never lists', async () => {
+    const { dir } = await makeFixture();
+    await annot(dir, 'watch', '--timeout', '5');
+    const edit = await userReplaces(dir);
+
+    const res = await annot(dir, 'watch', '--timeout', '5');
+    expect(res.code).toBe(0);
+    expect(res.out).toContain('## User edits');
+    expect(res.out).toContain(
+      `- #7 docs/pricing.md: "Cancel anytime, no questions asked" → "Cancel whenever you like" (${edit.id})`,
+    );
+    expect(res.out).not.toContain('## Feedback batch');
+
+    const pending = await annot(dir, 'pending');
+    expect(pending.out).not.toContain(edit.id);
   });
 });

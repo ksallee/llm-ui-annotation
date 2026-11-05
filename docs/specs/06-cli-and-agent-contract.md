@@ -17,7 +17,7 @@ Claude Code can run a shell command in the background and is re-invoked when it 
 ```
 annot watch [--since <seq>|--from-now] [--timeout <sec>] [--route <path>] [--level compact|standard|detailed]
 ```
-Blocks until at least one `batch.sent`, `status.changed` to `acknowledged` by user (an answer), `status.changed` to `sent` by user from `review`/`approved` (a reopen), or `thread.message` by user arrives after the cursor. Events by the agent never wake it. Waits 1.5 s after the first event to collect the rest of the batch, then prints the markdown from `renderBatchMarkdown` for each batch (answers and reopens are rendered as their own short sections) followed by a line `cursor: <seq>` and exits 0. On timeout exits 124 with no stdout. Cursor file `<dir>/.cursor-<agentName>` (`--agent`, `ANNOT_AGENT`, default `agent`) is written when something was delivered, so a plain `annot watch` in a loop never re-delivers; `--since` overrides, `--from-now` skips backlog, `--no-cursor` leaves it alone. The 1.5 s collection window is `ANNOT_COLLECT_MS` for tests. Default timeout 540 s (Claude Code's Bash tool caps at 600 s); the doc recommends `run_in_background`.
+Blocks until at least one `batch.sent`, `status.changed` to `acknowledged` by user (an answer), `status.changed` to `sent` by user from `review`/`approved` (a reopen), or `thread.message` by user, or `annotation.created` by user carrying a `replace` annotation (a user edit), arrives after the cursor. Events by the agent never wake it. Waits 1.5 s after the first event to collect the rest of the batch, then prints the markdown from `renderBatchMarkdown` for each batch (answers and reopens are rendered as their own short sections) followed by a line `cursor: <seq>` and exits 0. On timeout exits 124 with no stdout. Cursor file `<dir>/.cursor-<agentName>` (`--agent`, `ANNOT_AGENT`, default `agent`) is written when something was delivered, so a plain `annot watch` in a loop never re-delivers; `--since` overrides, `--from-now` skips backlog, `--no-cursor` leaves it alone. The 1.5 s collection window is `ANNOT_COLLECT_MS` for tests. Default timeout 540 s (Claude Code's Bash tool caps at 600 s); the doc recommends `run_in_background`.
 
 ```
 annot pending [--route <path>] [--level …]      everything in sent|acknowledged|question (grouped by route). Idempotent. Exit 0 even if empty.
@@ -74,6 +74,14 @@ A (user): Only Pro. Free stays 40px.
 
 ## Reopened #6 (01J8…), new batch 01J9…
 User: The gaps are still uneven on the middle card.
+```
+
+User edits — text the user rewrote in the source from the browser — come last, in one section (`renderUserEditsMarkdown`). They are `approved`, so `pending` never lists them; `--json` puts them under `edits`.
+
+```
+## User edits
+The user rewrote this text in the source; the files already hold it. Re-read them before editing nearby.
+- #7 docs/sample.md: "source of truth" → "single source of truth" (01J8…)
 ```
 
 ## The agent section for the host project's CLAUDE.md

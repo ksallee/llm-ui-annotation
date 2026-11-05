@@ -164,6 +164,19 @@ export interface StyleEdit {
   rule?: { selector: string; file?: string };
 }
 
+/** `note` asks the agent for a change; `replace` records text the user already rewrote in the source. */
+export type AnnotationKind = 'note' | 'replace';
+
+export const ANNOTATION_KINDS: readonly AnnotationKind[] = ['note', 'replace'];
+
+/** What a `replace` annotation wrote, and where. */
+export interface Replacement {
+  /** The text that took the quote's place. */
+  text: string;
+  /** The source file, relative to the project root. */
+  file: string;
+}
+
 export interface Annotation {
   id: string;
   protocolVersion: ProtocolVersion;
@@ -190,6 +203,10 @@ export interface Annotation {
   attachments?: Attachment[];
   /** Values the user changed in the inspector, for the agent to put in the source. */
   styleEdits?: StyleEdit[];
+  /** Absent means `note`. */
+  kind?: AnnotationKind;
+  /** Present on a `replace` annotation. */
+  replacement?: Replacement;
   /** Browser-only, not persisted. */
   anchorState?: AnchorState;
 }

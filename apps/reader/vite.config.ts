@@ -16,6 +16,7 @@ export default defineConfig({
       dir: process.env['ANNOT_DIR'] ?? join(dirname(doc), '.annotations'),
       inject: false,
       routeKey: () => docRoute(doc),
+      sourceFile: (route) => (route === docRoute(doc) ? doc : undefined),
     }),
   ],
   server: { host: '127.0.0.1' },

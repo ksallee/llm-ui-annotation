@@ -230,6 +230,28 @@ export class Store {
     });
   }
 
+  /** Store a user edit already written to the source. It is born approved and never sent. */
+  async recordReplacement(annotation: Annotation): Promise<Annotation> {
+    return this.withRoute(annotation.route, async () => {
+      const file = await this.mutableRoute(annotation.route);
+      const number = Math.max(file.nextNumber, ...file.annotations.map((a) => a.number + 1));
+      const next: Annotation = { ...annotation, number };
+      file.nextNumber = number + 1;
+      file.annotations.push(next);
+      await this.save(file);
+      await this.emit({
+        at: next.createdAt,
+        type: 'annotation.created',
+        by: 'user',
+        route: file.route,
+        annotationId: next.id,
+        data: next,
+      });
+      this.change({ kind: 'annotation', annotation: next });
+      return next;
+    });
+  }
+
   async patchAnnotation(id: string, patch: { comment: string }): Promise<Annotation> {
     const route = await this.routeOf(id);
     return this.withRoute(route, async () => {
@@ -356,6 +378,9 @@ export class Store {
       const file = await this.mutableRoute(route);
       const at = this.locate(file, id);
       const previous = file.annotations[at] as Annotation;
+      if (previous.kind === 'replace') {
+        throw conflict(`#${previous.number} is a user edit, already in the source; it has no transitions`);
+      }
       if (!canTransition(previous.status, req.to, req.by)) {
         throw conflict(
           `illegal transition ${previous.status} -> ${req.to} by ${req.by}`,

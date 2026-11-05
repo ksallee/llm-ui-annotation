@@ -15,6 +15,7 @@
 
   let card = $state<HTMLElement | null>(null);
   let area = $state<HTMLTextAreaElement | null>(null);
+  let replaceArea = $state<HTMLTextAreaElement | null>(null);
   let height = $state(220);
 
   const popup = $derived(annot.popup!);
@@ -53,8 +54,19 @@
     );
   });
 
+  const replacing = $derived(popup.replacing !== null);
+  const offersReplace = $derived(popup.mode === 'text' && !popup.editing && annot.canReplace);
+  const unchanged = $derived(
+    popup.target.kind === 'text' && (popup.replacing ?? '') === popup.target.quote,
+  );
+
   $effect(() => {
-    area?.focus();
+    if (replacing) {
+      replaceArea?.focus();
+      replaceArea?.select();
+    } else {
+      area?.focus();
+    }
   });
 
   $effect(() => {
@@ -95,61 +107,90 @@
     }
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.stopPropagation();
-      commit(e.shiftKey);
+      if (replacing) void annot.confirmReplace();
+      else commit(e.shiftKey);
     }
   }}
 >
-  <textarea
-    class="field"
-    bind:this={area}
-    bind:value={popup.comment}
-    oninput={grow}
-    rows="2"
-    placeholder="What should change?"
-    aria-label="What should change?"
-  ></textarea>
-
-  {#if annot.styleEdits.length > 0}
-    <span class="muted"
-      >{annot.styleEdits.length} CSS change{annot.styleEdits.length === 1 ? '' : 's'}</span
-    >
-  {/if}
-
-  {#if attachedTo}
-    <Attachments {annot} id={attachedTo} items={attachments} />
-  {/if}
-
-  <span class="drop-hint"><Icon name="clip" size={14} /> Drop to attach</span>
-
-  <div class="row">
-    <button
-      class="btn quiet small"
-      aria-expanded={popup.detail}
-      onclick={() => (popup.detail = !popup.detail)}>details {popup.detail ? '▴' : '▾'}</button
-    >
-    <span class="spacer"></span>
-    {#if popup.editing}
-      <button class="btn primary small" disabled={!popup.comment.trim()} onclick={() => commit(false)}>
-        Save<kbd>⌘↵</kbd>
+  {#if popup.replacing !== null}
+    <textarea
+      class="field"
+      bind:this={replaceArea}
+      bind:value={popup.replacing}
+      oninput={grow}
+      rows="2"
+      aria-label="Replace the selected text with"
+    ></textarea>
+    {#if popup.error}
+      <p class="error" role="alert">{popup.error}</p>
+    {/if}
+    <div class="row">
+      <button class="btn quiet small" onclick={() => annot.cancelReplace()}>Back to note</button>
+      <span class="spacer"></span>
+      <button
+        class="btn primary small"
+        disabled={unchanged || popup.busy}
+        onclick={() => void annot.confirmReplace()}
+      >
+        Replace<kbd>⌘↵</kbd>
       </button>
-    {:else}
-      {#if annot.sendMode === 'manual'}
+    </div>
+  {:else}
+    <textarea
+      class="field"
+      bind:this={area}
+      bind:value={popup.comment}
+      oninput={grow}
+      rows="2"
+      placeholder="What should change?"
+      aria-label="What should change?"
+    ></textarea>
+
+    {#if annot.styleEdits.length > 0}
+      <span class="muted"
+        >{annot.styleEdits.length} CSS change{annot.styleEdits.length === 1 ? '' : 's'}</span
+      >
+    {/if}
+
+    {#if attachedTo}
+      <Attachments {annot} id={attachedTo} items={attachments} />
+    {/if}
+
+    <span class="drop-hint"><Icon name="clip" size={14} /> Drop to attach</span>
+
+    <div class="row">
+      <button
+        class="btn quiet small"
+        aria-expanded={popup.detail}
+        onclick={() => (popup.detail = !popup.detail)}>details {popup.detail ? '▴' : '▾'}</button
+      >
+      <span class="spacer"></span>
+      {#if popup.editing}
         <button class="btn primary small" disabled={!popup.comment.trim()} onclick={() => commit(false)}>
-          Add<kbd>⌘↵</kbd>
+          Save<kbd>⌘↵</kbd>
+        </button>
+      {:else}
+        {#if offersReplace}
+          <button class="btn quiet small" onclick={() => annot.startReplace()}>Replace</button>
+        {/if}
+        {#if annot.sendMode === 'manual'}
+          <button class="btn primary small" disabled={!popup.comment.trim()} onclick={() => commit(false)}>
+            Add<kbd>⌘↵</kbd>
+          </button>
+        {/if}
+        <button
+          class="btn small"
+          class:primary={annot.autoSends}
+          disabled={!popup.comment.trim()}
+          onclick={() => commit(true)}
+        >
+          Send<kbd>{annot.sendMode === 'manual' ? '⇧⌘↵' : '⌘↵'}</kbd>
         </button>
       {/if}
-      <button
-        class="btn small"
-        class:primary={annot.autoSends}
-        disabled={!popup.comment.trim()}
-        onclick={() => commit(true)}
-      >
-        Send<kbd>{annot.sendMode === 'manual' ? '⇧⌘↵' : '⌘↵'}</kbd>
-      </button>
-    {/if}
-  </div>
+    </div>
+  {/if}
 
-  {#if popup.detail}
+  {#if popup.detail && !replacing}
     <div class="detail">
       <div class="breadcrumb"><span>›</span><span>{annot.breadcrumb(popup.target)}</span></div>
       {#if quote}

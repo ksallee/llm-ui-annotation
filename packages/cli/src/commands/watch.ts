@@ -3,6 +3,7 @@ import {
   renderAnswerMarkdown,
   renderBatchMarkdown,
   renderReopenMarkdown,
+  renderUserEditsMarkdown,
   type Annotation,
   type Batch,
   type Event,
@@ -17,7 +18,7 @@ import { json, type Io } from '../output.js';
 export const DEFAULT_TIMEOUT_S = 540;
 export const DEFAULT_COLLECT_MS = 1500;
 
-type Wake = 'batch' | 'answer' | 'reopen' | 'comment';
+type Wake = 'batch' | 'answer' | 'reopen' | 'comment' | 'edit';
 
 /** Which events wake the agent, and as what. */
 export function wakeKind(e: Event): Wake | null {
@@ -29,6 +30,7 @@ export function wakeKind(e: Event): Wake | null {
     return null;
   }
   if (e.type === 'thread.message') return e.message?.kind === 'reopen' ? 'reopen' : 'comment';
+  if (e.type === 'annotation.created' && (e.data as Annotation | undefined)?.kind === 'replace') return 'edit';
   return null;
 }
 
@@ -88,6 +90,7 @@ export async function watch(ctx: Context, args: Args, io: Io): Promise<number> {
   const answers: Annotation[] = [];
   const reopens: Annotation[] = [];
   const comments: { annotation: Annotation; message: Message }[] = [];
+  const edits: Annotation[] = [];
   const seen = new Set<string>();
 
   for (const event of woke) {
@@ -112,19 +115,23 @@ export async function watch(ctx: Context, args: Args, io: Io): Promise<number> {
     seen.add(`${kind}:${a.id}`);
     if (kind === 'answer') answers.push(a);
     else if (kind === 'reopen') reopens.push(a);
+    else if (kind === 'edit') edits.push(a);
     else if (event.message) comments.push({ annotation: a, message: event.message });
   }
 
-  if (batches.length + answers.length + reopens.length + comments.length === 0) return EXIT_TIMEOUT;
+  if (batches.length + answers.length + reopens.length + comments.length + edits.length === 0) {
+    return EXIT_TIMEOUT;
+  }
 
   if (ctx.json) {
-    json(io, { cursor, batches, answers, reopens, comments, events });
+    json(io, { cursor, batches, answers, reopens, comments, edits, events });
   } else {
     const blocks = [
       ...batches.map((b) => renderBatchMarkdown(b.batch, b.annotations, opts).trimEnd()),
       ...answers.map((a) => renderAnswerMarkdown(a).trimEnd()),
       ...reopens.map((a) => renderReopenMarkdown(a, a.batch).trimEnd()),
       ...comments.map((c) => renderCommentMarkdown(c.annotation, c.message).trimEnd()),
+      ...(edits.length > 0 ? [renderUserEditsMarkdown(edits).trimEnd()] : []),
     ];
     io.out(`${blocks.join('\n\n')}\n\ncursor: ${cursor}`);
   }

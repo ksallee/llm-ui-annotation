@@ -281,3 +281,17 @@ export function renderReopenMarkdown(a: Annotation, batchId: string | null = a.b
   if (reopen) lines.push(`User: ${oneLine(reopen.text)}`);
   return `${lines.join('\n')}\n`;
 }
+
+/** The short section listing text the user rewrote in the source themselves. */
+export function renderUserEditsMarkdown(edits: readonly Annotation[]): string {
+  const lines = [
+    '## User edits',
+    'The user rewrote this text in the source; the files already hold it. Re-read them before editing nearby.',
+  ];
+  for (const a of edits) {
+    const quote = a.target.kind === 'text' ? a.target.quote : '';
+    const file = a.replacement?.file ?? '';
+    lines.push(`- #${a.number} ${file}: "${oneLine(quote)}" → "${oneLine(a.replacement?.text ?? '')}" (${a.id})`);
+  }
+  return `${lines.join('\n')}\n`;
+}
